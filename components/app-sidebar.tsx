@@ -20,7 +20,6 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -66,8 +65,8 @@ function NavLink({
 
   if (collapsed) {
     return (
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+      <Tooltip>
+        <TooltipTrigger render={linkContent} />
         <TooltipContent side="right" className="font-medium">
           {label}
         </TooltipContent>
@@ -83,6 +82,7 @@ function ThemeToggle() {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -201,14 +201,16 @@ function MobileHeader() {
       <div className="flex items-center gap-1">
         <ThemeToggle />
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-sidebar-foreground"
-            >
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+          <SheetTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-sidebar-foreground"
+              />
+            }
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </SheetTrigger>
           <SheetContent
             side="left"

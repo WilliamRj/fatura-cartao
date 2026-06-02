@@ -17,6 +17,9 @@ const AuthContext = React.createContext<AuthContextType>({
   signOut: async () => {},
 });
 
+// Import login page dynamically to avoid circular dependency
+const LoginPage = React.lazy(() => import("@/app/login/page").then(m => ({ default: m.default })));
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -53,8 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Redirect to login if not authenticated
   if (!user) {
-    // Import login page dynamically to avoid circular dependency
-    const LoginPage = React.lazy(() => import("@/app/login/page").then(m => ({ default: m.default })));
     return (
       <React.Suspense fallback={<FullPageLoading />}>
         <LoginPage />

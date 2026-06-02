@@ -91,7 +91,8 @@ export default function RelatoriosPage() {
                         borderRadius: "8px",
                         color: "hsl(var(--foreground))",
                       }}
-                      formatter={(value: any) => [
+                      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [
                         formatCurrency(value),
                         "Total",
                       ]}
@@ -181,7 +182,8 @@ export default function RelatoriosPage() {
                           borderRadius: "8px",
                           color: "hsl(var(--foreground))",
                         }}
-                        formatter={(value: any) => [formatCurrency(value)]}
+                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [formatCurrency(value)]}
                       />
                       <Legend
                         verticalAlign="bottom"
@@ -289,7 +291,8 @@ export default function RelatoriosPage() {
                           borderRadius: "8px",
                           color: "hsl(var(--foreground))",
                         }}
-                        formatter={(value: any) => [
+                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [
                           formatCurrency(value),
                           "Total",
                         ]}

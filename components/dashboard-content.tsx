@@ -186,7 +186,8 @@ export function DashboardContent() {
                       borderRadius: "8px",
                       color: "hsl(var(--foreground))",
                     }}
-                    formatter={(value: number) => [
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [
                       formatCurrency(value),
                       "Total",
                     ]}
@@ -239,7 +240,8 @@ export function DashboardContent() {
                       borderRadius: "8px",
                       color: "hsl(var(--foreground))",
                     }}
-                    formatter={(value: number) => [formatCurrency(value)]}
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [formatCurrency(value)]}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -292,7 +294,8 @@ export function DashboardContent() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
-                  formatter={(value: number) => [formatCurrency(value), "Total"]}
+                  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+formatter={(value: any) => [formatCurrency(value), "Total"]}
                 />
                 <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
                   {gastosPorResponsavel.map((_, index) => (

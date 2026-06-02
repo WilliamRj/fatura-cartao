@@ -1,8 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
-import { TABLES, QUERY_KEYS } from '@/lib/api/endpoints';
+import { QUERY_KEYS } from '@/lib/api/endpoints';
 import type { ApiGasto, CreateGastoRequest, UpdateGastoRequest } from '@/lib/api/types';
 import { gastos as defaultGastos } from '@/lib/data';
 
@@ -97,6 +96,7 @@ export function useUpdateGasto(id: string) {
 }
 
 // Delete expense
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDeleteGasto(id: string) {
   const queryClient = useQueryClient();
 
