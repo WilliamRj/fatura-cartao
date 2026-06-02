@@ -1,20 +1,28 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Tooltip,
   Legend,
-} from "recharts"
-import { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } from "@/lib/mock-data"
+  LineChart,
+  Line,
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  gastosPorCategoria,
+  gastosPorResponsavel,
+  evolucaoMensal,
+  formatCurrency,
+} from "@/lib/data";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -22,171 +30,341 @@ const COLORS = [
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-]
-
-const relatorioMensal = [
-  { mes: "Agosto", valor: 2450.00 },
-  { mes: "Setembro", valor: 2780.00 },
-  { mes: "Outubro", valor: 2156.43 },
-  { mes: "Novembro", valor: 2890.00 },
-  { mes: "Dezembro", valor: 3521.87 },
-  { mes: "Janeiro", valor: 2847.94 },
-]
+];
 
 export default function RelatoriosPage() {
-  const totalGeral = relatorioMensal.reduce((acc, m) => acc + m.valor, 0)
-  const mediaGeral = totalGeral / relatorioMensal.length
+  const totalGeral = gastosPorCategoria.reduce((acc, g) => acc + g.valor, 0);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Relatorios</h1>
-        <p className="text-muted-foreground">Analise detalhada dos seus gastos</p>
+        <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
+        <p className="text-muted-foreground">
+          Analise detalhada dos seus gastos
+        </p>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total (6 meses)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-card-foreground">
-              R$ {totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Media Mensal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-card-foreground">
-              R$ {mediaGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Maior Gasto Mensal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-card-foreground">
-              R$ {Math.max(...relatorioMensal.map(m => m.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground">Dezembro</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="mensal" className="space-y-6">
+        <TabsList className="bg-muted">
+          <TabsTrigger value="mensal">Por Mes</TabsTrigger>
+          <TabsTrigger value="categoria">Por Categoria</TabsTrigger>
+          <TabsTrigger value="responsavel">Por Responsavel</TabsTrigger>
+        </TabsList>
 
-      {/* Grafico por Mes */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-card-foreground">Total Gasto por Mes</CardTitle>
-          <CardDescription>Comparativo dos ultimos 6 meses</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={relatorioMensal}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis tickFormatter={(value) => `R$ ${value}`} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip 
-                  formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Valor"]}
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--card-foreground))"
-                  }}
-                />
-                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <TabsContent value="mensal" className="space-y-6">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-foreground">
+                Evolucao dos Gastos Mensais
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={evolucaoMensal}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--border))"
+                    />
+                    <XAxis
+                      dataKey="mes"
+                      tick={{
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 12,
+                      }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                    />
+                    <YAxis
+                      tick={{
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 12,
+                      }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickFormatter={(value) =>
+                        `R$ ${(value / 1000).toFixed(1)}k`
+                      }
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                      formatter={(value: number) => [
+                        formatCurrency(value),
+                        "Total",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="valor"
+                      stroke="hsl(var(--chart-1))"
+                      strokeWidth={3}
+                      dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {evolucaoMensal.slice(-3).map((mes, index) => (
+              <Card key={mes.mes} className="bg-card border-border">
+                <CardContent className="p-6">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">{mes.mes}</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(mes.valor)}
+                    </p>
+                    {index > 0 && (
+                      <p
+                        className={`text-xs ${
+                          mes.valor > evolucaoMensal[evolucaoMensal.length - 3 + index - 1].valor
+                            ? "text-destructive"
+                            : "text-success"
+                        }`}
+                      >
+                        {mes.valor > evolucaoMensal[evolucaoMensal.length - 3 + index - 1].valor
+                          ? "+"
+                          : ""}
+                        {(
+                          ((mes.valor - evolucaoMensal[evolucaoMensal.length - 3 + index - 1].valor) /
+                            evolucaoMensal[evolucaoMensal.length - 3 + index - 1].valor) *
+                          100
+                        ).toFixed(1)}
+                        % vs mes anterior
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Grafico por Categoria */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Total por Categoria</CardTitle>
-            <CardDescription>Distribuicao dos gastos do mes atual</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={gastosPorCategoria}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={120}
-                    dataKey="valor"
-                    nameKey="categoria"
-                    label={({ categoria, valor }) => `${categoria}: R$ ${valor.toFixed(0)}`}
-                    labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
-                  >
-                    {gastosPorCategoria.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Valor"]}
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--card-foreground))"
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="categoria" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Distribuicao por Categoria
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={gastosPorCategoria}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={140}
+                        paddingAngle={2}
+                        dataKey="valor"
+                        nameKey="categoria"
+                      >
+                        {gastosPorCategoria.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                        formatter={(value: number) => [formatCurrency(value)]}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        formatter={(value) => (
+                          <span
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            {value}
+                          </span>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Grafico por Responsavel */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Total por Responsavel</CardTitle>
-            <CardDescription>Quem gastou quanto no mes atual</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gastosPorResponsavel}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="responsavel" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis tickFormatter={(value) => `R$ ${value}`} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip 
-                    formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Valor"]}
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--card-foreground))"
-                    }}
-                  />
-                  <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
-                    {gastosPorResponsavel.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Detalhamento por Categoria
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {gastosPorCategoria.map((cat, index) => {
+                    const percentage = (cat.valor / totalGeral) * 100;
+                    return (
+                      <div key={cat.categoria} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{
+                                backgroundColor: COLORS[index % COLORS.length],
+                              }}
+                            />
+                            <span className="text-sm text-foreground">
+                              {cat.categoria}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-foreground">
+                              {formatCurrency(cat.valor)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {percentage.toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: COLORS[index % COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="responsavel" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Gastos por Responsavel
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={gastosPorResponsavel}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                      />
+                      <XAxis
+                        dataKey="responsavel"
+                        tick={{
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12,
+                        }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                      />
+                      <YAxis
+                        tick={{
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12,
+                        }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                        tickFormatter={(value) => `R$ ${value}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--foreground))",
+                        }}
+                        formatter={(value: number) => [
+                          formatCurrency(value),
+                          "Total",
+                        ]}
+                      />
+                      <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                        {gastosPorResponsavel.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Participacao por Responsavel
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {gastosPorResponsavel.map((resp, index) => {
+                    const totalResp = gastosPorResponsavel.reduce(
+                      (acc, r) => acc + r.valor,
+                      0
+                    );
+                    const percentage = (resp.valor / totalResp) * 100;
+                    return (
+                      <div key={resp.responsavel} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold"
+                              style={{
+                                backgroundColor: COLORS[index % COLORS.length],
+                              }}
+                            >
+                              {resp.responsavel.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {resp.responsavel}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {percentage.toFixed(1)}% do total
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-lg font-bold text-foreground">
+                            {formatCurrency(resp.valor)}
+                          </p>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: COLORS[index % COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
-  )
+  );
 }
