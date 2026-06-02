@@ -229,7 +229,10 @@ export default function GastosPage() {
                 />
               </div>
             </div>
-            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+            <Select 
+  value={categoriaFilter} 
+  onValueChange={(val) => setCategoriaFilter(val ?? "todos")}
+>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
@@ -244,7 +247,7 @@ export default function GastosPage() {
             </Select>
             <Select
               value={responsavelFilter}
-              onValueChange={setResponsavelFilter}
+              onValueChange={(val) => setResponsavelFilter(val ?? "all")}
             >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Responsavel" />
@@ -413,7 +416,7 @@ export default function GastosPage() {
                 </label>
                 <Select
                   value={editedCategoria}
-                  onValueChange={setEditedCategoria}
+                  onValueChange={(val) => setEditedCategoria(val ?? "")}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -433,7 +436,7 @@ export default function GastosPage() {
                 </label>
                 <Select
                   value={editedResponsavel}
-                  onValueChange={setEditedResponsavel}
+                  onValueChange={(val) => setEditedResponsavel(val ?? "")}
                 >
                   <SelectTrigger>
                     <SelectValue />
