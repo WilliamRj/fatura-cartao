@@ -91,7 +91,7 @@ export default function RelatoriosPage() {
                         borderRadius: "8px",
                         color: "hsl(var(--foreground))",
                       }}
-                      formatter={(value: number) => [
+                      formatter={(value: any) => [
                         formatCurrency(value),
                         "Total",
                       ]}
@@ -181,7 +181,7 @@ export default function RelatoriosPage() {
                           borderRadius: "8px",
                           color: "hsl(var(--foreground))",
                         }}
-                        formatter={(value: number) => [formatCurrency(value)]}
+                        formatter={(value: any) => [formatCurrency(value)]}
                       />
                       <Legend
                         verticalAlign="bottom"
@@ -289,7 +289,7 @@ export default function RelatoriosPage() {
                           borderRadius: "8px",
                           color: "hsl(var(--foreground))",
                         }}
-                        formatter={(value: number) => [
+                        formatter={(value: any) => [
                           formatCurrency(value),
                           "Total",
                         ]}
