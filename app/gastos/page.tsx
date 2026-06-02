@@ -35,18 +35,24 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useGastos, useUpdateGasto } from "@/lib/hooks/useGastos";
 import {
-  gastos,
   categorias,
   responsaveis,
   formatCurrency,
   formatDate,
   type Gasto,
 } from "@/lib/data";
+import { LoadingSkeleton } from "@/components/loading";
+import { ErrorAlert, EmptyState } from "@/components/error";
+import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function GastosPage() {
+  const { data: gastos, isLoading, error, refetch } = useGastos();
+  const updateGasto = useUpdateGasto("");
+
   const [search, setSearch] = React.useState("");
   const [categoriaFilter, setCategoriaFilter] = React.useState("all");
   const [responsavelFilter, setResponsavelFilter] = React.useState("all");
@@ -61,6 +67,8 @@ export default function GastosPage() {
   const [editedObservacao, setEditedObservacao] = React.useState("");
 
   const filteredGastos = React.useMemo(() => {
+    if (!gastos) return [];
+
     let result = [...gastos];
 
     if (search) {
@@ -90,7 +98,7 @@ export default function GastosPage() {
     });
 
     return result;
-  }, [search, categoriaFilter, responsavelFilter, sortField, sortDirection]);
+  }, [gastos, search, categoriaFilter, responsavelFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(filteredGastos.length / ITEMS_PER_PAGE);
   const paginatedGastos = filteredGastos.slice(
@@ -114,9 +122,23 @@ export default function GastosPage() {
     setEditedObservacao(gasto.observacao || "");
   };
 
-  const handleSaveEdit = () => {
-    // In a real app, this would update the database
-    setEditingGasto(null);
+  const handleSaveEdit = async () => {
+    if (!editingGasto) return;
+
+    try {
+      await updateGasto.mutateAsync({
+        categoria: editedCategoria,
+        responsavel: editedResponsavel,
+        observacao: editedObservacao,
+      });
+
+      toast.success("Gasto atualizado com sucesso!");
+      setEditingGasto(null);
+      refetch();
+    } catch (error) {
+      toast.error("Erro ao atualizar gasto");
+      console.error(error);
+    }
   };
 
   const getCategoriaColor = (categoria: string) => {
@@ -132,6 +154,51 @@ export default function GastosPage() {
     };
     return colors[categoria] || "bg-muted text-muted-foreground";
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gastos</h1>
+          <p className="text-muted-foreground">
+            Visualize e gerencie todos os seus gastos
+          </p>
+        </div>
+        <LoadingSkeleton count={5} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gastos</h1>
+          <p className="text-muted-foreground">
+            Visualize e gerencie todos os seus gastos
+          </p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
+  if (!gastos || gastos.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gastos</h1>
+          <p className="text-muted-foreground">
+            Visualize e gerencie todos os seus gastos
+          </p>
+        </div>
+        <EmptyState
+          title="Nenhum gasto encontrado"
+          description="Quando você adicionar gastos, eles aparecerão aqui"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -396,7 +463,12 @@ export default function GastosPage() {
             <Button variant="outline" onClick={() => setEditingGasto(null)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit}>Salvar</Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateGasto.isPending}
+            >
+              {updateGasto.isPending ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
