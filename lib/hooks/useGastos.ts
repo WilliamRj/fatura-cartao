@@ -70,11 +70,11 @@ export function useCreateGasto() {
 }
 
 // Update expense
-export function useUpdateGasto(id: string) {
+export function useUpdateGasto() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (updates: UpdateGastoRequest) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateGastoRequest }) => {
       // const { data, error } = await supabase
       //   .from(TABLES.GASTOS)
       //   .update(updates)
@@ -88,20 +88,20 @@ export function useUpdateGasto(id: string) {
       if (!gasto) throw new Error('Expense not found');
       return { ...gasto, ...updates };
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS_DETAIL(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS_DETAIL(variables.id) });
     },
   });
 }
 
 // Delete expense
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function useDeleteGasto(id: string) {
+export function useDeleteGasto() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mutationFn: async (id: string) => {
       // const { error } = await supabase
       //   .from(TABLES.GASTOS)
       //   .delete()

@@ -32,10 +32,11 @@ import {
   Filter,
   ArrowUpDown,
   Edit2,
+  Trash2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useGastos, useUpdateGasto } from "@/lib/hooks/useGastos";
+import { useGastos, useUpdateGasto, useDeleteGasto } from "@/lib/hooks/useGastos";
 import {
   categorias,
   responsaveis,
@@ -51,7 +52,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function GastosPage() {
   const { data: gastos, isLoading, error, refetch } = useGastos();
-  const updateGasto = useUpdateGasto("");
+  const updateGasto = useUpdateGasto();
+  const deleteGasto = useDeleteGasto();
 
   const [search, setSearch] = React.useState("");
   const [categoriaFilter, setCategoriaFilter] = React.useState("all");
@@ -127,9 +129,12 @@ export default function GastosPage() {
 
     try {
       await updateGasto.mutateAsync({
-        categoria: editedCategoria,
-        responsavel: editedResponsavel,
-        observacao: editedObservacao,
+        id: editingGasto.id,
+        updates: {
+          categoria: editedCategoria,
+          responsavel: editedResponsavel,
+          observacao: editedObservacao,
+        }
       });
 
       toast.success("Gasto atualizado com sucesso!");
@@ -137,6 +142,20 @@ export default function GastosPage() {
       refetch();
     } catch (error) {
       toast.error("Erro ao atualizar gasto");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteGasto = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
+
+    try {
+      await deleteGasto.mutateAsync(id);
+      toast.success("Gasto excluído com sucesso!");
+      refetch();
+    } catch (error) {
+      toast.error("Erro ao excluir gasto");
       console.error(error);
     }
   };
@@ -335,17 +354,27 @@ export default function GastosPage() {
                       {gasto.parcela || "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditModal(gasto);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(gasto);
+                          }}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={(e) => handleDeleteGasto(e, gasto.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
