@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { supabase } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 import { FullPageLoading } from "@/components/loading";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -25,18 +26,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    const checkAuthorization = async (session: Session | null) => {
+      if (!session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("authorized_users")
+          .select("email")
+          .eq("email", session.user.email)
+          .single();
+
+        if (error || !data) {
+          toast.error("Usuário não autorizado");
+          await supabase.auth.signOut();
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        setUser(session.user);
+        setLoading(false);
+      } catch (err) {
+        console.error("Erro ao verificar autorização:", err);
+        toast.error("Erro ao verificar autorização");
+        await supabase.auth.signOut();
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      checkAuthorization(session);
     });
 
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (event === "SIGNED_IN") {
+        checkAuthorization(session);
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     return () => {
