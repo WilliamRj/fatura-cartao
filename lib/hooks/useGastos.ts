@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
-import type { CreateGastoRequest, UpdateGastoRequest } from '@/lib/api/types';
+import type { CreateGastoRequest, UpdateGastoRequest, ApiGasto } from '@/lib/api/types';
 import { supabase } from '@/lib/supabase/client';
 
 // Fetch all expenses
@@ -15,7 +15,7 @@ export function useGastos() {
         .select('*')
         .order('data', { ascending: false });
       if (error) throw error;
-      return data;
+      return (data as unknown) as ApiGasto[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -32,7 +32,7 @@ export function useGasto(id: string) {
         .eq('id', id)
         .single();
       if (error) throw error;
-      return data;
+      return (data as unknown) as ApiGasto;
     },
     enabled: !!id,
   });
@@ -50,7 +50,7 @@ export function useCreateGasto() {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return (data as unknown) as ApiGasto;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
@@ -71,7 +71,7 @@ export function useUpdateGasto() {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return (data as unknown) as ApiGasto;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
