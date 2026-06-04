@@ -17,12 +17,10 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  gastosPorCategoria,
-  gastosPorResponsavel,
-  evolucaoMensal,
-  formatCurrency,
-} from "@/lib/data";
+import { formatCurrency } from "@/lib/data";
+import { useEstatisticas } from "@/lib/hooks/useGastos";
+import { LoadingSkeleton } from "@/components/loading";
+import { ErrorAlert } from "@/components/error";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -33,6 +31,33 @@ const COLORS = [
 ];
 
 export default function RelatoriosPage() {
+  const { data: estatisticas, isLoading, error } = useEstatisticas();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
+          <p className="text-muted-foreground">Analise detalhada dos seus gastos</p>
+        </div>
+        <LoadingSkeleton count={3} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
+          <p className="text-muted-foreground">Analise detalhada dos seus gastos</p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
+  const { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } = estatisticas;
   const totalGeral = gastosPorCategoria.reduce((acc, g) => acc + g.valor, 0);
 
   return (

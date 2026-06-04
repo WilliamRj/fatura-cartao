@@ -37,9 +37,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useGastos, useUpdateGasto, useDeleteGasto } from "@/lib/hooks/useGastos";
+import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import {
   categorias,
-  responsaveis,
   formatCurrency,
   formatDate,
   type Gasto,
@@ -52,6 +52,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function GastosPage() {
   const { data: gastos, isLoading, error, refetch } = useGastos();
+  const { data: responsaveis = [] } = useResponsaveis();
   const updateGasto = useUpdateGasto();
   const deleteGasto = useDeleteGasto();
 

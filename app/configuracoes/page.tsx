@@ -11,21 +11,63 @@ import {
   User,
   Users,
 } from "lucide-react"
-import { responsaveis as responsaveisIniciais } from "@/lib/mock-data"
+import { useResponsaveis, useCreateResponsavel, useDeleteResponsavel } from "@/lib/hooks/useResponsaveis"
+import { LoadingSkeleton } from "@/components/loading"
+import { ErrorAlert } from "@/components/error"
 
 export default function ConfiguracoesPage() {
-  const [responsaveis, setResponsaveis] = React.useState(responsaveisIniciais)
+  const { data: responsaveisData = [], isLoading, error, refetch } = useResponsaveis()
+  const createResponsavel = useCreateResponsavel()
+  const deleteResponsavel = useDeleteResponsavel()
+
   const [novoResponsavel, setNovoResponsavel] = React.useState("")
 
-  const handleAddResponsavel = () => {
-    if (novoResponsavel.trim() && !responsaveis.includes(novoResponsavel.trim())) {
-      setResponsaveis((prev) => [...prev, novoResponsavel.trim()])
-      setNovoResponsavel("")
+  const handleAddResponsavel = async () => {
+    if (novoResponsavel.trim()) {
+      const exists = responsaveisData.some((r) => r.nome.toLowerCase() === novoResponsavel.trim().toLowerCase())
+      if (!exists) {
+        try {
+          await createResponsavel.mutateAsync({ nome: novoResponsavel.trim() })
+          setNovoResponsavel("")
+          refetch()
+        } catch (error) {
+          console.error("Erro ao criar responsável", error)
+        }
+      }
     }
   }
 
-  const handleRemoveResponsavel = (responsavel: string) => {
-    setResponsaveis((prev) => prev.filter((r) => r !== responsavel))
+  const handleRemoveResponsavel = async (id: string) => {
+    try {
+      await deleteResponsavel.mutateAsync(id)
+      refetch()
+    } catch (error) {
+      console.error("Erro ao remover responsável", error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuracoes</h1>
+          <p className="text-muted-foreground">Gerencie as configuracoes do sistema</p>
+        </div>
+        <LoadingSkeleton count={3} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuracoes</h1>
+          <p className="text-muted-foreground">Gerencie as configuracoes do sistema</p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => refetch()} />
+      </div>
+    )
   }
 
   return (
@@ -54,8 +96,9 @@ export default function ConfiguracoesPage() {
               value={novoResponsavel}
               onChange={(e) => setNovoResponsavel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddResponsavel()}
+              disabled={createResponsavel.isPending}
             />
-            <Button onClick={handleAddResponsavel}>
+            <Button onClick={handleAddResponsavel} disabled={createResponsavel.isPending}>
               <Plus className="h-4 w-4 mr-1" />
               Adicionar
             </Button>
@@ -63,22 +106,23 @@ export default function ConfiguracoesPage() {
 
           {/* Lista */}
           <div className="space-y-2">
-            {responsaveis.map((responsavel) => (
+            {responsaveisData.map((responsavel) => (
               <div
-                key={responsavel}
+                key={responsavel.id}
                 className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                     <User className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="font-medium text-card-foreground">{responsavel}</span>
+                  <span className="font-medium text-card-foreground">{responsavel.nome}</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleRemoveResponsavel(responsavel)}
+                  onClick={() => handleRemoveResponsavel(responsavel.id)}
+                  disabled={deleteResponsavel.isPending}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -86,7 +130,7 @@ export default function ConfiguracoesPage() {
             ))}
           </div>
 
-          {responsaveis.length === 0 && (
+          {responsaveisData.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Users className="h-10 w-10 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">Nenhum responsavel cadastrado</p>

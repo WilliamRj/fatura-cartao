@@ -21,10 +21,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { faturas, formatCurrency, formatDate } from "@/lib/data";
+import { formatCurrency, formatDate } from "@/lib/data";
+import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
+import { LoadingSkeleton } from "@/components/loading";
+import { ErrorAlert, EmptyState } from "@/components/error";
 
 export default function FaturasPage() {
   const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
+  const { data: faturas, isLoading, error, refetch } = useFaturas();
+  const deleteFatura = useDeleteFatura();
 
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
     setUploadedFiles((prev) => [...prev, ...acceptedFiles]);
@@ -37,6 +42,34 @@ export default function FaturasPage() {
     },
     multiple: true,
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
+          <p className="text-muted-foreground">
+            Importe e gerencie suas faturas de cartao de credito
+          </p>
+        </div>
+        <LoadingSkeleton count={3} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
+          <p className="text-muted-foreground">
+            Importe e gerencie suas faturas de cartao de credito
+          </p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -133,7 +166,7 @@ export default function FaturasPage() {
           Faturas Importadas
         </h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {faturas.map((fatura) => (
+          {(faturas || []).map((fatura) => (
             <Card
               key={fatura.id}
               className="bg-card border-border hover:border-primary/50 transition-colors"
@@ -144,7 +177,7 @@ export default function FaturasPage() {
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+                    <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
@@ -154,7 +187,14 @@ export default function FaturasPage() {
                         <Eye className="h-4 w-4 mr-2" />
                         Visualizar
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => {
+                          if (confirm("Tem certeza que deseja excluir esta fatura?")) {
+                            deleteFatura.mutate(fatura.id);
+                          }
+                        }}
+                      >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Excluir
                       </DropdownMenuItem>

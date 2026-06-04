@@ -4,9 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Calendar, TrendingUp } from "lucide-react";
-import { parcelamentos, formatCurrency } from "@/lib/data";
+import { formatCurrency } from "@/lib/data";
+import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
+import { LoadingSkeleton } from "@/components/loading";
+import { ErrorAlert, EmptyState } from "@/components/error";
 
 export default function ParcelamentosPage() {
+  const { data: parcelamentos = [], isLoading, error, refetch } = useParcelamentos();
+
   const totalParcelamentos = parcelamentos.reduce(
     (acc, p) => acc + p.valorParcela,
     0
@@ -15,6 +20,34 @@ export default function ParcelamentosPage() {
     (acc, p) => acc + p.valorParcela * (p.totalParcelas - p.parcelaAtual),
     0
   );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Parcelamentos</h1>
+          <p className="text-muted-foreground">
+            Acompanhe todos os seus parcelamentos ativos
+          </p>
+        </div>
+        <LoadingSkeleton count={3} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Parcelamentos</h1>
+          <p className="text-muted-foreground">
+            Acompanhe todos os seus parcelamentos ativos
+          </p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

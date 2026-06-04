@@ -15,15 +15,12 @@ import {
   Bar,
   Legend,
 } from "recharts";
-import {
-  gastos,
-  parcelamentos,
-  formatCurrency,
-  gastosPorCategoria,
-  gastosPorResponsavel,
-  evolucaoMensal,
-} from "@/lib/data";
+import { formatCurrency } from "@/lib/data";
+import { useGastos, useEstatisticas } from "@/lib/hooks/useGastos";
+import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSkeleton } from "@/components/loading";
+import { ErrorAlert } from "@/components/error";
 import {
   Receipt,
   TrendingUp,
@@ -89,6 +86,39 @@ function StatCard({
 }
 
 export function DashboardContent() {
+  const { data: gastos = [], isLoading: isLoadingGastos, error: errorGastos } = useGastos();
+  const { data: parcelamentos = [], isLoading: isLoadingParcelamentos, error: errorParcelamentos } = useParcelamentos();
+  const { data: estatisticas, isLoading: isLoadingEstatisticas } = useEstatisticas();
+
+  const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas;
+  const error = errorGastos || errorParcelamentos;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Visao geral dos seus gastos e faturas</p>
+        </div>
+        <LoadingSkeleton count={3} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Visao geral dos seus gastos e faturas</p>
+        </div>
+        <ErrorAlert error={error as Error} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
+  const { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } = estatisticas;
+
   const totalFatura = gastos.reduce((acc, g) => acc + g.valor, 0);
   const gastosWilliam = gastos
     .filter((g) => g.responsavel === "William")
