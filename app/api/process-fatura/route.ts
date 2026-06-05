@@ -57,7 +57,10 @@ export async function POST(req: NextRequest) {
       1. 'mes_referencia': The month and year of the invoice, based on the 'Emissão' (Issue) date. 
          Example: If Emissão is 30/05/2026, the mes_referencia is 'Maio 2026'.
       2. 'valor_total': The total value of the invoice as a float number.
-      3. 'lancamentos': A list of all purchases/expenses in the invoice. Ignore payments of the previous invoice and fees/taxes if possible, focus on purchases. For each, extract:
+      3. 'lancamentos': A list of all purchases/expenses in the invoice. 
+         IMPORTANT: Include all items listed under "Lançamentos", specifically including items under "produtos e serviços".
+         CRITICAL: You must completely IGNORE and DISCARD any entry that contains "crédito parcelamento" in its description.
+         Ignore payments of the previous invoice and fees/taxes if possible, focus on purchases. For each, extract:
          - 'data': The date of the purchase in YYYY-MM-DD format. Use the invoice year if not specified.
          - 'estabelecimento': The name of the place/store.
          - 'valor': The value of the purchase as a float number.
