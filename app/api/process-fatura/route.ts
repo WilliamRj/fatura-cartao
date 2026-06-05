@@ -150,8 +150,19 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, fatura });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("API error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    
+    const errorMessage = error?.message || "";
+    
+    if (errorMessage.includes("503 Service Unavailable") || errorMessage.includes("high demand")) {
+      return NextResponse.json({ error: "A inteligência artificial está temporariamente indisponível devido à alta demanda. Por favor, tente novamente em alguns instantes." }, { status: 503 });
+    }
+    
+    if (errorMessage.includes("429 Too Many Requests") || errorMessage.includes("quota") || errorMessage.includes("exhausted")) {
+      return NextResponse.json({ error: "O limite de uso (tokens/cota) da inteligência artificial foi atingido. Por favor, tente novamente mais tarde." }, { status: 429 });
+    }
+
+    return NextResponse.json({ error: "Ocorreu um erro interno ao processar a fatura. Tente novamente." }, { status: 500 });
   }
 }
