@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
          IMPORTANT: Include all items listed under "Lançamentos", "Lançamentos: compras e saques", and "produtos e serviços".
          CRITICAL: You must completely IGNORE and DISCARD any entry that contains "crédito parcelamento" in its description.
          Ignore payments of the previous invoice (usually "PAGAMENTO DE FATURA") and fees/taxes if possible, focus on purchases. 
-         DO NOT ignore valid purchases that start with "PG *", "MP *", "APP*" or similar - these are payment gateways (e.g. PagSeguro), NOT invoice payments! For each, extract:
+         DO NOT ignore valid purchases that start with "PG", "MP", "APP" or similar - these are payment gateways (e.g. PagSeguro), NOT invoice payments! For each, extract:
          - 'data': The date of the purchase in YYYY-MM-DD format. Use the invoice year if not specified.
          - 'estabelecimento': The name of the place/store.
          - 'valor': The value of the purchase as a float number.
