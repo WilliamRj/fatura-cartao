@@ -11,15 +11,18 @@ import {
   Trash2,
   User,
   Users,
+  Star,
 } from "lucide-react"
-import { useResponsaveis, useCreateResponsavel, useDeleteResponsavel } from "@/lib/hooks/useResponsaveis"
+import { useResponsaveis, useCreateResponsavel, useDeleteResponsavel, useSetResponsavelPrincipal } from "@/lib/hooks/useResponsaveis"
 import { LoadingSkeleton } from "@/components/loading"
 import { ErrorAlert } from "@/components/error"
+import { cn } from "@/lib/utils"
 
 export default function ConfiguracoesPage() {
   const { data: responsaveisData = [], isLoading, error, refetch } = useResponsaveis()
   const createResponsavel = useCreateResponsavel()
   const deleteResponsavel = useDeleteResponsavel()
+  const setResponsavelPrincipal = useSetResponsavelPrincipal()
 
   const [novoResponsavel, setNovoResponsavel] = React.useState("")
 
@@ -46,8 +49,21 @@ export default function ConfiguracoesPage() {
     try {
       await deleteResponsavel.mutateAsync(id)
       refetch()
+      toast.success("Responsável removido com sucesso!")
     } catch (error) {
       console.error("Erro ao remover responsável", error)
+      toast.error("Erro ao remover responsável")
+    }
+  }
+
+  const handleSetPrincipal = async (id: string) => {
+    try {
+      await setResponsavelPrincipal.mutateAsync(id)
+      refetch()
+      toast.success("Responsável principal definido com sucesso!")
+    } catch (error) {
+      console.error("Erro ao definir responsável principal", error)
+      toast.error("Erro ao definir responsável principal")
     }
   }
 
@@ -121,16 +137,34 @@ export default function ConfiguracoesPage() {
                     <User className="h-4 w-4 text-primary" />
                   </div>
                   <span className="font-medium text-card-foreground">{responsavel.nome}</span>
+                  {responsavel.cor === 'pessoal' && (
+                    <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                      Principal
+                    </Badge>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleRemoveResponsavel(responsavel.id)}
-                  disabled={deleteResponsavel.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
+                    onClick={() => handleSetPrincipal(responsavel.id)}
+                    disabled={setResponsavelPrincipal.isPending || responsavel.cor === 'pessoal'}
+                    title="Definir como principal"
+                  >
+                    <Star className={cn("h-4 w-4", responsavel.cor === 'pessoal' ? "fill-yellow-500 text-yellow-500" : "")} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemoveResponsavel(responsavel.id)}
+                    disabled={deleteResponsavel.isPending}
+                    title="Remover responsável"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

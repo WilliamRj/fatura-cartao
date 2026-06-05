@@ -18,6 +18,7 @@ import {
 import { formatCurrency } from "@/lib/data";
 import { useGastos, useEstatisticas } from "@/lib/hooks/useGastos";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
+import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
@@ -89,9 +90,10 @@ export function DashboardContent() {
   const { data: gastos = [], isLoading: isLoadingGastos, error: errorGastos } = useGastos();
   const { data: parcelamentos = [], isLoading: isLoadingParcelamentos, error: errorParcelamentos } = useParcelamentos();
   const { data: estatisticas, isLoading: isLoadingEstatisticas } = useEstatisticas();
+  const { data: responsaveis = [], isLoading: isLoadingResponsaveis, error: errorResponsaveis } = useResponsaveis();
 
-  const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas;
-  const error = errorGastos || errorParcelamentos;
+  const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas || isLoadingResponsaveis;
+  const error = errorGastos || errorParcelamentos || errorResponsaveis;
 
   if (isLoading) {
     return (
@@ -120,10 +122,21 @@ export function DashboardContent() {
   const { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } = estatisticas;
 
   const totalFatura = gastos.reduce((acc, g) => acc + g.valor, 0);
-  const gastosWilliam = gastos
-    .filter((g) => g.responsavel === "William")
+  
+  const responsavelPrincipal = responsaveis.find(r => r.cor === 'pessoal');
+  const terceiros = responsaveis.filter(r => r.cor !== 'pessoal');
+
+  const nomePrincipal = responsavelPrincipal?.nome || "Não definido";
+  const nomesTerceiros = terceiros.length > 0 ? terceiros.map(r => r.nome).join(', ') : "Nenhum";
+
+  const gastosPessoaisValor = gastos
+    .filter((g) => responsavelPrincipal && g.responsavel === responsavelPrincipal.nome)
     .reduce((acc, g) => acc + g.valor, 0);
-  const gastosTerceiros = totalFatura - gastosWilliam;
+
+  const gastosTerceirosValor = gastos
+    .filter((g) => !responsavelPrincipal || g.responsavel !== responsavelPrincipal.nome)
+    .reduce((acc, g) => acc + g.valor, 0);
+
   const totalCompras = gastos.length;
   const parcelamentosAtivos = parcelamentos.length;
 
@@ -146,14 +159,14 @@ export function DashboardContent() {
         />
         <StatCard
           title="Gastos Pessoais"
-          value={formatCurrency(gastosWilliam)}
-          subtitle="William"
+          value={formatCurrency(gastosPessoaisValor)}
+          subtitle={nomePrincipal}
           icon={Users}
         />
         <StatCard
           title="Gastos de Terceiros"
-          value={formatCurrency(gastosTerceiros)}
-          subtitle="Esposa, Filho, Mae"
+          value={formatCurrency(gastosTerceirosValor)}
+          subtitle={nomesTerceiros}
           icon={Users}
         />
         <StatCard

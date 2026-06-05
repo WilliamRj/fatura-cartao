@@ -69,3 +69,34 @@ export function useDeleteResponsavel() {
     },
   });
 }
+
+export function useSetResponsavelPrincipal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // First, set cor to null for all responsaveis of this user
+      const { error: resetError } = await supabase
+        .from(TABLES.RESPONSAVEIS)
+        .update({ cor: null })
+        .eq('user_id', user.id);
+
+      if (resetError) throw resetError;
+
+      // Then, set cor to 'pessoal' for the selected one
+      const { error: updateError } = await supabase
+        .from(TABLES.RESPONSAVEIS)
+        .update({ cor: 'pessoal' })
+        .eq('id', id)
+        .eq('user_id', user.id); // Add user_id check for safety
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });
+    },
+  });
+}
