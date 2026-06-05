@@ -5,19 +5,31 @@ import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { CreateGastoRequest, UpdateGastoRequest, ApiGasto } from '@/lib/api/types';
 import { supabase } from '@/lib/supabase/client';
 
-// Fetch all expenses
-export function useGastos() {
+// Fetch all expenses, optionally filtered by fatura_id
+export function useGastos(faturaId?: string | null) {
   return useQuery({
-    queryKey: QUERY_KEYS.GASTOS,
+    queryKey: ['gastos', faturaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from(TABLES.GASTOS)
         .select('*')
         .order('data', { ascending: false });
+        
+      if (faturaId) {
+        query = query.eq('fatura_id', faturaId);
+      } else if (faturaId === null) {
+        // If faturaId is explicitly null, maybe we don't fetch or we fetch none.
+        // For now, let's fetch all if it's undefined, or return empty if null?
+        // Let's assume if null, it means "no fatura selected yet", returning empty.
+        return [];
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data as unknown) as ApiGasto[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: faturaId !== null, // Only run if faturaId is provided or undefined (not null)
   });
 }
 
@@ -52,8 +64,8 @@ export function useCreateGasto() {
       if (error) throw error;
       return (data as unknown) as ApiGasto;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
     },
   });
 }
@@ -74,7 +86,7 @@ export function useUpdateGasto() {
       return (data as unknown) as ApiGasto;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS_DETAIL(variables.id) });
     },
   });
@@ -93,14 +105,14 @@ export function useDeleteGasto() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
     },
   });
 }
 
 // Calculate statistics for charts
-export function useEstatisticas() {
-  const { data: gastos, isLoading, error } = useGastos();
+export function useEstatisticas(faturaId?: string | null) {
+  const { data: gastos, isLoading, error } = useGastos(faturaId);
 
   const estatisticas = useQuery({
     queryKey: ['estatisticas', gastos],

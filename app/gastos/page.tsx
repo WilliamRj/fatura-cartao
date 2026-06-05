@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useGastos, useUpdateGasto, useDeleteGasto } from "@/lib/hooks/useGastos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
+import { useFaturaContext } from "@/components/fatura-provider";
 import {
   categorias,
   formatCurrency,
@@ -51,7 +52,8 @@ import { toast } from "sonner";
 const ITEMS_PER_PAGE = 10;
 
 export default function GastosPage() {
-  const { data: gastos, isLoading, error, refetch } = useGastos();
+  const { faturaAtual } = useFaturaContext();
+  const { data: gastos, isLoading, error, refetch } = useGastos(faturaAtual?.id || null);
   const { data: responsaveis = [] } = useResponsaveis();
   const updateGasto = useUpdateGasto();
   const deleteGasto = useDeleteGasto();

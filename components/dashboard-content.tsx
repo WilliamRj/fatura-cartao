@@ -19,6 +19,7 @@ import { formatCurrency } from "@/lib/data";
 import { useGastos, useEstatisticas } from "@/lib/hooks/useGastos";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
+import { useFaturaContext } from "@/components/fatura-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
@@ -87,9 +88,10 @@ function StatCard({
 }
 
 export function DashboardContent() {
-  const { data: gastos = [], isLoading: isLoadingGastos, error: errorGastos } = useGastos();
-  const { data: parcelamentos = [], isLoading: isLoadingParcelamentos, error: errorParcelamentos } = useParcelamentos();
-  const { data: estatisticas, isLoading: isLoadingEstatisticas } = useEstatisticas();
+  const { faturaAtual } = useFaturaContext();
+  const { data: gastos = [], isLoading: isLoadingGastos, error: errorGastos } = useGastos(faturaAtual?.id || null);
+  const { data: parcelamentos = [], isLoading: isLoadingParcelamentos, error: errorParcelamentos } = useParcelamentos(faturaAtual?.id || null);
+  const { data: estatisticas, isLoading: isLoadingEstatisticas } = useEstatisticas(faturaAtual?.id || null);
   const { data: responsaveis = [], isLoading: isLoadingResponsaveis, error: errorResponsaveis } = useResponsaveis();
 
   const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas || isLoadingResponsaveis;
@@ -153,7 +155,7 @@ export function DashboardContent() {
         <StatCard
           title="Total da Fatura"
           value={formatCurrency(totalFatura)}
-          subtitle="Janeiro 2024"
+          subtitle={faturaAtual?.mesReferencia || "Nenhuma fatura selecionada"}
           icon={Receipt}
           trend={{ value: 27.8, positive: false }}
         />

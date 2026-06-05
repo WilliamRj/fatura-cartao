@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AuthProvider } from "@/components/auth-provider";
+import { FaturaProvider } from "@/components/fatura-provider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,16 +22,18 @@ export function RootLayoutClient({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <TooltipProvider>
-            <AppSidebar>{children}</AppSidebar>
-          </TooltipProvider>
-        </ThemeProvider>
+        <FaturaProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <TooltipProvider>
+              <AppSidebar>{children}</AppSidebar>
+            </TooltipProvider>
+          </ThemeProvider>
+        </FaturaProvider>
       </AuthProvider>
       <Toaster position="bottom-right" />
     </QueryClientProvider>

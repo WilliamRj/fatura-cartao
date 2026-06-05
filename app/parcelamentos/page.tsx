@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Calendar, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/data";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
+import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
 
 export default function ParcelamentosPage() {
-  const { data: parcelamentos = [], isLoading, error, refetch } = useParcelamentos();
+  const { faturaAtual } = useFaturaContext();
+  const { data: parcelamentos = [], isLoading, error, refetch } = useParcelamentos(faturaAtual?.id || null);
 
   const totalParcelamentos = parcelamentos.reduce(
     (acc, p) => acc + p.valorParcela,

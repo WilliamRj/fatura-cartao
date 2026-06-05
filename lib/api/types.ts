@@ -17,6 +17,7 @@ export interface ApiCategoria {
 export interface ApiGasto {
   id: string;
   user_id?: string;
+  fatura_id?: string;
   data: string;
   estabelecimento: string;
   valor: number;
@@ -42,6 +43,7 @@ export interface ApiFatura {
 export interface ApiParcelamento {
   id: string;
   user_id?: string;
+  fatura_id?: string;
   nome: string;
   parcela_atual: number;
   total_parcelas: number;
@@ -53,6 +55,7 @@ export interface ApiParcelamento {
 
 // Request/Response types for mutations
 export interface CreateGastoRequest {
+  fatura_id?: string;
   data: string;
   estabelecimento: string;
   valor: number;
@@ -63,6 +66,7 @@ export interface CreateGastoRequest {
 }
 
 export interface UpdateGastoRequest {
+  fatura_id?: string;
   categoria?: string;
   responsavel?: string;
   observacao?: string;

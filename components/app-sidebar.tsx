@@ -27,6 +27,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/auth-provider";
+import { useFaturaContext } from "@/components/fatura-provider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -134,6 +142,50 @@ function LogoutButton() {
   );
 }
 
+function FaturaSelector({ collapsed }: { collapsed?: boolean }) {
+  const { faturas, faturaAtual, setFaturaAtual, isLoading } = useFaturaContext();
+
+  if (isLoading || faturas.length === 0) {
+    return null; // or a skeleton
+  }
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={
+          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground cursor-pointer mx-auto">
+            {faturaAtual?.mesReferencia.substring(0, 3)}
+          </div>
+        } />
+        <TooltipContent side="right" className="font-medium">
+          Fatura: {faturaAtual?.mesReferencia}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <div className="px-3 mb-2">
+      <Select
+        value={faturaAtual?.id}
+        onValueChange={(val) => setFaturaAtual(faturas.find((f) => f.id === val) || null)}
+      >
+        <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border h-9">
+          <SelectValue placeholder="Selecione uma fatura" />
+        </SelectTrigger>
+        <SelectContent>
+          {faturas.map((f) => (
+            <SelectItem key={f.id} value={f.id}>
+              {f.mesReferencia}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+
 function DesktopSidebar({
   collapsed,
   setCollapsed,
@@ -150,7 +202,7 @@ function DesktopSidebar({
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border mb-2">
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -168,7 +220,9 @@ function DesktopSidebar({
         )}
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      <FaturaSelector collapsed={collapsed} />
+
+      <nav className="flex-1 p-3 pt-0 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <NavLink
             key={item.href}
@@ -220,12 +274,15 @@ function MobileHeader() {
         <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
           <CreditCard className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-sidebar-foreground">
+        <span className="font-semibold text-sidebar-foreground hidden sm:inline-block">
           Cartao Inteligente
         </span>
       </div>
 
       <div className="flex items-center gap-1">
+        <div className="w-32 mr-2">
+           <FaturaSelector />
+        </div>
         <ThemeToggle />
         <LogoutButton />
         <Sheet open={open} onOpenChange={setOpen}>
@@ -251,6 +308,9 @@ function MobileHeader() {
               <span className="font-semibold text-sidebar-foreground">
                 Cartao Inteligente
               </span>
+            </div>
+            <div className="pt-4">
+              <FaturaSelector />
             </div>
             <nav className="p-3 space-y-1 flex-1">
               {menuItems.map((item) => (

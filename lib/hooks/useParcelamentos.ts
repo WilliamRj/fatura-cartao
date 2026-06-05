@@ -6,14 +6,22 @@ import type { ApiParcelamento } from '@/lib/api/types';
 import type { Parcelamento } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
 
-export function useParcelamentos() {
+export function useParcelamentos(faturaId?: string | null) {
   return useQuery({
-    queryKey: QUERY_KEYS.PARCELAMENTOS,
+    queryKey: ['parcelamentos', faturaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from(TABLES.PARCELAMENTOS)
         .select('*')
         .order('created_at', { ascending: false });
+        
+      if (faturaId) {
+        query = query.eq('fatura_id', faturaId);
+      } else if (faturaId === null) {
+        return [];
+      }
+
+      const { data, error } = await query;
         
       if (error) throw error;
       
@@ -27,6 +35,7 @@ export function useParcelamentos() {
       })) as Parcelamento[];
     },
     staleTime: 1000 * 60 * 5,
+    enabled: faturaId !== null,
   });
 }
 
