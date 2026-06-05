@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
       3. 'lancamentos': A list of all purchases/expenses in the invoice. 
          IMPORTANT: Include all items listed under "Lançamentos", specifically including items under "produtos e serviços".
          CRITICAL: You must completely IGNORE and DISCARD any entry that contains "crédito parcelamento" in its description.
-         DO NOT ignore valid purchases that start with "PG", "MP", "APP" or similar - these are payment gateways (e.g. PagSeguro).
          Ignore payments of the previous invoice and fees/taxes if possible, focus on purchases. For each, extract:
          - 'data': The date of the purchase in YYYY-MM-DD format. Use the invoice year if not specified.
          - 'estabelecimento': The name of the place/store.
