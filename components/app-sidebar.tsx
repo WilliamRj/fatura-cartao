@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/components/auth-provider";
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -110,6 +112,28 @@ function ThemeToggle() {
   );
 }
 
+function LogoutButton() {
+  const { signOut } = useAuth();
+
+  const handleLogout = () => {
+    if (window.confirm("Deseja realmente sair do sistema?")) {
+      signOut();
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
+      onClick={handleLogout}
+      title="Sair"
+    >
+      <LogOut className="h-4 w-4" />
+    </Button>
+  );
+}
+
 function DesktopSidebar({
   collapsed,
   setCollapsed,
@@ -155,18 +179,22 @@ function DesktopSidebar({
         ))}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border flex flex-col gap-2">
         <div
           className={cn(
             "flex items-center",
-            collapsed ? "justify-center" : "justify-between"
+            collapsed ? "justify-center flex-col gap-2" : "justify-between"
           )}
         >
-          {!collapsed && <ThemeToggle />}
+          <div className={cn("flex items-center gap-1", collapsed && "flex-col gap-2")}>
+            <ThemeToggle />
+            <LogoutButton />
+          </div>
+          
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-sidebar-foreground/70"
+            className={cn("h-9 w-9 text-sidebar-foreground/70", collapsed && "mt-2")}
             onClick={() => setCollapsed(!collapsed)}
           >
             <ChevronLeft
@@ -176,7 +204,6 @@ function DesktopSidebar({
               )}
             />
           </Button>
-          {collapsed && <ThemeToggle />}
         </div>
       </div>
     </aside>
@@ -200,6 +227,7 @@ function MobileHeader() {
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
+        <LogoutButton />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             render={
@@ -214,7 +242,7 @@ function MobileHeader() {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-64 p-0 bg-sidebar border-sidebar-border"
+            className="w-64 p-0 bg-sidebar border-sidebar-border flex flex-col"
           >
             <div className="flex items-center gap-2 h-16 px-4 border-b border-sidebar-border">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -224,7 +252,7 @@ function MobileHeader() {
                 Cartao Inteligente
               </span>
             </div>
-            <nav className="p-3 space-y-1">
+            <nav className="p-3 space-y-1 flex-1">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}

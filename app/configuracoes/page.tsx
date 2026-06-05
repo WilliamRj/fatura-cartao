@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,9 +31,13 @@ export default function ConfiguracoesPage() {
           await createResponsavel.mutateAsync({ nome: novoResponsavel.trim() })
           setNovoResponsavel("")
           refetch()
-        } catch (error) {
+          toast.success("Responsável adicionado com sucesso!")
+        } catch (error: any) {
           console.error("Erro ao criar responsável", error)
+          toast.error(`Erro ao criar responsável: ${error.message || 'Erro desconhecido'}`)
         }
+      } else {
+        toast.warning("Responsável já existe!")
       }
     }
   }

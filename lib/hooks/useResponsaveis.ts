@@ -32,9 +32,16 @@ export function useCreateResponsavel() {
 
   return useMutation({
     mutationFn: async (responsavel: CreateResponsavelRequest) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const payload = {
+        ...responsavel,
+        ...(user?.id ? { user_id: user.id } : {})
+      };
+
       const { data, error } = await supabase
         .from(TABLES.RESPONSAVEIS)
-        .insert([responsavel])
+        .insert([payload])
         .select()
         .single();
       if (error) throw error;
