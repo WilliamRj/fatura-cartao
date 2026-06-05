@@ -26,11 +26,16 @@ import { formatCurrency, formatDate } from "@/lib/data";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function FaturasPage() {
   const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = React.useState(false);
   const { data: faturas, isLoading, error, refetch } = useFaturas();
   const deleteFatura = useDeleteFatura();
+  const queryClient = useQueryClient();
 
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
     setUploadedFiles((prev) => [...prev, ...acceptedFiles]);
@@ -43,6 +48,52 @@ export default function FaturasPage() {
     },
     multiple: true,
   });
+
+  const handleProcess = async () => {
+    if (uploadedFiles.length === 0) return;
+    setIsProcessing(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Usuário não autenticado");
+        setIsProcessing(false);
+        return;
+      }
+
+      for (const file of uploadedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/process-fatura", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Erro ao processar fatura");
+        }
+      }
+
+      toast.success("Faturas processadas com sucesso!");
+      setUploadedFiles([]);
+      refetch();
+      // Invalidate other queries like gastos to update dashboard
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
+      queryClient.invalidateQueries({ queryKey: ['parcelamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['estatisticas'] });
+
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Ocorreu um erro inesperado");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -120,7 +171,7 @@ export default function FaturasPage() {
                       ou clique para selecionar
                     </p>
                   </div>
-                  <Button variant="outline" className="mt-2">
+                  <Button variant="outline" className="mt-2" disabled={isProcessing}>
                     <Upload className="h-4 w-4 mr-2" />
                     Selecionar Arquivo
                   </Button>
@@ -151,12 +202,26 @@ export default function FaturasPage() {
                         prev.filter((_, i) => i !== index)
                       )
                     }
+                    disabled={isProcessing}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               ))}
-              <Button className="w-full mt-4">Processar Faturas</Button>
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleProcess}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  "Processar Faturas"
+                )}
+              </Button>
             </div>
           )}
         </CardContent>
