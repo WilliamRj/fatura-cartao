@@ -25,6 +25,7 @@ export interface ApiGasto {
   responsavel: string;
   parcela?: string;
   observacao?: string;
+  divisoes?: { valor: number; responsavel: string }[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -63,13 +64,19 @@ export interface CreateGastoRequest {
   responsavel: string;
   parcela?: string;
   observacao?: string;
+  divisoes?: { valor: number; responsavel: string }[] | null;
 }
 
 export interface UpdateGastoRequest {
   fatura_id?: string;
+  data?: string;
+  estabelecimento?: string;
+  valor?: number;
   categoria?: string;
   responsavel?: string;
+  parcela?: string;
   observacao?: string;
+  divisoes?: { valor: number; responsavel: string }[] | null;
 }
 
 export interface CreateResponsavelRequest {

@@ -19,6 +19,7 @@ export interface Gasto {
   responsavel: string;
   parcela?: string;
   observacao?: string;
+  divisoes?: { valor: number; responsavel: string }[] | null;
 }
 
 export interface Fatura {

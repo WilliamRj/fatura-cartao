@@ -26,7 +26,17 @@ export function useGastos(faturaId?: string | null) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data as unknown) as ApiGasto[];
+      return ((data as unknown) as ApiGasto[]).map((apiGasto) => ({
+        id: apiGasto.id,
+        data: apiGasto.data,
+        estabelecimento: apiGasto.estabelecimento,
+        valor: apiGasto.valor,
+        categoria: apiGasto.categoria,
+        responsavel: apiGasto.responsavel,
+        parcela: apiGasto.parcela,
+        observacao: apiGasto.observacao,
+        divisoes: apiGasto.divisoes,
+      }));
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: faturaId !== null, // Only run if faturaId is provided or undefined (not null)
@@ -131,7 +141,13 @@ export function useEstatisticas(faturaId?: string | null) {
 
       // Gastos por Responsavel
       const responsaveisMap = gastos.reduce((acc, gasto) => {
-        acc[gasto.responsavel] = (acc[gasto.responsavel] || 0) + gasto.valor;
+        if (gasto.divisoes && gasto.divisoes.length > 0) {
+          gasto.divisoes.forEach((div) => {
+            acc[div.responsavel] = (acc[div.responsavel] || 0) + Number(div.valor);
+          });
+        } else {
+          acc[gasto.responsavel] = (acc[gasto.responsavel] || 0) + gasto.valor;
+        }
         return acc;
       }, {} as Record<string, number>);
       

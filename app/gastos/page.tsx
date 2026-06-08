@@ -27,15 +27,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Search,
-  Filter,
-  ArrowUpDown,
-  Edit2,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Plus, X, Search, Filter, ArrowUpDown, Edit2, Trash2, ChevronLeft, ChevronRight, SplitSquareHorizontal, Undo2 } from "lucide-react";
 import { useGastos, useUpdateGasto, useDeleteGasto } from "@/lib/hooks/useGastos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
@@ -62,13 +54,18 @@ export default function GastosPage() {
   const [categoriaFilter, setCategoriaFilter] = React.useState("all");
   const [responsavelFilter, setResponsavelFilter] = React.useState("all");
   const [sortField, setSortField] = React.useState<keyof Gasto>("data");
-  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(
-    "asc"
-  );
+  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
+  
   const [editingGasto, setEditingGasto] = React.useState<Gasto | null>(null);
+  const [editedValor, setEditedValor] = React.useState<number | "">("");
   const [editedCategoria, setEditedCategoria] = React.useState("");
   const [editedResponsavel, setEditedResponsavel] = React.useState("");
   const [editedObservacao, setEditedObservacao] = React.useState("");
+  
+  const [isSplitMode, setIsSplitMode] = React.useState(false);
+  const [originalValor, setOriginalValor] = React.useState<number | null>(null);
+  const [originalResponsavel, setOriginalResponsavel] = React.useState<string | null>(null);
+  const [splits, setSplits] = React.useState<{ id?: string; valor: number | ""; responsavel: string }[]>([]);
 
   const filteredGastos = React.useMemo(() => {
     if (!gastos) return [];
@@ -118,20 +115,102 @@ export default function GastosPage() {
     setEditedCategoria(gasto.categoria);
     setEditedResponsavel(gasto.responsavel);
     setEditedObservacao(gasto.observacao || "");
+    
+    if (gasto.divisoes && gasto.divisoes.length > 0) {
+      setIsSplitMode(true);
+      setOriginalValor(gasto.valor);
+      setEditedValor(""); // Not used in split mode
+      setSplits(gasto.divisoes.map((d, i) => ({ id: `split-${i}`, valor: d.valor, responsavel: d.responsavel })));
+    } else {
+      setIsSplitMode(false);
+      setEditedValor(gasto.valor);
+      setOriginalValor(gasto.valor);
+      setSplits([]);
+    }
   };
 
-  const handleSaveEdit = async () => {
+  const handleAddSplit = () => {
+    setSplits(prev => [...prev, { id: `temp-${Date.now()}`, valor: "", responsavel: "" }]);
+  };
+
+  const handleRemoveSplit = (index: number) => {
+    setSplits(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSplitChange = (index: number, field: 'valor' | 'responsavel', value: string | number) => {
+    setSplits(prev => {
+      const newSplits = [...prev];
+      newSplits[index] = { ...newSplits[index], [field]: value };
+      return newSplits;
+    });
+  };
+
+  const handleUndoSplit = async () => {
     if (!editingGasto) return;
 
     try {
       await updateGasto.mutateAsync({
         id: editingGasto.id,
         updates: {
-          categoria: editedCategoria,
-          responsavel: editedResponsavel,
-          observacao: editedObservacao,
+          divisoes: null
         }
       });
+      toast.success("Divisão desfeita com sucesso!");
+      setEditingGasto(null);
+      refetch();
+    } catch (error) {
+      toast.error("Erro ao desfazer divisão");
+      console.error(error);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingGasto) return;
+
+    try {
+      if (isSplitMode) {
+        if (!originalValor) return;
+        
+        // Validation
+        const sum = splits.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+        // Using Math.abs to handle floating point precision issues
+        if (Math.abs(sum - originalValor) > 0.01) {
+          toast.error("A soma das divisões deve ser exatamente igual ao valor original");
+          return;
+        }
+
+        const responsaveisSet = new Set(splits.map(s => s.responsavel).filter(Boolean));
+        if (responsaveisSet.size !== splits.filter(s => s.responsavel).length) {
+          toast.error("Não pode haver responsáveis repetidos");
+          return;
+        }
+
+        if (splits.some(s => !s.valor || !s.responsavel)) {
+          toast.error("Preencha todos os campos da divisão");
+          return;
+        }
+
+        await updateGasto.mutateAsync({
+          id: editingGasto.id,
+          updates: {
+            categoria: editedCategoria,
+            observacao: editedObservacao,
+            divisoes: splits.map(s => ({ valor: Number(s.valor), responsavel: s.responsavel }))
+          }
+        });
+
+      } else {
+        await updateGasto.mutateAsync({
+          id: editingGasto.id,
+          updates: {
+            valor: Number(editedValor),
+            categoria: editedCategoria,
+            responsavel: editedResponsavel,
+            observacao: editedObservacao,
+            divisoes: null
+          }
+        });
+      }
 
       toast.success("Gasto atualizado com sucesso!");
       setEditingGasto(null);
@@ -249,7 +328,9 @@ export default function GastosPage() {
               onValueChange={(val) => setCategoriaFilter(val ?? "all")}
             >
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Categoria" />
+                <SelectValue placeholder="Categoria">
+                  {categoriaFilter === "all" ? "Todas Categorias" : categoriaFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas Categorias</SelectItem>
@@ -265,7 +346,9 @@ export default function GastosPage() {
               onValueChange={(val) => setResponsavelFilter(val ?? "all")}
             >
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Responsavel" />
+                <SelectValue placeholder="Responsavel">
+                  {responsavelFilter === "all" ? "Todos Responsaveis" : responsavelFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos Responsaveis</SelectItem>
@@ -344,7 +427,9 @@ export default function GastosPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-foreground">
-                      {gasto.responsavel}
+                      {gasto.divisoes && gasto.divisoes.length > 0 
+                        ? "Múltiplos" 
+                        : gasto.responsavel}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {gasto.parcela || "-"}
@@ -392,10 +477,30 @@ export default function GastosPage() {
       >
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
+              {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
+                <Button variant="outline" size="sm" onClick={handleUndoSplit} disabled={updateGasto.isPending}>
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Desfazer divisão
+                </Button>
+              ) : !isSplitMode && (
+                <Button variant="outline" size="sm" onClick={() => {
+                  setIsSplitMode(true);
+                  setOriginalValor(editingGasto?.valor || 0);
+                  setSplits([
+                    { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
+                    { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
+                  ]);
+                }}>
+                  <SplitSquareHorizontal className="h-4 w-4 mr-2" />
+                  Dividir valor
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {editingGasto && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground">
                   Estabelecimento
@@ -404,12 +509,65 @@ export default function GastosPage() {
                   {editingGasto.estabelecimento}
                 </p>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Valor</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatCurrency(editingGasto.valor)}
-                </p>
-              </div>
+              
+              {isSplitMode ? (
+                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-foreground">Valor Original</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {originalValor ? formatCurrency(originalValor) : "-"}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground mb-2">Divisões</p>
+                    {splits.map((split, index) => (
+                      <div key={split.id} className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Valor"
+                          className="w-32"
+                          value={split.valor}
+                          onChange={(e) => handleSplitChange(index, 'valor', e.target.value)}
+                        />
+                        <Select
+                          value={split.responsavel}
+                          onValueChange={(val) => handleSplitChange(index, 'responsavel', val)}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Responsável" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {responsaveis.map((resp) => (
+                              <SelectItem key={resp.id} value={resp.nome}>
+                                {resp.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {splits.length > 2 && (
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => handleRemoveSplit(index)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button variant="ghost" size="sm" className="w-full mt-2 border border-dashed" onClick={handleAddSplit}>
+                      <Plus className="h-4 w-4 mr-2" /> Adicionar divisão
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Valor</label>
+                  <Input
+                    type="number"
+                    value={editedValor}
+                    onChange={(e) => setEditedValor(e.target.value)}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Categoria
@@ -430,26 +588,30 @@ export default function GastosPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Responsavel
-                </label>
-                <Select
-                  value={editedResponsavel}
-                  onValueChange={(val) => setEditedResponsavel(val ?? "")}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {responsaveis.map((resp) => (
-                      <SelectItem key={resp.id} value={resp.nome}>
-                        {resp.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {!isSplitMode && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Responsavel
+                  </label>
+                  <Select
+                    value={editedResponsavel}
+                    onValueChange={(val) => setEditedResponsavel(val ?? "")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {responsaveis.map((resp) => (
+                        <SelectItem key={resp.id} value={resp.nome}>
+                          {resp.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Observacao
