@@ -563,7 +563,7 @@ export default function GastosPage() {
                   <Input
                     type="number"
                     value={editedValor}
-                    onChange={(e) => setEditedValor(e.target.value)}
+                    onChange={(e) => setEditedValor(e.target.value ? Number(e.target.value) : "")}
                   />
                 </div>
               )}
