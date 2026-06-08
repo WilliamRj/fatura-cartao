@@ -171,7 +171,9 @@ function FaturaSelector({ collapsed }: { collapsed?: boolean }) {
         onValueChange={(val) => setFaturaAtual(faturas.find((f) => f.id === val) || null)}
       >
         <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border h-9">
-          <SelectValue placeholder="Selecione uma fatura" />
+          <SelectValue placeholder="Selecione uma fatura">
+            {faturaAtual ? faturaAtual.mesReferencia : "Selecione uma fatura"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {faturas.map((f) => (
