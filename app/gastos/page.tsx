@@ -532,7 +532,7 @@ export default function GastosPage() {
                         />
                         <Select
                           value={split.responsavel}
-                          onValueChange={(val) => handleSplitChange(index, 'responsavel', val)}
+                          onValueChange={(val) => handleSplitChange(index, 'responsavel', val ?? "")}
                         >
                           <SelectTrigger className="flex-1">
                             <SelectValue placeholder="Responsável" />
