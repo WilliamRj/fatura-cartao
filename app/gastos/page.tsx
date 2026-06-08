@@ -245,9 +245,9 @@ export default function GastosPage() {
               </div>
             </div>
             <Select 
-  value={categoriaFilter} 
-  onValueChange={(val) => setCategoriaFilter(val ?? "todos")}
->
+              value={categoriaFilter} 
+              onValueChange={(val) => setCategoriaFilter(val ?? "all")}
+            >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
