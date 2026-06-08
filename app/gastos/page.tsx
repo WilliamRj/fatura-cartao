@@ -63,9 +63,8 @@ export default function GastosPage() {
   const [responsavelFilter, setResponsavelFilter] = React.useState("all");
   const [sortField, setSortField] = React.useState<keyof Gasto>("data");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(
-    "desc"
+    "asc"
   );
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [editingGasto, setEditingGasto] = React.useState<Gasto | null>(null);
   const [editedCategoria, setEditedCategoria] = React.useState("");
   const [editedResponsavel, setEditedResponsavel] = React.useState("");
@@ -104,12 +103,6 @@ export default function GastosPage() {
 
     return result;
   }, [gastos, search, categoriaFilter, responsavelFilter, sortField, sortDirection]);
-
-  const totalPages = Math.ceil(filteredGastos.length / ITEMS_PER_PAGE);
-  const paginatedGastos = filteredGastos.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
 
   const handleSort = (field: keyof Gasto) => {
     if (sortField === field) {
@@ -327,7 +320,7 @@ export default function GastosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedGastos.map((gasto) => (
+                {filteredGastos.map((gasto) => (
                   <TableRow
                     key={gasto.id}
                     className="border-border cursor-pointer hover:bg-muted/50"
@@ -387,33 +380,8 @@ export default function GastosPage() {
 
           <div className="flex items-center justify-between px-4 py-4 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
-              {Math.min(currentPage * ITEMS_PER_PAGE, filteredGastos.length)} de{" "}
-              {filteredGastos.length} gastos
+              Mostrando {filteredGastos.length} gastos
             </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-foreground">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
