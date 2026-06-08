@@ -477,27 +477,7 @@ export default function GastosPage() {
       >
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
-              {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
-                <Button variant="outline" size="sm" onClick={handleUndoSplit} disabled={updateGasto.isPending}>
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Desfazer divisão
-                </Button>
-              ) : !isSplitMode && (
-                <Button variant="outline" size="sm" onClick={() => {
-                  setIsSplitMode(true);
-                  setOriginalValor(editingGasto?.valor || 0);
-                  setSplits([
-                    { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
-                    { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
-                  ]);
-                }}>
-                  <SplitSquareHorizontal className="h-4 w-4 mr-2" />
-                  Dividir valor
-                </Button>
-              )}
-            </div>
+            <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
           </DialogHeader>
           {editingGasto && (
             <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -563,7 +543,7 @@ export default function GastosPage() {
                   <Input
                     type="number"
                     value={editedValor}
-                    onChange={(e) => setEditedValor(e.target.value ? Number(e.target.value) : "")}
+                    disabled
                   />
                 </div>
               )}
@@ -624,16 +604,38 @@ export default function GastosPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGasto(null)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={updateGasto.isPending}
-            >
-              {updateGasto.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+          <DialogFooter className="sm:justify-between">
+            <div className="flex-1 mr-auto">
+              {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
+                <Button variant="outline" size="sm" onClick={handleUndoSplit} disabled={updateGasto.isPending}>
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Desfazer divisão
+                </Button>
+              ) : !isSplitMode && (
+                <Button variant="outline" size="sm" onClick={() => {
+                  setIsSplitMode(true);
+                  setOriginalValor(editingGasto?.valor || 0);
+                  setSplits([
+                    { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
+                    { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
+                  ]);
+                }}>
+                  <SplitSquareHorizontal className="h-4 w-4 mr-2" />
+                  Dividir valor
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2 sm:mt-0">
+              <Button variant="outline" onClick={() => setEditingGasto(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateGasto.isPending}
+              >
+                {updateGasto.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
