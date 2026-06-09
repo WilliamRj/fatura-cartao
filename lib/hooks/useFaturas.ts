@@ -34,6 +34,11 @@ export function useDeleteFatura() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Limpar todos os dados relacionados explicitamente
+      await supabase.from(TABLES.GASTOS).delete().eq('fatura_id', id);
+      await supabase.from(TABLES.PARCELAMENTOS).delete().eq('fatura_id', id);
+
+      // Finalmente deletar a fatura
       const { error } = await supabase
         .from(TABLES.FATURAS)
         .delete()
@@ -41,7 +46,17 @@ export function useDeleteFatura() {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate everything explicitly to ensure no stale cache remains
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FATURAS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PARCELAMENTOS });
+      queryClient.invalidateQueries({ queryKey: ['estatisticas'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DASHBOARD });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RELATORIOS });
+      
+      // Limpa queries ativas no cache para forçar zeroing total em transições
+      queryClient.resetQueries({ queryKey: QUERY_KEYS.GASTOS });
+      queryClient.resetQueries({ queryKey: ['estatisticas'] });
     },
   });
 }

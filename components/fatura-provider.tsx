@@ -19,9 +19,13 @@ export function FaturaProvider({ children }: { children: React.ReactNode }) {
 
   // Set the most recent invoice as default if none selected and data is available
   React.useEffect(() => {
-    if (faturas.length > 0 && !faturaAtual) {
-      // Assuming faturas are ordered by latest first, or we can just pick the first one
-      setFaturaAtual(faturas[0]);
+    if (faturas.length > 0) {
+      const exists = faturaAtual ? faturas.some((f) => f.id === faturaAtual.id) : false;
+      if (!exists) {
+        setFaturaAtual(faturas[0]);
+      }
+    } else {
+      setFaturaAtual(null);
     }
   }, [faturas, faturaAtual]);
 
