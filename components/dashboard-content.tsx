@@ -27,28 +27,29 @@ import { ErrorAlert } from "@/components/error";
 import {
   Receipt,
   TrendingUp,
+  User,
   Users,
   ShoppingCart,
   CreditCard,
 } from "lucide-react";
 
 const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 const CATEGORIA_COLORS: Record<string, string> = {
-  Alimentacao: "hsl(var(--chart-1))",
-  Transporte: "hsl(var(--chart-2))",
-  Entretenimento: "hsl(var(--chart-3))",
-  Compras: "hsl(var(--chart-4))",
-  Assinaturas: "hsl(var(--chart-5))",
-  Saude: "hsl(var(--chart-1))",
-  Educacao: "hsl(var(--chart-2))",
-  Outros: "hsl(var(--chart-3))",
+  Alimentacao: "var(--chart-1)",
+  Transporte: "var(--chart-2)",
+  Entretenimento: "var(--chart-3)",
+  Compras: "var(--chart-4)",
+  Assinaturas: "var(--chart-5)",
+  Saude: "var(--chart-1)",
+  Educacao: "var(--chart-2)",
+  Outros: "var(--chart-3)",
 };
 
 function StatCard({
@@ -187,7 +188,7 @@ export function DashboardContent() {
           title="Gastos Pessoais"
           value={formatCurrency(gastosPessoaisValor)}
           subtitle={nomePrincipal}
-          icon={Users}
+          icon={User}
         />
         <StatCard
           title="Gastos de Terceiros"
@@ -222,12 +223,12 @@ export function DashboardContent() {
                     <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
                       <stop
                         offset="5%"
-                        stopColor="hsl(var(--chart-1))"
+                        stopColor="var(--chart-1)"
                         stopOpacity={0.3}
                       />
                       <stop
                         offset="95%"
-                        stopColor="hsl(var(--chart-1))"
+                        stopColor="var(--chart-1)"
                         stopOpacity={0}
                       />
                     </linearGradient>
@@ -264,7 +265,7 @@ formatter={(value: any) => [
                   <Area
                     type="monotone"
                     dataKey="valor"
-                    stroke="hsl(var(--chart-1))"
+                    stroke="var(--chart-1)"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorValor)"

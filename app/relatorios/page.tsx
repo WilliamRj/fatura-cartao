@@ -24,7 +24,7 @@ import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
 
 const COLORS = [
-  "hsl(var(--chart-1))",
+  "var(--chart-1)",
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
@@ -32,12 +32,12 @@ const COLORS = [
 ];
 
 const CATEGORIA_COLORS: Record<string, string> = {
-  Alimentacao: "hsl(var(--chart-1))",
+  Alimentacao: "var(--chart-1)",
   Transporte: "hsl(var(--chart-2))",
   Entretenimento: "hsl(var(--chart-3))",
   Compras: "hsl(var(--chart-4))",
   Assinaturas: "hsl(var(--chart-5))",
-  Saude: "hsl(var(--chart-1))",
+  Saude: "var(--chart-1)",
   Educacao: "hsl(var(--chart-2))",
   Outros: "hsl(var(--chart-3))",
 };
@@ -151,9 +151,9 @@ formatter={(value: any) => [
                     <Line
                       type="monotone"
                       dataKey="valor"
-                      stroke="hsl(var(--chart-1))"
+                      stroke="var(--chart-1)"
                       strokeWidth={3}
-                      dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2 }}
+                      dot={{ fill: "var(--chart-1)", strokeWidth: 2 }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
