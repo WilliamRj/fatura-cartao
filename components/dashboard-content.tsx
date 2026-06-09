@@ -150,9 +150,35 @@ export function DashboardContent() {
     }));
 
   const totalFatura = gastos.reduce((acc, g) => acc + g.valor, 0);
-  
+
+  // Calcula Trend da Fatura Atual em relação à anterior
+  let trendData = undefined;
+  if (faturaAtual && todasFaturas.length > 1) {
+    // Array está ordenado por data_importacao DESC (faturas recentes primeiro)
+    const currentIndex = todasFaturas.findIndex(f => f.id === faturaAtual.id);
+    
+    // A fatura "anterior" é a próxima no array (index + 1)
+    if (currentIndex >= 0 && currentIndex < todasFaturas.length - 1) {
+      const faturaAnterior = todasFaturas[currentIndex + 1];
+      const valorAnterior = faturaAnterior.valorTotal;
+      const valorAtual = totalFatura; // Usamos os gastos carregados para a fatura atual
+      
+      if (valorAnterior > 0) {
+        const diff = valorAtual - valorAnterior;
+        const percentage = (Math.abs(diff) / valorAnterior) * 100;
+        
+        // Se atual for menor que anterior -> setinha pra baixo (rotate-180 ou não, configurado no componente) e verde (positive: true)
+        // Se atual for maior que anterior -> setinha pra cima e vermelho (positive: false)
+        trendData = {
+          value: Number(percentage.toFixed(1)),
+          positive: valorAtual < valorAnterior
+        };
+      }
+    }
+  }
+
   const responsavelPrincipal = responsaveis.find(r => r.cor === 'pessoal');
-  
+
   const nomePrincipal = responsavelPrincipal?.nome || "Não definido";
 
   const gastosPessoaisValor = gastosPorResponsavel
@@ -185,7 +211,7 @@ export function DashboardContent() {
           value={formatCurrency(totalFatura)}
           subtitle={faturaAtual?.mesReferencia || "Nenhuma fatura selecionada"}
           icon={Receipt}
-          trend={{ value: 27.8, positive: false }}
+          trend={trendData}
         />
         <StatCard
           title="Gastos Pessoais"
