@@ -126,18 +126,20 @@ export function DashboardContent() {
   const totalFatura = gastos.reduce((acc, g) => acc + g.valor, 0);
   
   const responsavelPrincipal = responsaveis.find(r => r.cor === 'pessoal');
-  const terceiros = responsaveis.filter(r => r.cor !== 'pessoal');
-
+  
   const nomePrincipal = responsavelPrincipal?.nome || "Não definido";
-  const nomesTerceiros = terceiros.length > 0 ? terceiros.map(r => r.nome).join(', ') : "Nenhum";
 
-  const gastosPessoaisValor = gastos
-    .filter((g) => responsavelPrincipal && g.responsavel === responsavelPrincipal.nome)
-    .reduce((acc, g) => acc + g.valor, 0);
+  const gastosPessoaisValor = gastosPorResponsavel
+    .find((r) => r.responsavel === responsavelPrincipal?.nome)?.valor || 0;
 
-  const gastosTerceirosValor = gastos
-    .filter((g) => !responsavelPrincipal || g.responsavel !== responsavelPrincipal.nome)
-    .reduce((acc, g) => acc + g.valor, 0);
+  const gastosTerceiros = gastosPorResponsavel
+    .filter((r) => r.responsavel !== responsavelPrincipal?.nome && r.valor > 0);
+
+  const gastosTerceirosValor = gastosTerceiros.reduce((acc, r) => acc + r.valor, 0);
+
+  const nomesTerceiros = gastosTerceiros.length > 0 
+    ? gastosTerceiros.map(r => r.responsavel).join(', ') 
+    : "Nenhum";
 
   const totalCompras = gastos.length;
   const parcelamentosAtivos = parcelamentos.length;
