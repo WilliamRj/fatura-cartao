@@ -51,6 +51,23 @@ export default function ParcelamentosPage() {
     );
   }
 
+  if (!parcelamentos || parcelamentos.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Parcelamentos</h1>
+          <p className="text-muted-foreground">
+            Acompanhe todos os seus parcelamentos ativos
+          </p>
+        </div>
+        <EmptyState
+          title="Nenhum parcelamento encontrado"
+          description="Os lançamentos com parcelas (ex: 1/10) aparecerão aqui automaticamente."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
