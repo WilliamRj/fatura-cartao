@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/data";
 import { useEstatisticas } from "@/lib/hooks/useGastos";
+import { useFaturas } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
 
@@ -30,8 +31,23 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
+const CATEGORIA_COLORS: Record<string, string> = {
+  Alimentacao: "hsl(var(--chart-1))",
+  Transporte: "hsl(var(--chart-2))",
+  Entretenimento: "hsl(var(--chart-3))",
+  Compras: "hsl(var(--chart-4))",
+  Assinaturas: "hsl(var(--chart-5))",
+  Saude: "hsl(var(--chart-1))",
+  Educacao: "hsl(var(--chart-2))",
+  Outros: "hsl(var(--chart-3))",
+};
+
 export default function RelatoriosPage() {
-  const { data: estatisticas, isLoading, error } = useEstatisticas();
+  const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas();
+  const { data: todasFaturas = [], isLoading: isLoadingFat, error: errorFat } = useFaturas();
+
+  const isLoading = isLoadingEst || isLoadingFat;
+  const error = errorEst || errorFat;
 
   if (isLoading) {
     return (
@@ -57,7 +73,17 @@ export default function RelatoriosPage() {
     );
   }
 
-  const { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } = estatisticas;
+  const { gastosPorCategoria, gastosPorResponsavel } = estatisticas;
+
+  // Calculando Evolucao Mensal baseado nas Faturas diretamente (em ordem cronológica)
+  const evolucaoMensal = todasFaturas
+    .slice()
+    .reverse() 
+    .map(f => ({
+      mes: f.mesReferencia,
+      valor: f.valorTotal,
+    }));
+
   const totalGeral = gastosPorCategoria.reduce((acc, g) => acc + g.valor, 0);
 
   return (
