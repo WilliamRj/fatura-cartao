@@ -34,6 +34,9 @@ export const categorias = [
   "Lazer",
   "Saude",
   "Educacao",
+  "Pagamentos",
+  "Condomínio",
+  "Dívida",
   "Outros",
 ]
 

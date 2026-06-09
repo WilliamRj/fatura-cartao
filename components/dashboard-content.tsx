@@ -49,6 +49,9 @@ const CATEGORIA_COLORS: Record<string, string> = {
   Assinaturas: "var(--chart-5)",
   Saude: "var(--chart-6)",
   Educacao: "var(--chart-7)",
+  Pagamentos: "var(--chart-9)",
+  Condomínio: "var(--chart-10)",
+  Dívida: "var(--chart-11)",
   Outros: "var(--chart-8)",
 };
 

@@ -55,7 +55,10 @@ export const categorias: Categoria[] = [
   { id: "5", nome: "Assinaturas", icone: "tv" },
   { id: "6", nome: "Saude", icone: "heart-pulse" },
   { id: "7", nome: "Educacao", icone: "graduation-cap" },
-  { id: "8", nome: "Outros", icone: "more-horizontal" },
+  { id: "8", nome: "Pagamentos", icone: "credit-card" },
+  { id: "9", nome: "Condomínio", icone: "building" },
+  { id: "10", nome: "Dívida", icone: "landmark" },
+  { id: "11", nome: "Outros", icone: "more-horizontal" },
 ];
 
 export const gastos: Gasto[] = [

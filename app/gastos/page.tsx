@@ -234,6 +234,9 @@ export default function GastosPage() {
       Assinaturas: "bg-[var(--chart-5)]/20 text-[var(--chart-5)]",
       Saude: "bg-[var(--chart-6)]/20 text-[var(--chart-6)]",
       Educacao: "bg-[var(--chart-7)]/20 text-[var(--chart-7)]",
+      Pagamentos: "bg-[var(--chart-9)]/20 text-[var(--chart-9)]",
+      Condomínio: "bg-[var(--chart-10)]/20 text-[var(--chart-10)]",
+      Dívida: "bg-[var(--chart-11)]/20 text-[var(--chart-11)]",
       Outros: "bg-[var(--chart-8)]/20 text-[var(--chart-8)]",
     };
     return colors[categoria] || "bg-muted text-muted-foreground";

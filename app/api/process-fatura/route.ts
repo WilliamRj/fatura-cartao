@@ -65,7 +65,11 @@ export async function POST(req: NextRequest) {
          - 'estabelecimento': The name of the place/store.
          - 'valor': The value of the purchase as a float number.
          - 'parcela': If it's an installment, like '01/10', put it here as a string. Otherwise, use null.
-         - 'categoria': Infer a general category based on the establishment name (e.g., 'Alimentacao', 'Transporte', 'Saude', 'Educacao', 'Compras', 'Assinaturas', 'Entretenimento', 'Outros').
+         - 'categoria': Infer a general category based on the establishment name (e.g., 'Alimentacao', 'Transporte', 'Saude', 'Educacao', 'Compras', 'Assinaturas', 'Entretenimento', 'Outros'). 
+           IMPORTANT CATEGORIZATION RULES:
+           - If the establishment name contains "PICPAY", the category MUST be "Pagamentos".
+           - If the establishment name contains "PGCONTA ATLANTIDA", the category MUST be "Condomínio".
+           - If the establishment name contains "PARCELAMEN FATURA", the category MUST be "Dívida".
 
       Return EXACTLY a JSON object (and nothing else, no markdown formatting) with this structure:
       {
