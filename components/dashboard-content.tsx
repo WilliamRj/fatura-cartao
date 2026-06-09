@@ -18,6 +18,7 @@ import {
 import { formatCurrency } from "@/lib/data";
 import { useGastos, useEstatisticas } from "@/lib/hooks/useGastos";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
+import { useFaturas } from "@/lib/hooks/useFaturas";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,17 @@ const COLORS = [
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
 ];
+
+const CATEGORIA_COLORS: Record<string, string> = {
+  Alimentacao: "hsl(var(--chart-1))",
+  Transporte: "hsl(var(--chart-2))",
+  Entretenimento: "hsl(var(--chart-3))",
+  Compras: "hsl(var(--chart-4))",
+  Assinaturas: "hsl(var(--chart-5))",
+  Saude: "hsl(var(--chart-1))",
+  Educacao: "hsl(var(--chart-2))",
+  Outros: "hsl(var(--chart-3))",
+};
 
 function StatCard({
   title,
@@ -93,9 +105,10 @@ export function DashboardContent() {
   const { data: parcelamentos = [], isLoading: isLoadingParcelamentos, error: errorParcelamentos } = useParcelamentos(faturaAtual?.id || null);
   const { data: estatisticas, isLoading: isLoadingEstatisticas } = useEstatisticas(faturaAtual?.id || null);
   const { data: responsaveis = [], isLoading: isLoadingResponsaveis, error: errorResponsaveis } = useResponsaveis();
+  const { data: todasFaturas = [], isLoading: isLoadingFaturas, error: errorFaturas } = useFaturas();
 
-  const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas || isLoadingResponsaveis;
-  const error = errorGastos || errorParcelamentos || errorResponsaveis;
+  const isLoading = isLoadingGastos || isLoadingParcelamentos || isLoadingEstatisticas || isLoadingResponsaveis || isLoadingFaturas;
+  const error = errorGastos || errorParcelamentos || errorResponsaveis || errorFaturas;
 
   if (isLoading) {
     return (
@@ -121,7 +134,16 @@ export function DashboardContent() {
     );
   }
 
-  const { gastosPorCategoria, gastosPorResponsavel, evolucaoMensal } = estatisticas;
+  const { gastosPorCategoria, gastosPorResponsavel } = estatisticas;
+
+  // Calculando Evolucao Mensal baseado nas Faturas diretamente
+  const evolucaoMensal = todasFaturas
+    .slice()
+    .reverse() // Reverse since order is descending by data_importacao, usually we want chronological
+    .map(f => ({
+      mes: f.mesReferencia,
+      valor: f.valorTotal,
+    }));
 
   const totalFatura = gastos.reduce((acc, g) => acc + g.valor, 0);
   
@@ -273,10 +295,10 @@ formatter={(value: any) => [
                     dataKey="valor"
                     nameKey="categoria"
                   >
-                    {gastosPorCategoria.map((_, index) => (
+                    {gastosPorCategoria.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
+                        fill={CATEGORIA_COLORS[entry.categoria] || COLORS[index % COLORS.length]}
                       />
                     ))}
                   </Pie>

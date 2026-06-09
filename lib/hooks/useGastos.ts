@@ -150,39 +150,20 @@ export function useEstatisticas(faturaId?: string | null) {
         }
         return acc;
       }, {} as Record<string, number>);
-      
       const gastosPorResponsavel = Object.entries(responsaveisMap)
         .map(([responsavel, valor]) => ({ responsavel, valor }))
         .sort((a, b) => b.valor - a.valor);
 
-      // Evolucao Mensal (Simplificada para pegar meses unicos)
-      const mensalMap = gastos.reduce((acc, gasto) => {
-        const date = new Date(gasto.data);
-        const mesAno = `${date.toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}/${date.getFullYear().toString().slice(-2)}`;
-        // Transformar em CamelCase / TitleCase o mês ex: "Jan" ou "Fev"
-        const mesAnoFormatado = mesAno.charAt(0).toUpperCase() + mesAno.slice(1);
-        acc[mesAnoFormatado] = (acc[mesAnoFormatado] || 0) + gasto.valor;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const evolucaoMensal = Object.entries(mensalMap)
-        .map(([mes, valor]) => ({ mes, valor }))
-        // sort chronologically? A bit tricky with this string format, 
-        // assuming standard insertion order from descending date, we just reverse it.
-        .reverse();
-
       return {
         gastosPorCategoria,
-        gastosPorResponsavel,
-        evolucaoMensal
+        gastosPorResponsavel
       };
     },
-    enabled: !!gastos,
   });
 
   return {
     ...estatisticas,
-    data: estatisticas.data || { gastosPorCategoria: [], gastosPorResponsavel: [], evolucaoMensal: [] },
+    data: estatisticas.data || { gastosPorCategoria: [], gastosPorResponsavel: [] },
     isLoading: isLoading || estatisticas.isLoading,
     error: error || estatisticas.error
   };
