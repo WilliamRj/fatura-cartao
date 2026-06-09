@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatCurrency, formatDate } from "@/lib/data";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/data";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
@@ -242,30 +242,23 @@ export default function FaturasPage() {
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => {
-                          if (confirm("Tem certeza que deseja excluir esta fatura?")) {
-                            deleteFatura.mutate(fatura.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja excluir esta fatura?")) {
+                          deleteFatura.mutate(fatura.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <h3 className="font-semibold text-foreground mb-1">
@@ -297,7 +290,7 @@ export default function FaturasPage() {
                       Importado em
                     </span>
                     <span className="text-sm text-foreground">
-                      {formatDate(fatura.dataImportacao)}
+                      {formatDateTime(fatura.dataImportacao)}
                     </span>
                   </div>
                 </div>
