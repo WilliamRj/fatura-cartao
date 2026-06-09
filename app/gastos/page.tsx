@@ -227,14 +227,14 @@ export default function GastosPage() {
 
   const getCategoriaColor = (categoria: string) => {
     const colors: Record<string, string> = {
-      Alimentacao: "bg-chart-1/20 text-chart-1",
-      Transporte: "bg-chart-2/20 text-chart-2",
-      Entretenimento: "bg-chart-3/20 text-chart-3",
-      Compras: "bg-chart-4/20 text-chart-4",
-      Assinaturas: "bg-chart-5/20 text-chart-5",
-      Saude: "bg-chart-1/20 text-chart-1",
-      Educacao: "bg-chart-2/20 text-chart-2",
-      Outros: "bg-chart-3/20 text-chart-3",
+      Alimentacao: "bg-[var(--chart-1)]/20 text-[var(--chart-1)]",
+      Transporte: "bg-[var(--chart-2)]/20 text-[var(--chart-2)]",
+      Entretenimento: "bg-[var(--chart-3)]/20 text-[var(--chart-3)]",
+      Compras: "bg-[var(--chart-4)]/20 text-[var(--chart-4)]",
+      Assinaturas: "bg-[var(--chart-5)]/20 text-[var(--chart-5)]",
+      Saude: "bg-[var(--chart-6)]/20 text-[var(--chart-6)]",
+      Educacao: "bg-[var(--chart-7)]/20 text-[var(--chart-7)]",
+      Outros: "bg-[var(--chart-8)]/20 text-[var(--chart-8)]",
     };
     return colors[categoria] || "bg-muted text-muted-foreground";
   };

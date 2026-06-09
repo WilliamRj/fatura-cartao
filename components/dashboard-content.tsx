@@ -47,9 +47,9 @@ const CATEGORIA_COLORS: Record<string, string> = {
   Entretenimento: "var(--chart-3)",
   Compras: "var(--chart-4)",
   Assinaturas: "var(--chart-5)",
-  Saude: "var(--chart-1)",
-  Educacao: "var(--chart-2)",
-  Outros: "var(--chart-3)",
+  Saude: "var(--chart-6)",
+  Educacao: "var(--chart-7)",
+  Outros: "var(--chart-8)",
 };
 
 function StatCard({

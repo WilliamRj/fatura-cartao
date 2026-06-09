@@ -25,21 +25,24 @@ import { ErrorAlert } from "@/components/error";
 
 const COLORS = [
   "var(--chart-1)",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
+  "var(--chart-7)",
+  "var(--chart-8)",
 ];
 
 const CATEGORIA_COLORS: Record<string, string> = {
   Alimentacao: "var(--chart-1)",
-  Transporte: "hsl(var(--chart-2))",
-  Entretenimento: "hsl(var(--chart-3))",
-  Compras: "hsl(var(--chart-4))",
-  Assinaturas: "hsl(var(--chart-5))",
-  Saude: "var(--chart-1)",
-  Educacao: "hsl(var(--chart-2))",
-  Outros: "hsl(var(--chart-3))",
+  Transporte: "var(--chart-2)",
+  Entretenimento: "var(--chart-3)",
+  Compras: "var(--chart-4)",
+  Assinaturas: "var(--chart-5)",
+  Saude: "var(--chart-6)",
+  Educacao: "var(--chart-7)",
+  Outros: "var(--chart-8)",
 };
 
 export default function RelatoriosPage() {
