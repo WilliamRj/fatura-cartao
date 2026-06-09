@@ -83,7 +83,12 @@ export default function GastosPage() {
     }
 
     if (responsavelFilter !== "all") {
-      result = result.filter((g) => g.responsavel === responsavelFilter);
+      result = result.filter((g) => {
+        if (g.divisoes && g.divisoes.length > 0) {
+          return g.divisoes.some(d => d.responsavel === responsavelFilter);
+        }
+        return g.responsavel === responsavelFilter;
+      });
     }
 
     result.sort((a, b) => {
