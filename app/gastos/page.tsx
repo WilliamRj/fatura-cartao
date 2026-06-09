@@ -27,7 +27,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, X, Search, Filter, ArrowUpDown, Edit2, Trash2, ChevronLeft, ChevronRight, SplitSquareHorizontal, Undo2 } from "lucide-react";
+import { Plus, X, Search, Filter, ArrowUpDown, Edit2, Trash2, ChevronLeft, ChevronRight, SplitSquareHorizontal, Undo2, CornerDownRight } from "lucide-react";
 import { useGastos, useUpdateGasto, useDeleteGasto } from "@/lib/hooks/useGastos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
@@ -409,60 +409,83 @@ export default function GastosPage() {
               </TableHeader>
               <TableBody>
                 {filteredGastos.map((gasto) => (
-                  <TableRow
-                    key={gasto.id}
-                    className="border-border cursor-pointer hover:bg-muted/50"
-                    onClick={() => openEditModal(gasto)}
-                  >
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(gasto.data)}
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground">
-                      {gasto.estabelecimento}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-foreground">
-                      {formatCurrency(gasto.valor)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={getCategoriaColor(gasto.categoria)}
+                  <React.Fragment key={gasto.id}>
+                    <TableRow
+                      className="border-border cursor-pointer hover:bg-muted/50"
+                      onClick={() => openEditModal(gasto)}
+                    >
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(gasto.data)}
+                      </TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        {gasto.estabelecimento}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-foreground">
+                        {formatCurrency(gasto.valor)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={getCategoriaColor(gasto.categoria)}
+                        >
+                          {gasto.categoria}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {gasto.divisoes && gasto.divisoes.length > 0 
+                          ? "Múltiplos" 
+                          : gasto.responsavel}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {gasto.parcela || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(gasto);
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={(e) => handleDeleteGasto(e, gasto.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {gasto.divisoes && gasto.divisoes.length > 0 && gasto.divisoes.map((divisao, idx) => (
+                      <TableRow
+                        key={`${gasto.id}-div-${idx}`}
+                        className="border-border/50 bg-muted/20 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => openEditModal(gasto)}
                       >
-                        {gasto.categoria}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-foreground">
-                      {gasto.divisoes && gasto.divisoes.length > 0 
-                        ? "Múltiplos" 
-                        : gasto.responsavel}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {gasto.parcela || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditModal(gasto);
-                          }}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={(e) => handleDeleteGasto(e, gasto.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        <TableCell></TableCell>
+                        <TableCell className="text-muted-foreground flex items-center gap-2 py-3">
+                          <CornerDownRight className="h-4 w-4 ml-4" />
+                          <span className="text-sm">Divisão</span>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-muted-foreground">
+                          {formatCurrency(divisao.valor)}
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {divisao.responsavel}
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
