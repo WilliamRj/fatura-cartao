@@ -25,6 +25,7 @@ import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,9 +96,14 @@ export default function RelatoriosPage() {
     );
   }
 
-  const handleExportPDF = (responsavelId: string | 'todos') => {
-    // Aqui garantimos a tipagem de ApiGasto para o utilitário
-    generatePDFReport(faturaAtual, gastosAtuais, responsavelId);
+  const handleExportPDF = async (responsavelId: string | 'todos') => {
+    toast.info("Gerando PDF, aguarde...");
+    const success = await generatePDFReport(faturaAtual, gastosAtuais, responsavelId);
+    if (success) {
+      toast.success("PDF exportado com sucesso!");
+    } else {
+      toast.error("Erro ao gerar PDF.");
+    }
   };
 
   const { gastosPorCategoria, gastosPorResponsavel } = estatisticas;

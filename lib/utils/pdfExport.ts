@@ -1,16 +1,21 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Import for side effects
 import { formatCurrency, formatDate } from '@/lib/data';
 import type { ApiGasto } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
 
-export function generatePDFReport(
+export async function generatePDFReport(
   fatura: Fatura | null,
   gastos: ApiGasto[],
   responsavelFiltro: string | 'todos' = 'todos'
-) {
+): Promise<boolean> {
   try {
-    const doc = new jsPDF();
+    // Dynamic imports to ensure no server-side execution and clean bundling
+    const jsPDFModule = await import('jspdf');
+    const JsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF;
+    const doc = new JsPDF();
+
+    const autoTableModule = await import('jspdf-autotable');
+    const autoTable = autoTableModule.default || (autoTableModule as any).autoTable;
+
     const safeGastos = gastos || [];
     
     // Título
@@ -118,15 +123,24 @@ export function generatePDFReport(
       return row;
     });
 
-    // Casting para any para evitar erros de tipagem com o plugin jspdf-autotable
-    (doc as any).autoTable({
-      startY: 45,
-      head: [columns],
-      body: rows,
-      theme: 'striped',
-      headStyles: { fillColor: [41, 128, 185] },
-      styles: { fontSize: 9 },
-    });
+    if (autoTable) {
+      autoTable(doc, {
+        startY: 45,
+        head: [columns],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [41, 128, 185] },
+        styles: { fontSize: 9 },
+      });
+    } else {
+      console.warn("jspdf-autotable plugin not correctly loaded, outputting raw data");
+      doc.text("Erro ao carregar layout da tabela. Dados brutos:", 14, 50);
+      let y = 60;
+      rows.forEach(r => {
+        doc.text(r.join(" | "), 14, y);
+        y += 10;
+      });
+    }
 
     // Exportação
     const mesRef = fatura && fatura.mesReferencia ? fatura.mesReferencia.replace(/\s/g, '_') : 'Gastos';
@@ -134,8 +148,9 @@ export function generatePDFReport(
     const fileName = `Relatorio_${mesRef}${respRef}.pdf`;
     
     doc.save(fileName);
+    return true;
   } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+    console.error("Erro completo na geração do PDF:", error);
+    return false;
   }
 }
