@@ -43,6 +43,8 @@ export function useParcelamentos(faturaId?: string | null) {
                totalParcelas: total,
                valorParcela: gasto.valor,
                valorTotal: gasto.valor * total,
+               responsavel: gasto.responsavel,
+               divisoes: gasto.divisoes,
              });
           }
         }

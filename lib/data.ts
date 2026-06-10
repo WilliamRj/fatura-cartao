@@ -37,6 +37,8 @@ export interface Parcelamento {
   totalParcelas: number;
   valorParcela: number;
   valorTotal: number;
+  responsavel?: string;
+  divisoes?: { valor: number; responsavel: string }[] | null;
 }
 
 export const responsaveis: Responsavel[] = [
