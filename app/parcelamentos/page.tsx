@@ -42,23 +42,26 @@ export default function ParcelamentosPage() {
     return parcelamentos.reduce((acc, p) => {
       let percentual = 0;
       let temDivisao = false;
+      let valorParte = 0;
 
       if (p.divisoes && p.divisoes.length > 0) {
         temDivisao = true;
         const divisao = p.divisoes.find(d => d.responsavel === responsavelId);
         if (divisao) {
-          percentual = divisao.valor / 100;
+          valorParte = divisao.valor;
+          percentual = p.valorParcela > 0 ? divisao.valor / p.valorParcela : 0;
         }
       } else if (p.responsavel === responsavelId) {
         percentual = 1;
+        valorParte = p.valorParcela;
       }
 
       if (percentual > 0) {
         acc.push({
           ...p,
-          valorExibido: p.valorParcela * percentual,
-          restanteExibido: (p.valorParcela * percentual) * (p.totalParcelas - p.parcelaAtual),
-          totalExibido: p.valorTotal * percentual,
+          valorExibido: valorParte,
+          restanteExibido: valorParte * (p.totalParcelas - p.parcelaAtual),
+          totalExibido: valorParte * p.totalParcelas,
           temDivisao,
           percentual
         });
@@ -221,7 +224,7 @@ export default function ParcelamentosPage() {
                       {parcelamento.nome}
                       {responsavelId !== "todos" && parcelamento.temDivisao && (
                          <span className="ml-2 text-xs font-normal text-muted-foreground">
-                           (Sua parte: {parcelamento.percentual * 100}%)
+                           (Sua parte: {(parcelamento.percentual * 100).toFixed(0)}%)
                          </span>
                       )}
                     </CardTitle>
