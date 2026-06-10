@@ -34,7 +34,8 @@ export default function ParcelamentosPage() {
         valorExibido: p.valorParcela,
         restanteExibido: p.valorParcela * (p.totalParcelas - p.parcelaAtual),
         totalExibido: p.valorTotal,
-        temDivisao: false
+        temDivisao: false,
+        percentual: 0,
       }));
     }
 
@@ -69,7 +70,7 @@ export default function ParcelamentosPage() {
       restanteExibido: number;
       totalExibido: number;
       temDivisao: boolean;
-      percentual?: number;
+      percentual: number;
     })[]);
   }, [parcelamentos, responsavelId]);
 
@@ -127,7 +128,7 @@ export default function ParcelamentosPage() {
           <Users className="h-4 w-4 text-muted-foreground" />
           <Select
             value={responsavelId}
-            onValueChange={setResponsavelId}
+            onValueChange={(val) => setResponsavelId(val ?? "todos")}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por responsável" />
