@@ -1,17 +1,15 @@
+import jsPDF from 'jspdf';
+import 'jspdf-autotable'; // Import for side effects
 import { formatCurrency, formatDate } from '@/lib/data';
 import type { ApiGasto } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
 
-export async function generatePDFReport(
+export function generatePDFReport(
   fatura: Fatura | null,
   gastos: ApiGasto[],
   responsavelFiltro: string | 'todos' = 'todos'
 ) {
   try {
-    // Importações dinâmicas para evitar problemas de SSR do Next.js com o jsPDF
-    const { default: jsPDF } = await import('jspdf');
-    await import('jspdf-autotable'); // Isso estende o jsPDF automaticamente
-
     const doc = new jsPDF();
     const safeGastos = gastos || [];
     
@@ -138,6 +136,6 @@ export async function generatePDFReport(
     doc.save(fileName);
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
-    alert("Ocorreu um erro ao gerar o PDF. A página continuará funcionando normalmente.");
+    alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
   }
 }
