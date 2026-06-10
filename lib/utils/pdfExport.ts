@@ -1,6 +1,8 @@
 import { formatCurrency, formatDate } from '@/lib/data';
 import type { ApiGasto } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export async function generatePDFReport(
   fatura: Fatura | null,
@@ -8,13 +10,7 @@ export async function generatePDFReport(
   responsavelFiltro: string | 'todos' = 'todos'
 ): Promise<boolean> {
   try {
-    // Dynamic imports to ensure no server-side execution and clean bundling
-    const jsPDFModule = await import('jspdf');
-    const JsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF;
-    const doc = new JsPDF();
-
-    const autoTableModule = await import('jspdf-autotable');
-    const autoTable = autoTableModule.default || (autoTableModule as any).autoTable;
+    const doc = new jsPDF();
 
     const safeGastos = gastos || [];
     
