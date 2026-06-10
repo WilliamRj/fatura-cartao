@@ -18,10 +18,23 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/data";
-import { useEstatisticas } from "@/lib/hooks/useGastos";
+import { useEstatisticas, useGastos } from "@/lib/hooks/useGastos";
 import { useFaturas } from "@/lib/hooks/useFaturas";
+import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
+import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download } from "lucide-react";
+import { generatePDFReport } from "@/lib/utils/pdfExport";
 
 const COLORS = [
   "var(--chart-1)",
@@ -49,8 +62,11 @@ const CATEGORIA_COLORS: Record<string, string> = {
 };
 
 export default function RelatoriosPage() {
-  const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas();
+  const { faturaAtual } = useFaturaContext();
+  const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas(faturaAtual?.id || null);
   const { data: todasFaturas = [], isLoading: isLoadingFat, error: errorFat } = useFaturas();
+  const { data: responsaveis = [] } = useResponsaveis();
+  const { data: gastosAtuais = [] } = useGastos(faturaAtual?.id || null);
 
   const isLoading = isLoadingEst || isLoadingFat;
   const error = errorEst || errorFat;
@@ -79,6 +95,11 @@ export default function RelatoriosPage() {
     );
   }
 
+  const handleExportPDF = (responsavelId: string | 'todos') => {
+    // Aqui garantimos a tipagem de ApiGasto para o utilitário
+    generatePDFReport(faturaAtual, gastosAtuais, responsavelId);
+  };
+
   const { gastosPorCategoria, gastosPorResponsavel } = estatisticas;
 
   // Calculando Evolucao Mensal baseado nas Faturas diretamente (em ordem cronológica)
@@ -94,11 +115,37 @@ export default function RelatoriosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
-        <p className="text-muted-foreground">
-          Analise detalhada dos seus gastos
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+          <p className="text-muted-foreground">
+            Análise detalhada dos seus gastos
+          </p>
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Fatura: {faturaAtual?.mesReferencia}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleExportPDF('todos')}>
+              Fatura Completa (Todos)
+            </DropdownMenuItem>
+            {responsaveis.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Por Responsável</DropdownMenuLabel>
+                {responsaveis.map((resp) => (
+                  <DropdownMenuItem key={resp.id} onClick={() => handleExportPDF(resp.nome)}>
+                    {resp.nome}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Tabs defaultValue="mensal" className="space-y-6">
