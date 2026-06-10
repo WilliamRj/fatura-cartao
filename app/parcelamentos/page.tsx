@@ -136,7 +136,7 @@ export default function ParcelamentosPage() {
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {responsaveis.map((resp) => (
-                <SelectItem key={resp.id} value={resp.id}>
+                <SelectItem key={resp.id} value={resp.nome}>
                   {resp.nome}
                 </SelectItem>
               ))}
