@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { normalizeCategory } from "@/lib/categories";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+interface ParsedLancamento {
+  data: string;
+  estabelecimento: string;
+  valor: number;
+  parcela: string | null;
+  categoria: string;
+}
+
+interface ParsedFatura {
+  mes_referencia: string;
+  valor_total: number;
+  lancamentos: ParsedLancamento[];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,7 +80,7 @@ export async function POST(req: NextRequest) {
          - 'estabelecimento': The name of the place/store.
          - 'valor': The value of the purchase as a float number.
          - 'parcela': If it's an installment, like '01/10', put it here as a string. Otherwise, use null.
-         - 'categoria': Infer a general category based on the establishment name (e.g., 'Alimentacao', 'Transporte', 'Saude', 'Educacao', 'Compras', 'Assinaturas', 'Entretenimento', 'Outros'). 
+         - 'categoria': Infer a general category based on the establishment name. Use EXACTLY one of these PT-BR values: 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Compras', 'Assinaturas', 'Entretenimento', 'Pagamentos', 'Condomínio', 'Dívida', 'Outros'.
            IMPORTANT CATEGORIZATION RULES:
            - If the establishment name contains "PICPAY", the category MUST be "Pagamentos".
            - If the establishment name contains "PGCONTA ATLANTIDA", the category MUST be "Condomínio".
@@ -90,10 +105,10 @@ export async function POST(req: NextRequest) {
       textResult = textResult.replace(/\`\`\`/g, '');
     }
 
-    let parsedData;
+    let parsedData: ParsedFatura;
     try {
-      parsedData = JSON.parse(textResult.trim());
-    } catch (e) {
+      parsedData = JSON.parse(textResult.trim()) as ParsedFatura;
+    } catch {
       console.error("Failed to parse Gemini JSON:", textResult);
       return NextResponse.json({ error: "Failed to understand AI output" }, { status: 500 });
     }
@@ -130,14 +145,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const gastosToInsert = parsedData.lancamentos.map((l: any) => ({
+    const gastosToInsert = parsedData.lancamentos.map((l) => ({
       user_id: user.id,
       fatura_id: fatura.id,
       data: l.data,
       estabelecimento: l.estabelecimento,
       valor: l.valor,
       parcela: l.parcela,
-      categoria: l.categoria,
+      categoria: normalizeCategory(String(l.categoria || "Outros")),
       responsavel: responsavelName,
     }));
 
@@ -154,10 +169,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, fatura });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API error:", error);
     
-    const errorMessage = error?.message || "";
+    const errorMessage = error instanceof Error ? error.message : "";
     
     if (errorMessage.includes("503 Service Unavailable") || errorMessage.includes("high demand")) {
       return NextResponse.json({ error: "A inteligência artificial está temporariamente indisponível devido à alta demanda. Por favor, tente novamente em alguns instantes." }, { status: 503 });

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { CreateGastoRequest, UpdateGastoRequest, ApiGasto } from '@/lib/api/types';
 import { supabase } from '@/lib/supabase/client';
+import { normalizeCategory } from '@/lib/categories';
 
 // Fetch all expenses, optionally filtered by fatura_id
 export function useGastos(faturaId?: string | null) {
@@ -31,7 +32,7 @@ export function useGastos(faturaId?: string | null) {
         data: apiGasto.data,
         estabelecimento: apiGasto.estabelecimento,
         valor: apiGasto.valor,
-        categoria: apiGasto.categoria,
+        categoria: normalizeCategory(apiGasto.categoria),
         responsavel: apiGasto.responsavel,
         parcela: apiGasto.parcela,
         observacao: apiGasto.observacao,
@@ -54,7 +55,11 @@ export function useGasto(id: string) {
         .eq('id', id)
         .single();
       if (error) throw error;
-      return (data as unknown) as ApiGasto;
+      const gasto = (data as unknown) as ApiGasto;
+      return {
+        ...gasto,
+        categoria: normalizeCategory(gasto.categoria),
+      };
     },
     enabled: !!id,
   });
@@ -66,15 +71,19 @@ export function useCreateGasto() {
 
   return useMutation({
     mutationFn: async (gasto: CreateGastoRequest) => {
+      const payload = {
+        ...gasto,
+        categoria: normalizeCategory(gasto.categoria),
+      };
       const { data, error } = await supabase
         .from(TABLES.GASTOS)
-        .insert([gasto])
+        .insert([payload])
         .select()
         .single();
       if (error) throw error;
       return (data as unknown) as ApiGasto;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gastos'] });
     },
   });
@@ -86,9 +95,12 @@ export function useUpdateGasto() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdateGastoRequest }) => {
+      const payload = updates.categoria
+        ? { ...updates, categoria: normalizeCategory(updates.categoria) }
+        : updates;
       const { data, error } = await supabase
         .from(TABLES.GASTOS)
-        .update(updates)
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
@@ -131,7 +143,8 @@ export function useEstatisticas(faturaId?: string | null) {
 
       // Gastos por Categoria
       const categoriasMap = gastos.reduce((acc, gasto) => {
-        acc[gasto.categoria] = (acc[gasto.categoria] || 0) + gasto.valor;
+        const categoria = normalizeCategory(gasto.categoria);
+        acc[categoria] = (acc[categoria] || 0) + gasto.valor;
         return acc;
       }, {} as Record<string, number>);
       

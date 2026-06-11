@@ -49,39 +49,29 @@ export const responsaveis: Responsavel[] = [
   { id: "5", nome: "Outro", cor: "bg-chart-5" },
 ];
 
-export const categorias: Categoria[] = [
-  { id: "1", nome: "Alimentacao", icone: "utensils" },
-  { id: "2", nome: "Transporte", icone: "car" },
-  { id: "3", nome: "Entretenimento", icone: "gamepad-2" },
-  { id: "4", nome: "Compras", icone: "shopping-bag" },
-  { id: "5", nome: "Assinaturas", icone: "tv" },
-  { id: "6", nome: "Saude", icone: "heart-pulse" },
-  { id: "7", nome: "Educacao", icone: "graduation-cap" },
-  { id: "8", nome: "Pagamentos", icone: "credit-card" },
-  { id: "9", nome: "Condomínio", icone: "building" },
-  { id: "10", nome: "Dívida", icone: "landmark" },
-  { id: "11", nome: "Outros", icone: "more-horizontal" },
-];
+export const categorias: Categoria[] = CATEGORY_DEFINITIONS.map((category) => ({
+  ...category,
+}));
 
 export const gastos: Gasto[] = [
   { id: "1", data: "2024-01-05", estabelecimento: "Samsung 09/18", valor: 194.54, categoria: "Compras", responsavel: "William", parcela: "9/18" },
   { id: "2", data: "2024-01-06", estabelecimento: "Flamengo Nacao 07/12", valor: 200.00, categoria: "Entretenimento", responsavel: "William", parcela: "7/12" },
   { id: "3", data: "2024-01-07", estabelecimento: "Uber", valor: 21.00, categoria: "Transporte", responsavel: "Esposa" },
-  { id: "4", data: "2024-01-08", estabelecimento: "iFood", valor: 58.90, categoria: "Alimentacao", responsavel: "Filho" },
+  { id: "4", data: "2024-01-08", estabelecimento: "iFood", valor: 58.90, categoria: "Alimentação", responsavel: "Filho" },
   { id: "5", data: "2024-01-09", estabelecimento: "Netflix", valor: 39.90, categoria: "Assinaturas", responsavel: "William" },
-  { id: "6", data: "2024-01-10", estabelecimento: "Farmacia Drogasil", valor: 87.50, categoria: "Saude", responsavel: "Mae" },
+  { id: "6", data: "2024-01-10", estabelecimento: "Farmacia Drogasil", valor: 87.50, categoria: "Saúde", responsavel: "Mae" },
   { id: "7", data: "2024-01-11", estabelecimento: "Posto Shell", valor: 250.00, categoria: "Transporte", responsavel: "William" },
-  { id: "8", data: "2024-01-12", estabelecimento: "Supermercado Extra", valor: 456.78, categoria: "Alimentacao", responsavel: "Esposa" },
+  { id: "8", data: "2024-01-12", estabelecimento: "Supermercado Extra", valor: 456.78, categoria: "Alimentação", responsavel: "Esposa" },
   { id: "9", data: "2024-01-13", estabelecimento: "Spotify", valor: 21.90, categoria: "Assinaturas", responsavel: "Filho" },
   { id: "10", data: "2024-01-14", estabelecimento: "Amazon Prime", valor: 14.90, categoria: "Assinaturas", responsavel: "William" },
   { id: "11", data: "2024-01-15", estabelecimento: "Lojas Americanas", valor: 89.90, categoria: "Compras", responsavel: "Esposa" },
   { id: "12", data: "2024-01-16", estabelecimento: "99 Pop", valor: 18.50, categoria: "Transporte", responsavel: "Filho" },
-  { id: "13", data: "2024-01-17", estabelecimento: "Padaria Pao Quente", valor: 32.40, categoria: "Alimentacao", responsavel: "Mae" },
+  { id: "13", data: "2024-01-17", estabelecimento: "Padaria Pao Quente", valor: 32.40, categoria: "Alimentação", responsavel: "Mae" },
   { id: "14", data: "2024-01-18", estabelecimento: "Cinema Cinemark", valor: 75.00, categoria: "Entretenimento", responsavel: "Filho" },
-  { id: "15", data: "2024-01-19", estabelecimento: "Curso Udemy", valor: 27.90, categoria: "Educacao", responsavel: "William" },
+  { id: "15", data: "2024-01-19", estabelecimento: "Curso Udemy", valor: 27.90, categoria: "Educação", responsavel: "William" },
   { id: "16", data: "2024-01-20", estabelecimento: "Magazine Luiza 03/10", valor: 159.90, categoria: "Compras", responsavel: "Esposa", parcela: "3/10" },
-  { id: "17", data: "2024-01-21", estabelecimento: "Restaurante Outback", valor: 187.00, categoria: "Alimentacao", responsavel: "William" },
-  { id: "18", data: "2024-01-22", estabelecimento: "Academia Smart Fit", valor: 99.90, categoria: "Saude", responsavel: "William" },
+  { id: "17", data: "2024-01-21", estabelecimento: "Restaurante Outback", valor: 187.00, categoria: "Alimentação", responsavel: "William" },
+  { id: "18", data: "2024-01-22", estabelecimento: "Academia Smart Fit", valor: 99.90, categoria: "Saúde", responsavel: "William" },
   { id: "19", data: "2024-01-23", estabelecimento: "Pet Shop", valor: 145.00, categoria: "Outros", responsavel: "Esposa" },
   { id: "20", data: "2024-01-24", estabelecimento: "Mercado Livre 05/12", valor: 83.25, categoria: "Compras", responsavel: "Filho", parcela: "5/12" },
 ];
@@ -100,13 +90,13 @@ export const parcelamentos: Parcelamento[] = [
 ];
 
 export const gastosPorCategoria = [
-  { categoria: "Alimentacao", valor: 735.08, cor: "var(--chart-1)" },
+  { categoria: "Alimentação", valor: 735.08, cor: "var(--chart-1)" },
   { categoria: "Transporte", valor: 289.50, cor: "var(--chart-2)" },
   { categoria: "Compras", valor: 527.59, cor: "var(--chart-3)" },
   { categoria: "Assinaturas", valor: 76.70, cor: "var(--chart-4)" },
   { categoria: "Entretenimento", valor: 275.00, cor: "var(--chart-5)" },
-  { categoria: "Saude", valor: 187.40, cor: "var(--chart-1)" },
-  { categoria: "Educacao", valor: 27.90, cor: "var(--chart-2)" },
+  { categoria: "Saúde", valor: 187.40, cor: "var(--chart-1)" },
+  { categoria: "Educação", valor: 27.90, cor: "var(--chart-2)" },
   { categoria: "Outros", valor: 145.00, cor: "var(--chart-3)" },
 ];
 
@@ -146,3 +136,4 @@ export function formatDateTime(dateString: string): string {
     minute: "2-digit",
   });
 }
+import { CATEGORY_DEFINITIONS } from "@/lib/categories";

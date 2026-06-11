@@ -42,13 +42,13 @@ const COLORS = [
 ];
 
 const CATEGORIA_COLORS: Record<string, string> = {
-  Alimentacao: "var(--chart-1)",
+  Alimentação: "var(--chart-1)",
   Transporte: "var(--chart-2)",
   Entretenimento: "var(--chart-3)",
   Compras: "var(--chart-4)",
   Assinaturas: "var(--chart-5)",
-  Saude: "var(--chart-6)",
-  Educacao: "var(--chart-7)",
+  Saúde: "var(--chart-6)",
+  Educação: "var(--chart-7)",
   Pagamentos: "var(--chart-9)",
   Condomínio: "var(--chart-10)",
   Dívida: "var(--chart-11)",

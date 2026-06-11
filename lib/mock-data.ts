@@ -27,13 +27,13 @@ export interface Parcelamento {
 }
 
 export const categorias = [
-  "Alimentacao",
+  "Alimentação",
   "Transporte",
   "Streaming",
   "Compras",
   "Lazer",
-  "Saude",
-  "Educacao",
+  "Saúde",
+  "Educação",
   "Pagamentos",
   "Condomínio",
   "Dívida",
@@ -52,18 +52,18 @@ export const gastosMock: Gasto[] = [
   { id: "1", data: "2024-01-15", estabelecimento: "Samsung 09/18", valor: 194.54, categoria: "Compras", responsavel: "William", parcela: "9/18" },
   { id: "2", data: "2024-01-14", estabelecimento: "Flamengo Nacao 07/12", valor: 200.00, categoria: "Lazer", responsavel: "William", parcela: "7/12" },
   { id: "3", data: "2024-01-13", estabelecimento: "Uber", valor: 21.00, categoria: "Transporte", responsavel: "William" },
-  { id: "4", data: "2024-01-12", estabelecimento: "iFood", valor: 58.90, categoria: "Alimentacao", responsavel: "Esposa" },
+  { id: "4", data: "2024-01-12", estabelecimento: "iFood", valor: 58.90, categoria: "Alimentação", responsavel: "Esposa" },
   { id: "5", data: "2024-01-11", estabelecimento: "Netflix", valor: 39.90, categoria: "Streaming", responsavel: "William" },
   { id: "6", data: "2024-01-10", estabelecimento: "Spotify", valor: 21.90, categoria: "Streaming", responsavel: "Filho" },
-  { id: "7", data: "2024-01-09", estabelecimento: "Farmacia Drogasil", valor: 87.50, categoria: "Saude", responsavel: "Mae" },
+  { id: "7", data: "2024-01-09", estabelecimento: "Farmacia Drogasil", valor: 87.50, categoria: "Saúde", responsavel: "Mae" },
   { id: "8", data: "2024-01-08", estabelecimento: "Posto Shell", valor: 250.00, categoria: "Transporte", responsavel: "William" },
-  { id: "9", data: "2024-01-07", estabelecimento: "Supermercado Extra", valor: 423.67, categoria: "Alimentacao", responsavel: "Esposa" },
+  { id: "9", data: "2024-01-07", estabelecimento: "Supermercado Extra", valor: 423.67, categoria: "Alimentação", responsavel: "Esposa" },
   { id: "10", data: "2024-01-06", estabelecimento: "Amazon 03/10", valor: 89.90, categoria: "Compras", responsavel: "William", parcela: "3/10" },
-  { id: "11", data: "2024-01-05", estabelecimento: "Curso Udemy", valor: 27.90, categoria: "Educacao", responsavel: "Filho" },
+  { id: "11", data: "2024-01-05", estabelecimento: "Curso Udemy", valor: 27.90, categoria: "Educação", responsavel: "Filho" },
   { id: "12", data: "2024-01-04", estabelecimento: "Cinema Cinemark", valor: 78.00, categoria: "Lazer", responsavel: "William" },
   { id: "13", data: "2024-01-03", estabelecimento: "99 Pop", valor: 15.80, categoria: "Transporte", responsavel: "Esposa" },
   { id: "14", data: "2024-01-02", estabelecimento: "Mercado Livre 05/12", valor: 156.33, categoria: "Compras", responsavel: "William", parcela: "5/12" },
-  { id: "15", data: "2024-01-01", estabelecimento: "Padaria Bom Dia", valor: 32.50, categoria: "Alimentacao", responsavel: "Mae" },
+  { id: "15", data: "2024-01-01", estabelecimento: "Padaria Bom Dia", valor: 32.50, categoria: "Alimentação", responsavel: "Mae" },
 ]
 
 export const faturasMock: Fatura[] = [
@@ -80,7 +80,7 @@ export const parcelamentosMock: Parcelamento[] = [
 ]
 
 export const gastosPorCategoria = [
-  { categoria: "Alimentacao", valor: 514.07, fill: "var(--color-chart-1)" },
+  { categoria: "Alimentação", valor: 514.07, fill: "var(--color-chart-1)" },
   { categoria: "Transporte", valor: 286.80, fill: "var(--color-chart-2)" },
   { categoria: "Compras", valor: 640.77, fill: "var(--color-chart-3)" },
   { categoria: "Streaming", valor: 61.80, fill: "var(--color-chart-4)" },

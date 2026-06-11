@@ -227,13 +227,13 @@ export default function GastosPage() {
 
   const getCategoriaColor = (categoria: string) => {
     const colors: Record<string, string> = {
-      Alimentacao: "bg-[var(--chart-1)]/20 text-[var(--chart-1)]",
+      Alimentação: "bg-[var(--chart-1)]/20 text-[var(--chart-1)]",
       Transporte: "bg-[var(--chart-2)]/20 text-[var(--chart-2)]",
       Entretenimento: "bg-[var(--chart-3)]/20 text-[var(--chart-3)]",
       Compras: "bg-[var(--chart-4)]/20 text-[var(--chart-4)]",
       Assinaturas: "bg-[var(--chart-5)]/20 text-[var(--chart-5)]",
-      Saude: "bg-[var(--chart-6)]/20 text-[var(--chart-6)]",
-      Educacao: "bg-[var(--chart-7)]/20 text-[var(--chart-7)]",
+      Saúde: "bg-[var(--chart-6)]/20 text-[var(--chart-6)]",
+      Educação: "bg-[var(--chart-7)]/20 text-[var(--chart-7)]",
       Pagamentos: "bg-[var(--chart-9)]/20 text-[var(--chart-9)]",
       Condomínio: "bg-[var(--chart-10)]/20 text-[var(--chart-10)]",
       Dívida: "bg-[var(--chart-11)]/20 text-[var(--chart-11)]",
