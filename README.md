@@ -1,153 +1,134 @@
-# 💳 Cartão Inteligente
+# Cartao Inteligente
 
-> Um sistema inteligente e moderno para gerenciamento de faturas de cartão de crédito
+Aplicacao web para gerenciar faturas de cartao de credito, importar PDFs de fatura, classificar gastos, dividir despesas por responsavel, acompanhar parcelamentos e gerar relatorios.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Next.js](https://img.shields.io/badge/Next.js-15-black)
-![React](https://img.shields.io/badge/React-19-61dafb)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
+## Stack atual
 
-## 🎯 Sobre
+- Next.js `16.2.7` com App Router
+- React `19.2.4`
+- TypeScript 5
+- Tailwind CSS 4
+- Base UI/shadcn-style components em `components/ui`
+- Supabase Auth + PostgreSQL via `@supabase/supabase-js`
+- React Query 5
+- Google Gemini para processamento de PDF em `app/api/process-fatura/route.ts`
+- Recharts para graficos
+- jsPDF + jspdf-autotable para exportacao PDF
+- Vercel para deploy
 
-**Cartão Inteligente** é uma aplicação web moderna para gerenciar faturas de cartão de crédito. Permite aos usuários:
+## Funcionalidades implementadas
 
-- 📊 Visualizar e analisar gastos com gráficos interativos
-- 📄 Importar e organizar faturas em PDF
-- 💰 Rastrear parcelamentos e despesas
-- 👥 Atribuir responsáveis aos gastos
-- 📈 Gerar relatórios detalhados
+- Login com Google via Supabase Auth.
+- Gate de autorizacao por tabela `authorized_users`.
+- Dashboard com total da fatura, gastos pessoais, terceiros, compras e parcelamentos.
+- Seletor global de fatura no sidebar/header.
+- Importacao de faturas PDF em `app/faturas/page.tsx`, processadas por `/api/process-fatura`.
+- Listagem de faturas e exclusao de fatura.
+- Tabela de gastos com busca, filtros, ordenacao, edicao de categoria/responsavel/observacao e divisao de valor.
+- Parcelamentos derivados dos gastos com campo `parcela`.
+- Relatorios por mes, categoria e responsavel.
+- Exportacao PDF de relatorio completo ou por responsavel.
+- Configuracao de responsaveis e responsavel principal.
+- Tema claro/escuro.
 
-Construída com tecnologias modernas e com design profissional.
+## Estrutura do projeto
 
-## 🚀 Quick Start
+```text
+app/
+  api/process-fatura/route.ts      # Processa PDF com Gemini e salva no Supabase
+  auth/callback/route.ts           # Callback OAuth do Supabase
+  logout/route.ts                  # Logout POST
+  page.tsx                         # Dashboard
+  faturas/page.tsx                 # Importacao/lista de faturas
+  gastos/page.tsx                  # Tabela e edicao de gastos
+  parcelamentos/page.tsx           # Parcelamentos derivados de gastos
+  relatorios/page.tsx              # Graficos e exportacao PDF
+  configuracoes/page.tsx           # Responsaveis
+components/
+  root-layout-client.tsx           # Providers globais
+  auth-provider.tsx                # Sessao e autorizacao
+  fatura-provider.tsx              # Fatura atual
+  app-sidebar.tsx                  # Navegacao e seletor de fatura
+  dashboard-content.tsx            # Dashboard
+  ui/                              # Componentes de UI
+lib/
+  api/endpoints.ts                 # Tabelas e query keys
+  api/types.ts                     # Tipos vindos do Supabase
+  hooks/                           # Hooks React Query
+  supabase/client.ts               # Cliente Supabase browser
+  utils/pdfExport.ts               # Exportacao PDF
+  data.ts                          # Tipos de dominio, mocks e formatadores
+```
 
-### Pré-requisitos
+## Configuracao local
 
-- **Node.js** 18+
-- **npm** ou **yarn**
-- **Conta Supabase**
-
-### Instalação (3 minutos)
+1. Instale dependencias:
 
 ```bash
-# 1. Clone o repositório
-git clone <repo-url>
-cd cartao-inteligente
-
-# 2. Instale as dependências
 npm install
+```
 
-# 3. Configure variáveis de ambiente
-cp .env.example .env.local
-# Edite com suas credenciais Supabase
+2. Crie `.env.local` com base em `.env.example`.
 
-# 4. Rode o dev server
+Variaveis usadas pelo codigo atual:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+GEMINI_API_KEY=
+```
+
+Observacao: `SUPABASE_SERVICE_ROLE_KEY` aparece em alguns documentos antigos, mas o codigo atual nao a utiliza. So adicione se uma futura rota server-side realmente precisar dela.
+
+3. Rode o app:
+
+```bash
 npm run dev
-
-# 5. Abra http://localhost:3000
 ```
 
-## 📚 Documentação
+4. Acesse `http://localhost:3000`.
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Arquitetura e data flow |
-| **[DEVELOPMENT.md](./DEVELOPMENT.md)** | Como desenvolver |
-| **[API_INTEGRATION.md](./API_INTEGRATION.md)** | Setup Supabase |
-| **[BACKEND_INTEGRATION_CHECKLIST.md](./BACKEND_INTEGRATION_CHECKLIST.md)** | Deploy checklist |
-| **[CLAUDE.md](./CLAUDE.md)** | Padrões do projeto |
-
-## 🛠️ Tech Stack
-
-- **Frontend**: Next.js 15 + React 19 + TypeScript
-- **Styling**: Tailwind CSS 4 + shadcn/ui
-- **Data Fetching**: React Query + Supabase
-- **Auth**: OAuth2 (Google) via Supabase
-- **Validation**: Zod + react-hook-form
-- **Charts**: Recharts
-- **Notifications**: Sonner
-
-## 📁 Estrutura
-
-```
-cartao-inteligente/
-├── app/                    # Next.js pages
-├── components/             # React components
-├── lib/                    # Utilities & hooks
-│   ├── supabase/           # Supabase client
-│   ├── api/                # Types & endpoints
-│   ├── hooks/              # Data fetching hooks
-│   └── data.ts             # Mock data & types
-└── docs/                   # Documentation
-```
-
-## 📊 Funcionalidades
-
-✅ Autenticação OAuth2 (Google)
-✅ Dashboard com estatísticas
-✅ Tabela de gastos com filtros
-✅ Upload de faturas (PDF)
-✅ Rastreamento de parcelamentos
-✅ Relatórios com gráficos
-✅ Gerenciamento de responsáveis
-✅ Tema claro/escuro
-✅ Design responsivo
-
-## 🚀 Deploy
+## Scripts atuais
 
 ```bash
-# Vercel
-git push origin main  # Deploy automático
-
-# Ou manual
-npm install -g vercel
-vercel
+npm run dev      # servidor de desenvolvimento
+npm run build    # build de producao
+npm run start    # servir build
+npm run lint     # eslint
+npx tsc --noEmit # typecheck manual
 ```
 
-## 🧪 Testing
+Nao existe script `npm test` configurado atualmente.
 
-```bash
-npm test       # Rodar testes
-npm run build  # Build para produção
-npm run dev    # Dev server
-npm run lint   # ESLint check
-```
+## Deploy na Vercel
 
-## 🐛 Troubleshooting
+Configure no projeto da Vercel:
 
-**Cannot find module**
-```bash
-npm install && npm run dev
-```
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GEMINI_API_KEY`
 
-**RLS policy violation**
-- Verificar policies em Supabase
+Tambem configure URLs de OAuth no Google Cloud Console e no Supabase para o dominio da Vercel, incluindo `/auth/callback`.
 
-**OAuth mismatch**
-- Verificar URL em Google Cloud Console
+Pontos de atencao em producao:
 
-## 📞 Suporte
+- `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
+- PDFs enviados para a function nao ficam persistidos automaticamente.
+- Para auditoria ou reprocessamento, salve PDF/hash em Supabase Storage, Vercel Blob ou outro storage.
+- RLS no Supabase e obrigatorio, pois o app fica acessivel remotamente.
 
-- **Issues**: GitHub Issues
-- **Docs**: [Documentação Completa](./ARCHITECTURE.md)
+## Documentacao
 
-## 🤝 Contribuindo
+- [ARCHITECTURE.md](./ARCHITECTURE.md): arquitetura atual e fluxo de dados.
+- [API_INTEGRATION.md](./API_INTEGRATION.md): schema Supabase e integracao.
+- [DEVELOPMENT.md](./DEVELOPMENT.md): guia de desenvolvimento.
+- [BACKEND_INTEGRATION_CHECKLIST.md](./BACKEND_INTEGRATION_CHECKLIST.md): checklist operacional de Supabase/Vercel.
+- [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md): backlog tecnico e de UI.
+- [CLAUDE.md](./CLAUDE.md): guia legado para assistentes; pode ser removido se ninguem usar Claude.
 
-1. Fork do projeto
-2. Crie uma branch (`git checkout -b feature/feature-name`)
-3. Commit (`git commit -m 'feat: description'`)
-4. Push (`git push origin feature/feature-name`)
-5. Abra um Pull Request
+## Estado conhecido
 
-## 📄 Licença
+Em 2026-06-11:
 
-MIT © 2024
-
-## 👨‍💻 Autor
-
-**William** - [@WilliamRj](https://github.com/WilliamRj)
-
----
-
-Feito com ❤️
+- `npx tsc --noEmit` passa.
+- `npm run lint` falha com erros/warnings documentados em [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md).

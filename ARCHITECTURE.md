@@ -1,378 +1,258 @@
-# Architecture - Cartão Inteligente
+# Arquitetura atual
 
-## 📋 Overview
+Este documento descreve o estado observado no codigo em 2026-06-11. Ele nao presume recursos que ainda nao foram implementados no Supabase ou na Vercel.
 
-**Cartão Inteligente** é uma aplicação web moderna para gerenciamento de faturas de cartão de crédito, construída com Next.js 15, TypeScript e integrada com Supabase para autenticação e persistência de dados.
+## Visao geral
 
-### Stack Tecnológico
+```text
+Browser
+  |
+  |-- Next.js App Router / Client Components
+  |     |-- AuthProvider
+  |     |-- FaturaProvider
+  |     |-- React Query
+  |     |-- Supabase browser client
+  |
+  |-- POST /api/process-fatura
+        |-- valida token Supabase
+        |-- envia PDF ao Gemini
+        |-- salva fatura e gastos no Supabase
 
-**Frontend:**
-- **Next.js 15** - React framework com App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS 4** - Design system moderno (cores oklch)
-- **shadcn/ui** - Componentes UI reutilizáveis
-- **Recharts** - Gráficos e visualizações
-- **React Query** - Gerenciamento de cache e estado de dados
-
-**Backend:**
-- **Supabase** - Backend como serviço (PostgreSQL + Auth + Storage)
-- **OAuth2** - Autenticação com Google
-
-**DevOps:**
-- **Next.js API Routes** - Middleware e callbacks de autenticação
-- **Environment Variables** - Configuração por ambiente
-
----
-
-## 🏗️ Arquitetura de Alto Nível
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Next.js Application                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐                │
-│  │   Pages (App)    │  │   Components     │                │
-│  ├──────────────────┤  ├──────────────────┤                │
-│  │ • Dashboard      │  │ • UI Primitives  │                │
-│  │ • Gastos         │  │ • Forms          │                │
-│  │ • Faturas        │  │ • Charts         │                │
-│  │ • Parcelamentos  │  │ • Loading/Error  │                │
-│  │ • Relatórios     │  │ • Auth Provider  │                │
-│  │ • Configurações  │  │ • Sidebar        │                │
-│  │ • Login          │  │ • Theme          │                │
-│  └──────────────────┘  └──────────────────┘                │
-│           │                     │                          │
-│           └─────────┬───────────┘                          │
-│                     │                                      │
-│           ┌─────────▼──────────┐                           │
-│           │   Hooks & Services │                           │
-│           ├────────────────────┤                           │
-│           │ • useGastos        │                           │
-│           │ • useFaturas       │                           │
-│           │ • useParcelamentos │                           │
-│           │ • useConfiguracoes │                           │
-│           │ • useAuth          │                           │
-│           └─────────┬──────────┘                           │
-│                     │                                      │
-│           ┌─────────▼──────────┐                           │
-│           │  API Client Layer  │                           │
-│           ├────────────────────┤                           │
-│           │ • React Query      │                           │
-│           │ • Supabase Client  │                           │
-│           └─────────┬──────────┘                           │
-│                     │                                      │
-│           ┌─────────▼──────────┐                           │
-│           │   API Routes       │                           │
-│           ├────────────────────┤                           │
-│           │ • /auth/callback   │                           │
-│           │ • /logout          │                           │
-│           └─────────┬──────────┘                           │
-└─────────────────────┼──────────────────────────────────────┘
-                      │
-┌─────────────────────▼──────────────────────────────────────┐
-│                    Supabase Backend                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐  ┌──────────┐  ┌──────────────────┐      │
-│  │ PostgreSQL   │  │   Auth   │  │  Storage (PDFs)  │      │
-│  │              │  │ (Google  │  │                  │      │
-│  │ • gastos     │  │  OAuth2) │  │ • Fatura PDFs    │      │
-│  │ • faturas    │  │          │  │ • Uploads        │      │
-│  │ • parcel.    │  │          │  │                  │      │
-│  │ • responsav. │  │          │  │                  │      │
-│  └──────────────┘  └──────────┘  └──────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
+Servicos externos
+  |-- Supabase Auth
+  |-- Supabase PostgreSQL + RLS
+  |-- Google OAuth
+  |-- Google Gemini
+  |-- Vercel
 ```
 
----
+## Stack
 
-## 📂 Estrutura de Diretórios
+- Next.js `16.2.7`, App Router.
+- React `19.2.4`.
+- TypeScript 5 em modo `strict`.
+- Tailwind CSS 4.
+- Base UI e componentes shadcn-style.
+- React Query 5.
+- Supabase JS 2.
+- Google Gemini via `@google/generative-ai`.
+- Recharts.
+- jsPDF e jspdf-autotable.
+- Vercel como plataforma de deploy.
 
-```
-cartao-inteligente/
-├── app/
-│   ├── layout.tsx                 # Root layout com providers
-│   ├── page.tsx                   # Dashboard
-│   ├── globals.css                # Global styles
-│   ├── login/
-│   │   └── page.tsx              # Login page (Google OAuth)
-│   ├── auth/
-│   │   └── callback/
-│   │       └── route.ts          # OAuth callback handler
-│   ├── logout/
-│   │   └── route.ts              # Logout handler
-│   ├── gastos/
-│   │   └── page.tsx              # Expenses page
-│   ├── faturas/
-│   │   └── page.tsx              # Invoices page
-│   ├── parcelamentos/
-│   │   └── page.tsx              # Installments page
-│   ├── relatorios/
-│   │   └── page.tsx              # Reports page
-│   └── configuracoes/
-│       └── page.tsx              # Settings page
-│
-├── components/
-│   ├── ui/                        # shadcn/ui components
-│   ├── root-layout-client.tsx     # Client-side layout wrapper
-│   ├── auth-provider.tsx          # Auth state management
-│   ├── app-sidebar.tsx            # Navigation sidebar
-│   ├── dashboard-content.tsx      # Dashboard component
-│   ├── theme-provider.tsx         # Theme management
-│   ├── loading.tsx                # Loading UI components
-│   ├── error.tsx                  # Error UI components
-│   └── theme-provider.tsx         # Next-themes wrapper
-│
-├── lib/
-│   ├── data.ts                    # Types, mock data, utilities
-│   ├── utils.ts                   # Utility functions (cn)
-│   ├── supabase/
-│   │   └── client.ts              # Supabase client initialization
-│   ├── api/
-│   │   ├── types.ts               # API request/response types
-│   │   └── endpoints.ts           # API endpoints constants
-│   ├── hooks/
-│   │   ├── useGastos.ts           # Expenses data fetching
-│   │   ├── useFaturas.ts          # Invoices data fetching
-│   │   ├── useParcelamentos.ts    # Installments data fetching
-│   │   └── useConfiguracoes.ts    # Settings data fetching
-│   └── mocks/
-│       ├── data.ts                # Mock data for testing
-│       ├── handlers.ts            # MSW handlers
-│       └── server.ts              # MSW server setup
-│
-├── public/                        # Static assets
-│
-├── .env.example                   # Environment template
-├── .env.local                     # Local environment (git-ignored)
-├── next.config.ts                 # Next.js configuration
-├── tailwind.config.ts             # Tailwind configuration
-├── tsconfig.json                  # TypeScript configuration
-├── eslint.config.mjs              # ESLint configuration
-├── postcss.config.mjs             # PostCSS configuration
-├── package.json                   # Dependencies
-└── README.md                      # Project documentation
-```
+Por instrucao de `AGENTS.md`, alteracoes relacionadas ao Next.js devem consultar primeiro os guias em `node_modules/next/dist/docs/`.
 
----
+## Rotas
 
-## 🔄 Data Flow
+| Rota | Arquivo | Responsabilidade |
+|---|---|---|
+| `/` | `app/page.tsx` | Dashboard |
+| `/login` | `app/login/page.tsx` | Login Google |
+| `/faturas` | `app/faturas/page.tsx` | Importar, listar e excluir faturas |
+| `/gastos` | `app/gastos/page.tsx` | Filtrar e editar gastos |
+| `/parcelamentos` | `app/parcelamentos/page.tsx` | Exibir parcelas derivadas dos gastos |
+| `/relatorios` | `app/relatorios/page.tsx` | Graficos e exportacao PDF |
+| `/configuracoes` | `app/configuracoes/page.tsx` | Gerenciar responsaveis |
+| `/auth/callback` | `app/auth/callback/route.ts` | Trocar codigo OAuth por sessao |
+| `/logout` | `app/logout/route.ts` | Rota POST de logout |
+| `/api/process-fatura` | `app/api/process-fatura/route.ts` | Processar PDF com Gemini |
 
-### 1. **Autenticação (OAuth2 Google)**
+Observacoes:
 
-```
-User clicks "Login" → Google Login Page → OAuth Callback → 
-Supabase Session Created → AuthProvider Updates State → 
-Redirect to Dashboard
-```
+- O botao de logout atual usa `supabase.auth.signOut()` no cliente; a rota `/logout` nao e usada pela UI.
+- O botao de visualizar fatura existe, mas ainda nao tem comportamento.
+- `vercel.json` possui um rewrite global para `/`; revisar se ele e necessario, pois pode conflitar com rotas do App Router e APIs.
 
-### 2. **Fetching de Dados**
+## Composicao global
 
-```
-Component Renders → useGastos Hook → React Query Cache Check →
-If Stale → Supabase Query → Cache Updated → Component Re-renders
-```
+`app/layout.tsx` e Server Component e renderiza `RootLayoutClient`.
 
-### 3. **Mutação de Dados (Criar/Atualizar)**
+`components/root-layout-client.tsx` registra:
 
-```
-User Fills Form → Validation (Zod) → useMutation Called →
-Supabase Update → Toast Notification → React Query Invalidation →
-Cache Refreshed → Component Updates
-```
+1. `QueryClientProvider`
+2. `AuthProvider`
+3. `FaturaProvider`
+4. `ThemeProvider`
+5. `TooltipProvider`
+6. `AppSidebar`
+7. `Toaster`
 
-### 4. **Upload de Arquivo**
+Como o wrapper global e Client Component, grande parte da aplicacao depende de hidratacao no cliente. A reducao desse limite esta registrada em `FUTURAS_MELHORIAS.md`.
 
-```
-User Selects PDF → File Validation → Supabase Storage Upload →
-Create Fatura Record → Database Sync → List Updated
-```
+## Autenticacao e autorizacao
 
----
+### Login
 
-## 🧩 Padrões de Componentes
+1. `app/login/page.tsx` chama `supabase.auth.signInWithOAuth`.
+2. O Google/Supabase redireciona para `/auth/callback`.
+3. `app/auth/callback/route.ts` chama `exchangeCodeForSession`.
+4. O usuario e redirecionado para a origem do app.
 
-### 1. **Páginas (Client Components)**
+### Autorizacao adicional
 
-Todas as páginas são "use client" com estado local:
+`components/auth-provider.tsx`:
 
-```typescript
-"use client";
+1. Obtem a sessao atual.
+2. Consulta `authorized_users` pelo email.
+3. Se o email nao existir, encerra a sessao.
+4. Se autorizado, disponibiliza `user` pelo contexto.
 
-export default function GastosPage() {
-  const { data, isLoading, error } = useGastos();
+Essa tabela deve possuir RLS/politicas adequadas. Ela nao aparecia na documentacao antiga, mas e obrigatoria para o fluxo atual.
 
-  if (isLoading) return <LoadingSkeleton />;
-  if (error) return <ErrorAlert error={error} />;
+## Estado e dados
 
-  return (
-    <div>
-      {/* Page content */}
-    </div>
-  );
-}
+### React Query
+
+Os hooks em `lib/hooks/` consultam Supabase diretamente:
+
+- `useFaturas`
+- `useGastos`
+- `useEstatisticas`
+- `useParcelamentos`
+- `useResponsaveis`
+
+O `QueryClient` global usa:
+
+- `staleTime`: 5 minutos.
+- `gcTime`: 10 minutos.
+
+### Fatura atual
+
+`components/fatura-provider.tsx` carrega todas as faturas e mantem uma fatura selecionada globalmente. Dashboard, gastos, parcelamentos e relatorios usam esse contexto.
+
+### Parcelamentos
+
+Apesar de existir `TABLES.PARCELAMENTOS`, a tela atual nao consulta essa tabela. `lib/hooks/useParcelamentos.ts` seleciona gastos com `parcela` e deriva:
+
+- parcela atual;
+- total de parcelas;
+- valor total estimado;
+- parte de cada responsavel.
+
+A tabela `parcelamentos` e usada apenas na exclusao de fatura e deve ser considerada legado/pendencia ate o modelo ser decidido.
+
+### Divisao de gastos
+
+O campo `gastos.divisoes` e esperado como array JSON:
+
+```ts
+type Divisao = {
+  valor: number;
+  responsavel: string;
+};
 ```
 
-### 2. **Hooks de Dados**
+Quando presente, ele substitui `responsavel` nos calculos por pessoa.
 
-Padrão React Query + Supabase:
+## Processamento de fatura
 
-```typescript
-export function useGastos() {
-  return useQuery({
-    queryKey: QUERY_KEYS.GASTOS,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('gastos')
-        .select('*')
-        .order('data', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-}
-```
+Fluxo em `app/api/process-fatura/route.ts`:
 
-### 3. **Componentes de Formulário**
+1. Recebe `Authorization: Bearer <token>`.
+2. Cria cliente Supabase usando URL e anon key.
+3. Valida o usuario com `auth.getUser()`.
+4. Recebe um `File` por `FormData`.
+5. Converte PDF para base64.
+6. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
+7. Faz `JSON.parse` da resposta.
+8. Insere a fatura.
+9. Busca o responsavel principal.
+10. Insere os gastos.
 
-Validação com Zod + react-hook-form:
+Limitacoes atuais:
 
-```typescript
-const schema = zod.object({
-  categoria: zod.string().min(1),
-  responsavel: zod.string().min(1),
-});
+- A resposta da IA ainda nao e validada com Zod.
+- A insercao de fatura e gastos nao e transacional.
+- O PDF original nao e salvo.
+- Nao ha hash/idempotencia contra duplicacao.
+- O processamento ocorre dentro de uma unica requisicao serverless.
 
-const { register, handleSubmit } = useForm({ resolver: zodResolver(schema) });
-```
+## Modelo de dados observado
 
----
+### `faturas`
 
-## 🔐 Estado de Autenticação
+Campos usados:
 
-**AuthProvider** gerencia o estado global de autenticação:
+- `id`
+- `user_id`
+- `mes_referencia`
+- `valor_total`
+- `quantidade_lancamentos`
+- `data_importacao`
+- `arquivo_url` apenas nos tipos, sem uso atual
 
-```typescript
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
-```
+### `gastos`
 
-**Fluxo:**
-1. Na montagem, verifica se há sessão ativa
-2. Escuta mudanças de autenticação do Supabase
-3. Se não autenticado, renderiza LoginPage
-4. Se autenticado, renderiza aplicação
+Campos usados:
 
----
+- `id`
+- `user_id`
+- `fatura_id`
+- `data`
+- `estabelecimento`
+- `valor`
+- `categoria`
+- `responsavel`
+- `parcela`
+- `observacao`
+- `divisoes`
 
-## 📊 State Management
+### `responsaveis`
 
-**Local Component State:**
-- Filtros, busca, paginação
-- Diálogos e modais
-- Formulários
+Campos usados:
 
-**React Query Cache:**
-- Dados de gastos, faturas, parcelamentos
-- Invalidação automática após mutações
-- Stale time: 5 minutos
+- `id`
+- `user_id`
+- `nome`
+- `cor`
 
-**Global Auth State:**
-- Usuário atual
-- Status de loading
-- Token de sessão (gerenciado por Supabase)
+O valor especial `cor = 'pessoal'` identifica o responsavel principal. Portanto, `cor` atualmente mistura papel de negocio e apresentacao visual.
 
----
+### `authorized_users`
 
-## 🔌 Integração com Supabase
+Campo usado:
 
-### Tabelas Necessárias
+- `email`
 
-```sql
--- gastos (despesas)
--- faturas (notas fiscais)
--- parcelamentos (compras parceladas)
--- responsaveis (usuários)
-```
+### `parcelamentos`
 
-### Row Level Security (RLS)
+A leitura da aplicacao nao usa essa tabela atualmente. Confirmar no Supabase se ela ainda existe e se deve ser removida.
 
-Todas as tabelas devem ter políticas RLS:
-- Usuários só veem seus próprios dados
-- Service role key pode gerenciar tudo
+## Exportacao PDF
 
-### Storage
+`lib/utils/pdfExport.ts` carrega `jspdf` e `jspdf-autotable` dinamicamente para evitar problemas com APIs do browser durante SSR.
 
-- Bucket: `faturas` para PDFs de faturas
-- Pasta por usuário: `/user_id/`
+O relatorio pode ser:
 
----
+- completo;
+- filtrado por responsavel;
+- ajustado pelas divisoes de gastos.
 
-## ⚙️ Configuração de Ambiente
+## Deploy Vercel
+
+Variaveis necessarias no codigo atual:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
-SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
-NEXT_PUBLIC_APP_NAME=Cartão Inteligente
-NEXT_PUBLIC_VERSION=1.0.0
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+GEMINI_API_KEY=
 ```
 
----
+Cuidados:
 
-## 🎯 Fluxo de Desenvolvimento
+- configurar Development, Preview e Production;
+- configurar callback OAuth para cada dominio usado;
+- observar timeout, memoria e payload de `/api/process-fatura`;
+- nao usar filesystem temporario como storage persistente;
+- correlacionar logs da Vercel, browser e Supabase.
 
-### Adicionar Nova Página
+## Qualidade atual
 
-1. Criar `/app/[feature]/page.tsx`
-2. Criar hook em `/lib/hooks/use[Feature].ts`
-3. Implementar componente com loading/error states
-4. Adicionar route na sidebar
+Em 2026-06-11:
 
-### Adicionar Nova API Call
+- `npx tsc --noEmit` passa.
+- `npm run lint` falha com 8 erros e 17 warnings.
+- Nao ha framework/script de testes configurado.
+- Nao ha MSW, React Testing Library, Cypress ou Playwright instalados.
 
-1. Estender hook em `/lib/hooks/`
-2. Adicionar tipo em `/lib/api/types.ts`
-3. Usar mutation para criar/atualizar
-4. Invalidar cache após sucesso
-
----
-
-## 📈 Performance
-
-- **React Query Caching**: 5 min stale time
-- **Code Splitting**: Automático com Next.js
-- **Image Optimization**: Usar next/image quando possível
-- **Lazy Loading**: Modais e gráficos
-
----
-
-## 🧪 Testing
-
-- **Unit**: Hooks com Mock Service Worker (MSW)
-- **Integration**: Páginas com React Testing Library
-- **E2E**: Cypress ou Playwright (futuro)
-
-Mock data disponível em `/lib/mocks/` para testes.
-
----
-
-## 🚀 Deployment
-
-- **Hosting**: Vercel (otimizado para Next.js)
-- **Database**: Supabase (PostgreSQL gerenciado)
-- **Storage**: Supabase Storage para PDFs
-- **CI/CD**: GitHub Actions (recomendado)
-
----
-
-## 📚 Recursos Adicionais
-
-- [Next.js Docs](https://nextjs.org/docs)
-- [Supabase Docs](https://supabase.com/docs)
-- [React Query Docs](https://tanstack.com/query/latest)
-- [Tailwind CSS Docs](https://tailwindcss.com/docs)
+O backlog detalhado esta em `FUTURAS_MELHORIAS.md`.

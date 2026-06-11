@@ -375,6 +375,28 @@ Recomendacoes:
   - `test`: conforme framework escolhido
 - Considerar Prettier ou Biome para formatacao consistente.
 
+### 24. Manter documentacao e configuracao sincronizadas
+
+Auditoria realizada em 2026-06-11:
+
+- `README.md`, `ARCHITECTURE.md`, `API_INTEGRATION.md`, `BACKEND_INTEGRATION_CHECKLIST.md` e `DEVELOPMENT.md` foram atualizados para o codigo atual.
+- `AGENTS.md` permanece necessario por conter a regra especial do Next.js 16.
+- `CLAUDE.md` foi reduzido a um guia de compatibilidade e pode ser removido se Claude nao for usado.
+- `FUTURAS_MELHORIAS.md` permanece como backlog e nao deve ser usado como descricao do estado implementado.
+
+Pendencias fora dos arquivos Markdown:
+
+- `.env.example` ainda lista `SUPABASE_SERVICE_ROLE_KEY`, que nao e usada, e nao lista `GEMINI_API_KEY`, que e obrigatoria.
+- `vercel.json` possui rewrite global para `/` e deve ser validado/removido se interferir em rotas e APIs.
+- `lib/api/endpoints.ts` ainda declara Storage e tabela `parcelamentos`, embora esses contratos nao estejam plenamente implementados.
+
+Recomendacoes:
+
+- Atualizar documentacao no mesmo PR que alterar schema, env vars, rotas ou funcionalidades.
+- Nao marcar recursos planejados como concluidos.
+- Preferir links entre documentos a copiar grandes blocos repetidos.
+- Revisar referencias de arquivo/linha em `FUTURAS_MELHORIAS.md` quando o codigo mudar significativamente.
+
 ## Roadmap sugerido
 
 ### Sprint 1: estabilidade
@@ -419,6 +441,14 @@ Recomendacoes:
 - Adicionar monitoramento de falhas no processamento de faturas.
 - Revisar limites de timeout/payload e decidir se importacao precisa virar job assincrono.
 
+### Sprint 6: limpeza de documentacao e configuracao
+
+- Atualizar `.env.example` para incluir `GEMINI_API_KEY` e remover variaveis sem uso.
+- Decidir se `CLAUDE.md` deve permanecer.
+- Revisar/remover o rewrite global de `vercel.json`.
+- Decidir o destino da tabela/constantes de `parcelamentos`.
+- Remover constantes de Storage ate a implementacao ou concluir o upload persistente.
+
 ## Checklist rapido para PRs futuros
 
 - `npm run lint` passa.
@@ -434,3 +464,4 @@ Recomendacoes:
 - Uploads e arquivos que precisam persistir usam storage apropriado, nao filesystem temporario da function.
 - A UI nao mostra acoes sem implementacao.
 - Textos e termos seguem o padrao do produto.
+- Documentacao, `.env.example` e schema foram atualizados quando o contrato mudou.
