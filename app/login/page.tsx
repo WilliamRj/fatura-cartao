@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase/client";
 
 function GoogleIcon() {
@@ -65,14 +66,17 @@ export default function LoginPage() {
       <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--chart-2),var(--chart-6),var(--chart-1))]" />
 
       <header className="flex h-16 shrink-0 items-center border-b border-border/80 bg-background/90 px-5 sm:px-8">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-            <CreditCard className="size-5 text-primary-foreground" />
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary shadow-sm">
+              <CreditCard className="size-5 text-primary-foreground" />
+            </div>
+            <div className="leading-tight">
+              <p className="font-semibold text-foreground">Cartão Inteligente</p>
+              <p className="text-xs text-muted-foreground">Gestão de faturas</p>
+            </div>
           </div>
-          <div className="leading-tight">
-            <p className="font-semibold text-foreground">Cartão Inteligente</p>
-            <p className="text-xs text-muted-foreground">Gestão de faturas</p>
-          </div>
+          <ThemeToggle className="border border-border/70 bg-background shadow-sm hover:bg-muted" />
         </div>
       </header>
 
@@ -89,10 +93,7 @@ export default function LoginPage() {
 
         <Card className="relative w-full max-w-[420px] gap-0 rounded-lg py-0 shadow-xl shadow-foreground/5 ring-border">
           <CardHeader className="items-center gap-2 border-b border-border/70 px-6 py-7 text-center sm:px-8">
-            <div className="mb-2 flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
-              <CreditCard className="size-6" />
-            </div>
-            <CardTitle className="text-xl font-semibold">Bem-vindo de volta</CardTitle>
+            <CardTitle className="text-xl font-semibold">Bem-vindo</CardTitle>
             <CardDescription className="max-w-xs leading-relaxed">
               Entre para acessar suas faturas e continuar organizando seus gastos.
             </CardDescription>

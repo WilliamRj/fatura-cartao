@@ -12,15 +12,22 @@ import {
   Settings,
   Menu,
   X,
-  Moon,
-  Sun,
   ChevronLeft,
   LogOut,
+  Loader2,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +35,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/auth-provider";
 import { useFaturaContext } from "@/components/fatura-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Select,
   SelectContent,
@@ -87,58 +95,74 @@ function NavLink({
   return linkContent;
 }
 
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" className="h-9 w-9">
-        <Sun className="h-4 w-4" />
-      </Button>
-    );
-  }
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-9 w-9"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-    >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4" />
-      ) : (
-        <Moon className="h-4 w-4" />
-      )}
-    </Button>
-  );
-}
-
 function LogoutButton() {
   const { signOut } = useAuth();
+  const [open, setOpen] = React.useState(false);
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
 
-  const handleLogout = () => {
-    if (window.confirm("Deseja realmente sair do sistema?")) {
-      signOut();
+  const handleLogout = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+      setOpen(false);
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-9 w-9 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
-      onClick={handleLogout}
-      title="Sair"
-    >
-      <LogOut className="h-4 w-4" />
-    </Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button
+        aria-label="Sair"
+        className="h-9 w-9 text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => setOpen(true)}
+        size="icon"
+        title="Sair"
+        variant="ghost"
+      >
+        <LogOut className="h-4 w-4" />
+      </Button>
+
+      <DialogContent className="gap-5 p-5 sm:max-w-md" showCloseButton={!isSigningOut}>
+        <DialogHeader className="gap-3">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+            <LogOut className="size-5" />
+          </div>
+          <div className="space-y-1.5">
+            <DialogTitle className="text-lg">Sair da sua conta?</DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              Você precisará entrar novamente com o Google para acessar suas faturas e seus dados.
+            </DialogDescription>
+          </div>
+        </DialogHeader>
+
+        <DialogFooter className="-mx-5 -mb-5 px-5 py-4">
+          <DialogClose
+            disabled={isSigningOut}
+            render={<Button variant="outline" />}
+          >
+            Cancelar
+          </DialogClose>
+          <Button
+            disabled={isSigningOut}
+            onClick={handleLogout}
+            variant="destructive"
+          >
+            {isSigningOut ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Saindo...
+              </>
+            ) : (
+              <>
+                <LogOut />
+                Sair da conta
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
