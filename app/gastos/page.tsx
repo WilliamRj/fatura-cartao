@@ -27,7 +27,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, X, Search, Filter, ArrowUpDown, Edit2, MessageSquare, ChevronLeft, ChevronRight, SplitSquareHorizontal, Undo2, CornerDownRight } from "lucide-react";
+import { Plus, X, Search, Filter, ArrowUpDown, Edit2, MessageSquare, SplitSquareHorizontal, Undo2, CornerDownRight } from "lucide-react";
 import { useGastos, useUpdateGasto } from "@/lib/hooks/useGastos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
@@ -40,8 +40,6 @@ import {
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
 import { toast } from "sonner";
-
-const ITEMS_PER_PAGE = 10;
 
 export default function GastosPage() {
   const { faturaAtual } = useFaturaContext();
@@ -63,7 +61,6 @@ export default function GastosPage() {
   
   const [isSplitMode, setIsSplitMode] = React.useState(false);
   const [originalValor, setOriginalValor] = React.useState<number | null>(null);
-  const [originalResponsavel, setOriginalResponsavel] = React.useState<string | null>(null);
   const [splits, setSplits] = React.useState<{ id?: string; valor: number | ""; responsavel: string }[]>([]);
 
   const filteredGastos = React.useMemo(() => {

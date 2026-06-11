@@ -15,19 +15,16 @@ const FaturaContext = React.createContext<FaturaContextType | undefined>(undefin
 
 export function FaturaProvider({ children }: { children: React.ReactNode }) {
   const { data: faturas = [], isLoading } = useFaturas();
-  const [faturaAtual, setFaturaAtual] = React.useState<Fatura | null>(null);
+  const [selectedFaturaId, setSelectedFaturaId] = React.useState<string | null>(null);
 
-  // Set the most recent invoice as default if none selected and data is available
-  React.useEffect(() => {
-    if (faturas.length > 0) {
-      const exists = faturaAtual ? faturas.some((f) => f.id === faturaAtual.id) : false;
-      if (!exists) {
-        setFaturaAtual(faturas[0]);
-      }
-    } else {
-      setFaturaAtual(null);
-    }
-  }, [faturas, faturaAtual]);
+  const faturaAtual =
+    faturas.find((fatura) => fatura.id === selectedFaturaId) ??
+    faturas[0] ??
+    null;
+
+  const setFaturaAtual = React.useCallback((fatura: Fatura | null) => {
+    setSelectedFaturaId(fatura?.id ?? null);
+  }, []);
 
   return (
     <FaturaContext.Provider

@@ -35,9 +35,10 @@ export default function ConfiguracoesPage() {
           setNovoResponsavel("")
           refetch()
           toast.success("Responsável adicionado com sucesso!")
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Erro ao criar responsável", error)
-          toast.error(`Erro ao criar responsável: ${error.message || 'Erro desconhecido'}`)
+          const message = error instanceof Error ? error.message : "Erro desconhecido"
+          toast.error(`Erro ao criar responsável: ${message}`)
         }
       } else {
         toast.warning("Responsável já existe!")

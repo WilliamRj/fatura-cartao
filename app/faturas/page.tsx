@@ -11,21 +11,14 @@ import {
   Calendar,
   Receipt,
   Clock,
-  MoreVertical,
   Trash2,
   Loader2,
   Eye,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/data";
+import { formatCurrency, formatDateTime } from "@/lib/data";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
-import { ErrorAlert, EmptyState } from "@/components/error";
+import { ErrorAlert } from "@/components/error";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -87,9 +80,10 @@ export default function FaturasPage() {
       queryClient.invalidateQueries({ queryKey: ['parcelamentos'] });
       queryClient.invalidateQueries({ queryKey: ['estatisticas'] });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.message || "Ocorreu um erro inesperado");
+      const message = error instanceof Error ? error.message : "Ocorreu um erro inesperado";
+      toast.error(message);
     } finally {
       setIsProcessing(false);
     }

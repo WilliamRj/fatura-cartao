@@ -8,7 +8,7 @@ O projeto ja tem uma base funcional clara: Next.js App Router, Supabase, React Q
 
 Verificacoes executadas:
 
-- `npm run lint`: inicialmente falhou com 8 erros e 17 warnings. A exportacao PDF foi tipada posteriormente; os demais problemas permanecem no backlog.
+- `npm run lint`: passou sem erros ou warnings em 2026-06-11.
 - `npx tsc --noEmit`: passou sem erros.
 - Guias locais consultados por causa do `AGENTS.md`: `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`, `15-route-handlers.md` e `10-error-handling.md`.
 
@@ -20,25 +20,24 @@ Contexto de deploy:
 
 ## Prioridade 0: corrigir antes de evoluir
 
-### 1. Fazer o lint passar
+### 1. Fazer o lint passar - concluido em 2026-06-11
 
-O lint esta bloqueado por `any`, imports/constantes nao usados e uma regra de hooks do React.
+Resultado:
 
-Pontos principais:
+- `npm run lint` passa sem erros ou warnings.
+- `npx tsc --noEmit` continua passando sem erros.
 
-- `app/api/process-fatura/route.ts:133` e `app/api/process-fatura/route.ts:157`: `any` em dados vindos da IA e no `catch`.
-- `app/configuracoes/page.tsx:38` e `app/faturas/page.tsx:90`: `catch (error: any)`.
-- `components/fatura-provider.tsx:25`: `setState` sincrono dentro de `useEffect`, apontado pela regra `react-hooks/set-state-in-effect`.
-- `app/gastos/page.tsx:44`: `ITEMS_PER_PAGE` definido mas sem uso.
-- `app/faturas/page.tsx:14`, `app/faturas/page.tsx:20-23`, `app/faturas/page.tsx:25`, `app/faturas/page.tsx:28`: imports nao utilizados.
-- `app/relatorios/page.tsx:27` e `app/relatorios/page.tsx:51`: `Button` e `CATEGORIA_COLORS` nao usados.
+Correcoes realizadas:
 
-Recomendacoes:
+- Tratamento de erros alterado de `any` para `unknown` em configuracoes e importacao de faturas.
+- Imports, constantes e estados sem uso removidos das telas de faturas e gastos.
+- `FaturaProvider` passou a armazenar apenas o ID selecionado e derivar a fatura atual da lista, eliminando o `setState` sincrono dentro de `useEffect`.
+- Problemas anteriores da rota de processamento, exportacao PDF e relatorios ja estavam corrigidos.
 
-- Criar tipos explicitos para a resposta esperada do Gemini, por exemplo `ParsedFatura`, `ParsedLancamento`.
-- Trocar `catch (error: any)` por tratamento com `unknown` e helper `getErrorMessage(error)`.
-- Remover imports mortos ou implementar as funcionalidades previstas.
-- Resolver o estado derivado de `FaturaProvider` sem efeito sincrono, por exemplo calculando `faturaSelecionada` a partir de `selectedFaturaId` + lista de faturas.
+Manutencao:
+
+- Manter `npm run lint` como verificacao obrigatoria antes de cada deploy.
+- Evitar desativar regras de lint para contornar novos erros; corrigir a causa sempre que possivel.
 
 ### 2. Validar rigorosamente a resposta da IA antes de salvar
 
@@ -412,7 +411,7 @@ Recomendacoes:
 
 ### Sprint 1: estabilidade
 
-- Fazer `npm run lint` passar.
+- [x] Fazer `npm run lint` passar.
 - Tipar e validar resposta da IA com `zod`.
 - Validar variaveis de ambiente na Vercel para Production e Preview.
 - Corrigir deletes relacionados e estados parciais.
