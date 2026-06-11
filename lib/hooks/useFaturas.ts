@@ -5,14 +5,18 @@ import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { ApiFatura } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 export function useFaturas() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: QUERY_KEYS.FATURAS,
+    queryKey: [...QUERY_KEYS.FATURAS, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLES.FATURAS)
         .select('*')
+        .eq('user_id', user!.id)
         .order('data_importacao', { ascending: false });
       
       if (error) throw error;
@@ -26,24 +30,31 @@ export function useFaturas() {
       })) as Fatura[];
     },
     staleTime: 1000 * 60 * 5,
+    enabled: !!user,
   });
 }
 
 export function useDeleteFatura() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Limpar todos os dados relacionados explicitamente
-      await supabase.from(TABLES.GASTOS).delete().eq('fatura_id', id);
-      await supabase.from(TABLES.PARCELAMENTOS).delete().eq('fatura_id', id);
+      if (!user) throw new Error('Usuário não autenticado');
 
-      // Finalmente deletar a fatura
-      const { error } = await supabase
+      const { error: gastosError } = await supabase
+        .from(TABLES.GASTOS)
+        .delete()
+        .eq('fatura_id', id)
+        .eq('user_id', user.id);
+      if (gastosError) throw gastosError;
+
+      const { error: faturaError } = await supabase
         .from(TABLES.FATURAS)
         .delete()
-        .eq('id', id);
-      if (error) throw error;
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (faturaError) throw faturaError;
     },
     onSuccess: () => {
       // Invalidate everything explicitly to ensure no stale cache remains

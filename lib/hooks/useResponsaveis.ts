@@ -5,14 +5,18 @@ import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { ApiResponsavel, CreateResponsavelRequest } from '@/lib/api/types';
 import type { Responsavel } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 export function useResponsaveis() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: QUERY_KEYS.RESPONSAVEIS,
+    queryKey: [...QUERY_KEYS.RESPONSAVEIS, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLES.RESPONSAVEIS)
         .select('*')
+        .eq('user_id', user!.id)
         .order('nome', { ascending: true });
         
       if (error) throw error;
@@ -24,19 +28,21 @@ export function useResponsaveis() {
       })) as Responsavel[];
     },
     staleTime: 1000 * 60 * 5,
+    enabled: !!user,
   });
 }
 
 export function useCreateResponsavel() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (responsavel: CreateResponsavelRequest) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      if (!user) throw new Error('Usuário não autenticado');
+
       const payload = {
         ...responsavel,
-        ...(user?.id ? { user_id: user.id } : {})
+        user_id: user.id,
       };
 
       const { data, error } = await supabase
@@ -55,13 +61,17 @@ export function useCreateResponsavel() {
 
 export function useDeleteResponsavel() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from(TABLES.RESPONSAVEIS)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -72,10 +82,10 @@ export function useDeleteResponsavel() {
 
 export function useSetResponsavelPrincipal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
       // First, set cor to null for all responsaveis of this user

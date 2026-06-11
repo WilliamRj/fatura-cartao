@@ -5,15 +5,19 @@ import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { CreateGastoRequest, UpdateGastoRequest, ApiGasto } from '@/lib/api/types';
 import { supabase } from '@/lib/supabase/client';
 import { normalizeCategory } from '@/lib/categories';
+import { useAuth } from '@/components/auth-provider';
 
 // Fetch all expenses, optionally filtered by fatura_id
 export function useGastos(faturaId?: string | null) {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ['gastos', faturaId],
+    queryKey: ['gastos', user?.id, faturaId],
     queryFn: async () => {
       let query = supabase
         .from(TABLES.GASTOS)
         .select('*')
+        .eq('user_id', user!.id)
         .order('data', { ascending: false });
         
       if (faturaId) {
@@ -40,19 +44,22 @@ export function useGastos(faturaId?: string | null) {
       }));
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: faturaId !== null, // Only run if faturaId is provided or undefined (not null)
+    enabled: !!user && faturaId !== null,
   });
 }
 
 // Fetch single expense
 export function useGasto(id: string) {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: QUERY_KEYS.GASTOS_DETAIL(id),
+    queryKey: [...QUERY_KEYS.GASTOS_DETAIL(id), user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLES.GASTOS)
         .select('*')
         .eq('id', id)
+        .eq('user_id', user!.id)
         .single();
       if (error) throw error;
       const gasto = (data as unknown) as ApiGasto;
@@ -61,18 +68,22 @@ export function useGasto(id: string) {
         categoria: normalizeCategory(gasto.categoria),
       };
     },
-    enabled: !!id,
+    enabled: !!user && !!id,
   });
 }
 
 // Create expense
 export function useCreateGasto() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (gasto: CreateGastoRequest) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
       const payload = {
         ...gasto,
+        user_id: user.id,
         categoria: normalizeCategory(gasto.categoria),
       };
       const { data, error } = await supabase
@@ -92,9 +103,12 @@ export function useCreateGasto() {
 // Update expense
 export function useUpdateGasto() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdateGastoRequest }) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
       const payload = updates.categoria
         ? { ...updates, categoria: normalizeCategory(updates.categoria) }
         : updates;
@@ -102,6 +116,7 @@ export function useUpdateGasto() {
         .from(TABLES.GASTOS)
         .update(payload)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
       if (error) throw error;
@@ -117,13 +132,17 @@ export function useUpdateGasto() {
 // Delete expense
 export function useDeleteGasto() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from(TABLES.GASTOS)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {

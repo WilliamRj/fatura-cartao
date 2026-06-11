@@ -20,6 +20,7 @@ Aplicacao web para gerenciar faturas de cartao de credito, importar PDFs de fatu
 
 - Login com Google via Supabase Auth.
 - Gate de autorizacao por tabela `authorized_users`.
+- Dados isolados por login com filtros `user_id`, cache por usuario e RLS no Supabase.
 - Dashboard com total da fatura, gastos pessoais, terceiros, compras e parcelamentos.
 - Seletor global de fatura no sidebar/header.
 - Importacao de faturas PDF em `app/faturas/page.tsx`, processadas por `/api/process-fatura`.
@@ -109,6 +110,12 @@ Configure no projeto da Vercel:
 - `GEMINI_API_KEY`
 
 Tambem configure URLs de OAuth no Google Cloud Console e no Supabase para o dominio da Vercel, incluindo `/auth/callback`.
+
+Antes do deploy com multiplos usuarios, execute no Supabase:
+
+```text
+supabase/migrations/20260611_user_data_isolation.sql
+```
 
 Pontos de atencao em producao:
 

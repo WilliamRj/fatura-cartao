@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { FullPageLoading } from "@/components/loading";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,7 @@ const AuthContext = React.createContext<AuthContextType>({
 const LoginPage = React.lazy(() => import("@/app/login/page").then(m => ({ default: m.default })));
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error || !data) {
           toast.error("Usuário não autorizado");
           await supabase.auth.signOut();
+          queryClient.clear();
           setUser(null);
           setLoading(false);
           return;
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Erro ao verificar autorização:", err);
         toast.error("Erro ao verificar autorização");
         await supabase.auth.signOut();
+        queryClient.clear();
         setUser(null);
         setLoading(false);
       }
@@ -69,8 +73,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN") {
+        queryClient.clear();
+        setUser(null);
+        setLoading(true);
         checkAuthorization(session);
       } else if (event === "SIGNED_OUT") {
+        queryClient.clear();
         setUser(null);
         setLoading(false);
       }
@@ -79,12 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
+    queryClient.clear();
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   // Show loading screen while checking auth state
   if (loading) {

@@ -35,6 +35,8 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 
 ## 4. RLS e seguranca
 
+- [ ] Migration `supabase/migrations/20260611_user_data_isolation.sql` foi revisada e executada no Supabase.
+- [ ] Todos os registros existentes possuem o `user_id` do dono antes da migration.
 - [ ] RLS esta habilitada em `faturas`.
 - [ ] RLS esta habilitada em `gastos`.
 - [ ] RLS esta habilitada em `responsaveis`.
@@ -45,6 +47,7 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 - [ ] `authorized_users` nao permite enumerar todos os emails.
 - [ ] Teste com usuario A nao consegue ler/alterar dados do usuario B.
 - [ ] Nenhuma service role key esta exposta no browser.
+- [ ] Logout seguido de login com outra conta nao reaproveita dados do cache anterior.
 
 ## 5. Gemini
 

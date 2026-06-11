@@ -111,6 +111,8 @@ Os hooks em `lib/hooks/` consultam Supabase diretamente:
 - `useParcelamentos`
 - `useResponsaveis`
 
+Todas as query keys incluem o ID do usuario autenticado, e o cache e limpo no logout/troca de sessao. As consultas e mutacoes tambem aplicam filtro explicito por `user_id`.
+
 O `QueryClient` global usa:
 
 - `staleTime`: 5 minutos.
@@ -245,6 +247,17 @@ Cuidados:
 - observar timeout, memoria e payload de `/api/process-fatura`;
 - nao usar filesystem temporario como storage persistente;
 - correlacionar logs da Vercel, browser e Supabase.
+
+## Isolamento por usuario
+
+Cada fatura, gasto e responsavel pertence ao `auth.uid()` que realizou a operacao.
+
+A protecao usa duas camadas:
+
+1. Aplicacao: consultas, criacoes, atualizacoes e exclusoes incluem `user_id`.
+2. Banco: RLS impede acesso cruzado mesmo em chamadas Supabase manipuladas manualmente.
+
+Migration: `supabase/migrations/20260611_user_data_isolation.sql`.
 
 ## Qualidade atual
 

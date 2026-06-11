@@ -153,6 +153,18 @@ Recomendacoes:
 - Considerar mover mutacoes sensiveis para route handlers/server actions com validacao centralizada.
 - Como o app esta publico na Vercel, tratar RLS como barreira obrigatoria, nao apenas defesa adicional.
 
+Implementado no codigo em 2026-06-11:
+
+- Queries e mutacoes de faturas, gastos, parcelamentos derivados e responsaveis filtram explicitamente por `user_id`.
+- Query keys incluem o ID do usuario.
+- Cache do React Query e limpo em logout e troca de sessao.
+- Migration RLS criada em `supabase/migrations/20260611_user_data_isolation.sql`.
+
+Pendente de ambiente:
+
+- Executar e validar a migration no projeto Supabase de producao.
+- Testar isolamento com duas contas autorizadas diferentes.
+
 ### 8. Unificar modelo de dados e nomes
 
 Ha tipos em `lib/data.ts`, tipos de API em `lib/api/types.ts` e mapeamentos nos hooks. Isso funciona, mas tende a divergir.

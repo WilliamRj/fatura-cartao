@@ -4,14 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { TABLES } from '@/lib/api/endpoints';
 import type { Parcelamento } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 export function useParcelamentos(faturaId?: string | null) {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ['parcelamentos', faturaId],
+    queryKey: ['parcelamentos', user?.id, faturaId],
     queryFn: async () => {
       let query = supabase
         .from(TABLES.GASTOS)
         .select('*')
+        .eq('user_id', user!.id)
         .not('parcela', 'is', null);
         
       if (faturaId) {
@@ -53,7 +57,7 @@ export function useParcelamentos(faturaId?: string | null) {
       return parcelamentos;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: faturaId !== null,
+    enabled: !!user && faturaId !== null,
   });
 }
 

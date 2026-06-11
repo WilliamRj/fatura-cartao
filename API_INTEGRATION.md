@@ -133,6 +133,16 @@ Nao crie uma nova tabela apenas porque documentos antigos a listavam.
 
 Ative RLS nas tabelas com dados por usuario.
 
+Migration pronta no repositorio:
+
+```text
+supabase/migrations/20260611_user_data_isolation.sql
+```
+
+Ela recria as policies de `faturas`, `gastos`, `responsaveis` e, se existir, `parcelamentos`, garantindo que `auth.uid()` seja igual a `user_id`. Tambem limita `authorized_users` ao proprio email autenticado.
+
+Antes de executar em producao, confirme que todos os registros existentes possuem o `user_id` correto. Policies antigas sao removidas porque policies permissivas do PostgreSQL sao combinadas com `OR`.
+
 Exemplo para `gastos`:
 
 ```sql
