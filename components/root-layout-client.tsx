@@ -20,22 +20,22 @@ const queryClient = new QueryClient({
 
 export function RootLayoutClient({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <FaturaProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <FaturaProvider>
             <TooltipProvider>
               <AppSidebar>{children}</AppSidebar>
             </TooltipProvider>
-          </ThemeProvider>
-        </FaturaProvider>
-      </AuthProvider>
-      <Toaster position="bottom-right" />
-    </QueryClientProvider>
+          </FaturaProvider>
+        </AuthProvider>
+        <Toaster position="bottom-right" />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
