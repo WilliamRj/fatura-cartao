@@ -165,7 +165,7 @@ export default function RelatoriosPage() {
           <Card className="bg-card border-border card-hover">
             <CardHeader>
               <CardTitle className="text-foreground">
-                Evolucao dos Gastos Mensais
+                Evolução dos Gastos Mensais
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -261,7 +261,7 @@ formatter={(value: any) => [
             <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Distribuicao por Categoria
+                  Distribuição por Categoria
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -367,7 +367,7 @@ formatter={(value: any) => [formatCurrency(value)]}
             <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Gastos por Responsavel
+                  Gastos por Responsável
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -424,7 +424,7 @@ formatter={(value: any) => [
             <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Participacao por Responsavel
+                  Participação por Responsável
                 </CardTitle>
               </CardHeader>
               <CardContent>

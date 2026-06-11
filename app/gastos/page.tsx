@@ -344,7 +344,7 @@ export default function GastosPage() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos Responsaveis</SelectItem>
+                <SelectItem value="all">Todos Responsáveis</SelectItem>
                 {responsaveis.map((resp) => (
                   <SelectItem key={resp.id} value={resp.nome}>
                     {resp.nome}
@@ -588,7 +588,7 @@ export default function GastosPage() {
               {!isSplitMode && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Responsavel
+                    Responsável
                   </label>
                   <Select
                     value={editedResponsavel}
@@ -610,7 +610,7 @@ export default function GastosPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Observacao
+                  Observação
                 </label>
                 <Input
                   placeholder="Adicione uma observação..."

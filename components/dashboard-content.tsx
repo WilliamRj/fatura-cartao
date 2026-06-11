@@ -228,7 +228,7 @@ export function DashboardContent() {
         <StatCard
           title="Total de Compras"
           value={totalCompras.toString()}
-          subtitle="Lançamentos no mes"
+          subtitle="Lançamentos no mês"
           icon={ShoppingCart}
         />
         <StatCard
@@ -242,7 +242,7 @@ export function DashboardContent() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="bg-card border-border card-hover">
           <CardHeader>
-            <CardTitle className="text-foreground">Evolução< Mensal</CardTitle>
+            <CardTitle className="text-foreground">Evolução Mensal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -361,7 +361,7 @@ formatter={(value: any) => [formatCurrency(value)]}
       <Card className="bg-card border-border card-hover">
         <CardHeader>
           <CardTitle className="text-foreground">
-            Gastos por Responsavel
+            Gastos por Responsável
           </CardTitle>
         </CardHeader>
         <CardContent>

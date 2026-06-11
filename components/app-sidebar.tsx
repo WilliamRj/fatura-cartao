@@ -281,8 +281,8 @@ function MobileHeader() {
         </span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <div className="w-40 mr-1">
+      <div className="flex items-center gap-1 shrink-0">
+        <div className="w-36 sm:w-44 mr-1">
            <FaturaSelector className="px-0 mb-0" />
         </div>
         <ThemeToggle />

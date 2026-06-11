@@ -172,7 +172,7 @@ export default function ConfiguracoesPage() {
           {responsaveisData.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Users className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Nenhum responsavel cadastrado</p>
+              <p className="text-sm text-muted-foreground">Nenhum responsável cadastrado</p>
             </div>
           )}
         </CardContent>
@@ -199,7 +199,7 @@ export default function ConfiguracoesPage() {
           </div>
 
           <div className="pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-2">Integrações< Futuras</p>
+            <p className="text-sm text-muted-foreground mb-2">Integrações Futuras</p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">FastAPI</Badge>
               <Badge variant="outline">Supabase</Badge>
