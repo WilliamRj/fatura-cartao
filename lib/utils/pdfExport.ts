@@ -120,14 +120,27 @@ export async function generatePDFReport(
     });
 
     if (autoTable) {
-      autoTable(doc, {
-        startY: 45,
-        head: [columns],
-        body: rows,
-        theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] },
-        styles: { fontSize: 9 },
-      });
+      // Handles potential Next.js/Webpack ESM interop issues where autoTable might be under .default
+      const applyAutoTable = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
+      
+      if (typeof applyAutoTable === 'function') {
+        applyAutoTable(doc, {
+          startY: 45,
+          head: [columns],
+          body: rows,
+          theme: 'striped',
+          headStyles: { fillColor: [41, 128, 185] },
+          styles: { fontSize: 9 },
+        });
+      } else {
+        console.warn("jspdf-autotable plugin not correctly loaded (not a function), outputting raw data");
+        doc.text("Erro ao carregar layout da tabela. Dados brutos:", 14, 50);
+        let y = 60;
+        rows.forEach(r => {
+          doc.text(r.join(" | "), 14, y);
+          y += 10;
+        });
+      }
     } else {
       console.warn("jspdf-autotable plugin not correctly loaded, outputting raw data");
       doc.text("Erro ao carregar layout da tabela. Dados brutos:", 14, 50);
@@ -138,12 +151,26 @@ export async function generatePDFReport(
       });
     }
 
-    // Exportação
+    // Exportação segura usando URL.createObjectURL (evita falhas de navegação que podem quebrar a página)
     const mesRef = fatura && fatura.mesReferencia ? fatura.mesReferencia.replace(/\s/g, '_') : 'Gastos';
     const respRef = responsavelFiltro !== 'todos' ? `_${responsavelFiltro}` : '';
     const fileName = `Relatorio_${mesRef}${respRef}.pdf`;
     
-    doc.save(fileName);
+    try {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (saveError) {
+      console.warn("Falha ao usar createObjectURL, tentando doc.save padrão...", saveError);
+      doc.save(fileName);
+    }
+    
     return true;
   } catch (error) {
     console.error("Erro completo na geração do PDF:", error);
