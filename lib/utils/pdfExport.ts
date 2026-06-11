@@ -1,8 +1,6 @@
 import { formatCurrency, formatDate } from '@/lib/data';
 import type { ApiGasto } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 export async function generatePDFReport(
   fatura: Fatura | null,
@@ -10,6 +8,13 @@ export async function generatePDFReport(
   responsavelFiltro: string | 'todos' = 'todos'
 ): Promise<boolean> {
   try {
+    // Import dynamically to avoid Next.js SSR crashes with browser APIs
+    const jsPDFModule = await import('jspdf');
+    const autoTableModule = await import('jspdf-autotable');
+    
+    const jsPDF = jsPDFModule.default ? jsPDFModule.default : (jsPDFModule as any);
+    const autoTable = autoTableModule.default ? autoTableModule.default : (autoTableModule as any);
+
     const doc = new jsPDF();
 
     const safeGastos = gastos || [];
