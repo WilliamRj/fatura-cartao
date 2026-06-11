@@ -162,7 +162,7 @@ export default function RelatoriosPage() {
         </TabsList>
 
         <TabsContent value="mensal" className="space-y-6">
-          <Card className="bg-card border-border">
+          <Card className="bg-card border-border card-hover">
             <CardHeader>
               <CardTitle className="text-foreground">
                 Evolucao dos Gastos Mensais
@@ -174,32 +174,32 @@ export default function RelatoriosPage() {
                   <LineChart data={evolucaoMensal}>
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="hsl(var(--border))"
+                      stroke="var(--border)"
                     />
                     <XAxis
                       dataKey="mes"
                       tick={{
-                        fill: "hsl(var(--muted-foreground))",
+                        fill: "var(--muted-foreground)",
                         fontSize: 12,
                       }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      axisLine={{ stroke: "var(--border)" }}
                     />
                     <YAxis
                       tick={{
-                        fill: "hsl(var(--muted-foreground))",
+                        fill: "var(--muted-foreground)",
                         fontSize: 12,
                       }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      axisLine={{ stroke: "var(--border)" }}
                       tickFormatter={(value) =>
                         `R$ ${(value / 1000).toFixed(1)}k`
                       }
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
-                        color: "hsl(var(--foreground))",
+                        color: "var(--foreground)",
                       }}
                       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 formatter={(value: any) => [
@@ -258,7 +258,7 @@ formatter={(value: any) => [
 
         <TabsContent value="categoria" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Distribuicao por Categoria
@@ -287,10 +287,10 @@ formatter={(value: any) => [
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "hsl(var(--foreground))",
+                          color: "var(--foreground)",
                         }}
                         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 formatter={(value: any) => [formatCurrency(value)]}
@@ -299,7 +299,7 @@ formatter={(value: any) => [formatCurrency(value)]}
                         verticalAlign="bottom"
                         formatter={(value) => (
                           <span
-                            style={{ color: "hsl(var(--muted-foreground))" }}
+                            style={{ color: "var(--muted-foreground)" }}
                           >
                             {value}
                           </span>
@@ -311,7 +311,7 @@ formatter={(value: any) => [formatCurrency(value)]}
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Detalhamento por Categoria
@@ -364,7 +364,7 @@ formatter={(value: any) => [formatCurrency(value)]}
 
         <TabsContent value="responsavel" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Gastos por Responsavel
@@ -376,30 +376,30 @@ formatter={(value: any) => [formatCurrency(value)]}
                     <BarChart data={gastosPorResponsavel}>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="hsl(var(--border))"
+                        stroke="var(--border)"
                       />
                       <XAxis
                         dataKey="responsavel"
                         tick={{
-                          fill: "hsl(var(--muted-foreground))",
+                          fill: "var(--muted-foreground)",
                           fontSize: 12,
                         }}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
+                        axisLine={{ stroke: "var(--border)" }}
                       />
                       <YAxis
                         tick={{
-                          fill: "hsl(var(--muted-foreground))",
+                          fill: "var(--muted-foreground)",
                           fontSize: 12,
                         }}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
+                        axisLine={{ stroke: "var(--border)" }}
                         tickFormatter={(value) => `R$ ${value}`}
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "hsl(var(--foreground))",
+                          color: "var(--foreground)",
                         }}
                         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 formatter={(value: any) => [
@@ -421,7 +421,7 @@ formatter={(value: any) => [
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border card-hover">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Participacao por Responsavel

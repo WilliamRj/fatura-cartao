@@ -149,7 +149,7 @@ export default function ParcelamentosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border card-hover">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -166,7 +166,7 @@ export default function ParcelamentosPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border card-hover">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -183,7 +183,7 @@ export default function ParcelamentosPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border card-hover">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">

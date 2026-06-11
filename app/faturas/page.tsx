@@ -132,7 +132,7 @@ export default function FaturasPage() {
         </p>
       </div>
 
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border card-hover">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <Upload className="h-5 w-5" />

@@ -99,7 +99,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Responsaveis */}
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border card-hover">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
@@ -179,7 +179,7 @@ export default function ConfiguracoesPage() {
       </Card>
 
       {/* Informacoes do Sistema */}
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border card-hover">
         <CardHeader>
           <CardTitle className="text-card-foreground">Sobre o Sistema</CardTitle>
           <CardDescription>Informacoes sobre o Cartao Inteligente</CardDescription>

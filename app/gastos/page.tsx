@@ -296,7 +296,7 @@ export default function GastosPage() {
         </p>
       </div>
 
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border card-hover">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -356,7 +356,7 @@ export default function GastosPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border card-hover">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
