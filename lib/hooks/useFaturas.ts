@@ -21,7 +21,7 @@ export function useFaturas() {
         id: apiFatura.id,
         mesReferencia: apiFatura.mes_referencia,
         valorTotal: apiFatura.valor_total,
-        quantidadeLancamentos: apiFatura.quantidade_lancamentos,
+        quantidadeLançamentos: apiFatura.quantidade_lancamentos,
         dataImportacao: apiFatura.data_importacao,
       })) as Fatura[];
     },

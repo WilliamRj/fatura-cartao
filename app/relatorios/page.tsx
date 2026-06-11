@@ -76,8 +76,8 @@ export default function RelatoriosPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
-          <p className="text-muted-foreground">Analise detalhada dos seus gastos</p>
+          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+          <p className="text-muted-foreground">Análise detalhada dos seus gastos</p>
         </div>
         <LoadingSkeleton count={3} />
       </div>
@@ -88,8 +88,8 @@ export default function RelatoriosPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Relatorios</h1>
-          <p className="text-muted-foreground">Analise detalhada dos seus gastos</p>
+          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+          <p className="text-muted-foreground">Análise detalhada dos seus gastos</p>
         </div>
         <ErrorAlert error={error as Error} onRetry={() => window.location.reload()} />
       </div>
@@ -156,7 +156,7 @@ export default function RelatoriosPage() {
 
       <Tabs defaultValue="mensal" className="space-y-6">
         <TabsList className="bg-muted">
-          <TabsTrigger value="mensal">Por Mes</TabsTrigger>
+          <TabsTrigger value="mensal">Por Mês</TabsTrigger>
           <TabsTrigger value="categoria">Por Categoria</TabsTrigger>
           <TabsTrigger value="responsavel">Por Responsavel</TabsTrigger>
         </TabsList>
@@ -246,7 +246,7 @@ formatter={(value: any) => [
                             evolucaoMensal[evolucaoMensal.length - 3 + index - 1].valor) *
                           100
                         ).toFixed(1)}
-                        % vs mes anterior
+                        % vs mês anterior
                       </p>
                     )}
                   </div>

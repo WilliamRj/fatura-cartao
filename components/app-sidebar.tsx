@@ -41,8 +41,8 @@ const menuItems = [
   { href: "/faturas", label: "Faturas", icon: FileText },
   { href: "/gastos", label: "Gastos", icon: Receipt },
   { href: "/parcelamentos", label: "Parcelamentos", icon: CreditCard },
-  { href: "/relatorios", label: "Relatorios", icon: BarChart3 },
-  { href: "/configuracoes", label: "Configuracoes", icon: Settings },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 function NavLink({
@@ -142,7 +142,7 @@ function LogoutButton() {
   );
 }
 
-function FaturaSelector({ collapsed }: { collapsed?: boolean }) {
+function FaturaSelector({ collapsed, className }: { collapsed?: boolean; className?: string }) {
   const { faturas, faturaAtual, setFaturaAtual, isLoading } = useFaturaContext();
 
   if (isLoading || faturas.length === 0) {
@@ -165,7 +165,7 @@ function FaturaSelector({ collapsed }: { collapsed?: boolean }) {
   }
 
   return (
-    <div className="px-3 mb-2">
+    <div className={cn("px-3 mb-2", className)}>
       <Select
         value={faturaAtual?.id}
         onValueChange={(val) => setFaturaAtual(faturas.find((f) => f.id === val) || null)}
@@ -211,7 +211,7 @@ function DesktopSidebar({
               <CreditCard className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-semibold text-sidebar-foreground">
-              Cartao Inteligente
+              Cartão Inteligente
             </span>
           </div>
         )}
@@ -277,13 +277,13 @@ function MobileHeader() {
           <CreditCard className="h-5 w-5 text-primary-foreground" />
         </div>
         <span className="font-semibold text-sidebar-foreground hidden sm:inline-block">
-          Cartao Inteligente
+          Cartão Inteligente
         </span>
       </div>
 
       <div className="flex items-center gap-1">
-        <div className="w-32 mr-2">
-           <FaturaSelector />
+        <div className="w-40 mr-1">
+           <FaturaSelector className="px-0 mb-0" />
         </div>
         <ThemeToggle />
         <LogoutButton />
@@ -308,7 +308,7 @@ function MobileHeader() {
                 <CreditCard className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-semibold text-sidebar-foreground">
-                Cartao Inteligente
+                Cartão Inteligente
               </span>
             </div>
             <div className="pt-4">

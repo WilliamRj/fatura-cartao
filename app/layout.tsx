@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cartao Inteligente | Gerenciador de Faturas",
-  description: "Sistema inteligente para gerenciamento de faturas de cartao de credito Itau",
+  title: "Cartão Inteligente | Gerenciador de Faturas",
+  description: "Sistema inteligente para gerenciamento de faturas de cartão de crédito Itau",
 };
 
 export const viewport: Viewport = {

@@ -13,7 +13,7 @@ export interface Fatura {
   id: string
   mesReferencia: string
   valorTotal: number
-  quantidadeLancamentos: number
+  quantidadeLançamentos: number
   dataImportacao: string
 }
 
@@ -67,9 +67,9 @@ export const gastosMock: Gasto[] = [
 ]
 
 export const faturasMock: Fatura[] = [
-  { id: "1", mesReferencia: "Janeiro 2024", valorTotal: 2847.94, quantidadeLancamentos: 45, dataImportacao: "2024-01-20" },
-  { id: "2", mesReferencia: "Dezembro 2023", valorTotal: 3521.87, quantidadeLancamentos: 52, dataImportacao: "2023-12-22" },
-  { id: "3", mesReferencia: "Novembro 2023", valorTotal: 2156.43, quantidadeLancamentos: 38, dataImportacao: "2023-11-21" },
+  { id: "1", mesReferencia: "Janeiro 2024", valorTotal: 2847.94, quantidadeLançamentos: 45, dataImportacao: "2024-01-20" },
+  { id: "2", mesReferencia: "Dezembro 2023", valorTotal: 3521.87, quantidadeLançamentos: 52, dataImportacao: "2023-12-22" },
+  { id: "3", mesReferencia: "Novembro 2023", valorTotal: 2156.43, quantidadeLançamentos: 38, dataImportacao: "2023-11-21" },
 ]
 
 export const parcelamentosMock: Parcelamento[] = [

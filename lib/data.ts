@@ -26,7 +26,7 @@ export interface Fatura {
   id: string;
   mesReferencia: string;
   valorTotal: number;
-  quantidadeLancamentos: number;
+  quantidadeLançamentos: number;
   dataImportacao: string;
 }
 
@@ -87,9 +87,9 @@ export const gastos: Gasto[] = [
 ];
 
 export const faturas: Fatura[] = [
-  { id: "1", mesReferencia: "Janeiro 2024", valorTotal: 3264.27, quantidadeLancamentos: 20, dataImportacao: "2024-01-25" },
-  { id: "2", mesReferencia: "Dezembro 2023", valorTotal: 4521.89, quantidadeLancamentos: 28, dataImportacao: "2023-12-26" },
-  { id: "3", mesReferencia: "Novembro 2023", valorTotal: 2987.45, quantidadeLancamentos: 22, dataImportacao: "2023-11-25" },
+  { id: "1", mesReferencia: "Janeiro 2024", valorTotal: 3264.27, quantidadeLançamentos: 20, dataImportacao: "2024-01-25" },
+  { id: "2", mesReferencia: "Dezembro 2023", valorTotal: 4521.89, quantidadeLançamentos: 28, dataImportacao: "2023-12-26" },
+  { id: "3", mesReferencia: "Novembro 2023", valorTotal: 2987.45, quantidadeLançamentos: 22, dataImportacao: "2023-11-25" },
 ];
 
 export const parcelamentos: Parcelamento[] = [

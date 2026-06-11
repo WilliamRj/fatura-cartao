@@ -339,8 +339,8 @@ export default function GastosPage() {
               onValueChange={(val) => setResponsavelFilter(val ?? "all")}
             >
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Responsavel">
-                  {responsavelFilter === "all" ? "Todos Responsaveis" : responsavelFilter}
+                <SelectValue placeholder="Responsável">
+                  {responsavelFilter === "all" ? "Todos Responsáveis" : responsavelFilter}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -390,9 +390,9 @@ export default function GastosPage() {
                     </div>
                   </TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Responsavel</TableHead>
+                  <TableHead>Responsável</TableHead>
                   <TableHead>Parcela</TableHead>
-                  <TableHead className="text-right">Acoes</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -613,7 +613,7 @@ export default function GastosPage() {
                   Observacao
                 </label>
                 <Input
-                  placeholder="Adicione uma observacao..."
+                  placeholder="Adicione uma observação..."
                   value={editedObservacao}
                   onChange={(e) => setEditedObservacao(e.target.value)}
                 />

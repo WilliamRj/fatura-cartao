@@ -71,8 +71,8 @@ export default function ConfiguracoesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuracoes</h1>
-          <p className="text-muted-foreground">Gerencie as configuracoes do sistema</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configurações</h1>
+          <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
         </div>
         <LoadingSkeleton count={3} />
       </div>
@@ -83,8 +83,8 @@ export default function ConfiguracoesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuracoes</h1>
-          <p className="text-muted-foreground">Gerencie as configuracoes do sistema</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Configurações</h1>
+          <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
         </div>
         <ErrorAlert error={error as Error} onRetry={() => refetch()} />
       </div>
@@ -94,8 +94,8 @@ export default function ConfiguracoesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuracoes</h1>
-        <p className="text-muted-foreground">Gerencie as configuracoes do sistema</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Configurações</h1>
+        <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
       </div>
 
       {/* Responsaveis */}
@@ -104,8 +104,8 @@ export default function ConfiguracoesPage() {
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
             <div>
-              <CardTitle className="text-card-foreground">Responsaveis</CardTitle>
-              <CardDescription>Gerencie as pessoas que podem ser atribuidas aos gastos</CardDescription>
+              <CardTitle className="text-card-foreground">Responsáveis</CardTitle>
+              <CardDescription>Gerencie as pessoas que podem ser atribuídas aos gastos</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -113,7 +113,7 @@ export default function ConfiguracoesPage() {
           {/* Adicionar novo */}
           <div className="flex gap-2">
             <Input
-              placeholder="Nome do responsavel..."
+              placeholder="Nome do responsável..."
               value={novoResponsavel}
               onChange={(e) => setNovoResponsavel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddResponsavel()}
@@ -178,16 +178,16 @@ export default function ConfiguracoesPage() {
         </CardContent>
       </Card>
 
-      {/* Informacoes do Sistema */}
+      {/* Informações do Sistema */}
       <Card className="bg-card border-border card-hover">
         <CardHeader>
           <CardTitle className="text-card-foreground">Sobre o Sistema</CardTitle>
-          <CardDescription>Informacoes sobre o Cartao Inteligente</CardDescription>
+          <CardDescription>Informações sobre o Cartão Inteligente</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Versao</p>
+              <p className="text-sm text-muted-foreground">Versão</p>
               <p className="font-medium text-card-foreground">1.0.0</p>
             </div>
             <div className="space-y-1">
@@ -199,13 +199,13 @@ export default function ConfiguracoesPage() {
           </div>
 
           <div className="pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-2">Integracoes Futuras</p>
+            <p className="text-sm text-muted-foreground mb-2">Integrações< Futuras</p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">FastAPI</Badge>
               <Badge variant="outline">Supabase</Badge>
               <Badge variant="outline">Upload de PDFs</Badge>
-              <Badge variant="outline">Extracao Automatica</Badge>
-              <Badge variant="outline">Inteligencia Artificial</Badge>
+              <Badge variant="outline">Extração Automática</Badge>
+              <Badge variant="outline">Inteligência Artificial</Badge>
             </div>
           </div>
         </CardContent>

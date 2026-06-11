@@ -89,7 +89,7 @@ function StatCard({
                 />
                 <span>
                   {trend.positive ? "+" : ""}
-                  {trend.value}% vs mes anterior
+                  {trend.value}% vs mês anterior
                 </span>
               </div>
             )}
@@ -119,7 +119,7 @@ export function DashboardContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visao geral dos seus gastos e faturas</p>
+          <p className="text-muted-foreground">Visão geral dos seus gastos e faturas</p>
         </div>
         <LoadingSkeleton count={3} />
       </div>
@@ -131,7 +131,7 @@ export function DashboardContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visao geral dos seus gastos e faturas</p>
+          <p className="text-muted-foreground">Visão geral dos seus gastos e faturas</p>
         </div>
         <ErrorAlert error={error as Error} onRetry={() => window.location.reload()} />
       </div>
@@ -201,7 +201,7 @@ export function DashboardContent() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">
-          Visao geral dos seus gastos e faturas
+          Visão geral dos seus gastos e faturas
         </p>
       </div>
 
@@ -228,7 +228,7 @@ export function DashboardContent() {
         <StatCard
           title="Total de Compras"
           value={totalCompras.toString()}
-          subtitle="Lancamentos no mes"
+          subtitle="Lançamentos no mes"
           icon={ShoppingCart}
         />
         <StatCard
@@ -242,7 +242,7 @@ export function DashboardContent() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="bg-card border-border card-hover">
           <CardHeader>
-            <CardTitle className="text-foreground">Evolucao Mensal</CardTitle>
+            <CardTitle className="text-foreground">Evolução< Mensal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">

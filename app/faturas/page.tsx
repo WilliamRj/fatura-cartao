@@ -101,7 +101,7 @@ export default function FaturasPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
           <p className="text-muted-foreground">
-            Importe e gerencie suas faturas de cartao de credito
+            Importe e gerencie suas faturas de cartão de crédito
           </p>
         </div>
         <LoadingSkeleton count={3} />
@@ -115,7 +115,7 @@ export default function FaturasPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
           <p className="text-muted-foreground">
-            Importe e gerencie suas faturas de cartao de credito
+            Importe e gerencie suas faturas de cartão de crédito
           </p>
         </div>
         <ErrorAlert error={error as Error} onRetry={() => refetch()} />
@@ -128,7 +128,7 @@ export default function FaturasPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
         <p className="text-muted-foreground">
-          Importe e gerencie suas faturas de cartao de credito
+          Importe e gerencie suas faturas de cartão de crédito
         </p>
       </div>
 
@@ -278,10 +278,10 @@ export default function FaturasPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      Lancamentos
+                      Lançamentos
                     </span>
                     <Badge variant="secondary">
-                      {fatura.quantidadeLancamentos}
+                      {fatura.quantidadeLançamentos}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
