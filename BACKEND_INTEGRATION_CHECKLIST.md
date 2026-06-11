@@ -102,7 +102,7 @@ Se storage for necessario:
 - [ ] Limites de timeout, memoria e request body foram revisados para o plano atual.
 - [ ] Dominio customizado e HTTPS funcionam.
 - [ ] Callback OAuth funciona no dominio final.
-- [ ] `vercel.json` foi revisado; o rewrite global para `/` deve ser removido se interferir no App Router/API.
+- [x] Rewrite global legado de `vercel.json` removido; rotas e assets ficam sob controle do Next.js.
 
 ## 10. Qualidade
 

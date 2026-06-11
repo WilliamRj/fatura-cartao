@@ -1,3 +1,7 @@
+"use client";
+
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import type { Fatura, Gasto } from "@/lib/data";
 
 type ReportScope = "todos" | string;
@@ -147,11 +151,6 @@ export async function generatePDFReport(
   }
 
   try {
-    const [{ jsPDF }, { autoTable }] = await Promise.all([
-      import("jspdf"),
-      import("jspdf-autotable"),
-    ]);
-
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",

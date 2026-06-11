@@ -61,7 +61,7 @@ Observacoes:
 
 - O botao de logout atual usa `supabase.auth.signOut()` no cliente; a rota `/logout` nao e usada pela UI.
 - O botao de visualizar fatura existe, mas ainda nao tem comportamento.
-- `vercel.json` possui um rewrite global para `/`; revisar se ele e necessario, pois pode conflitar com rotas do App Router e APIs.
+- O antigo `vercel.json` com rewrite global para `/` foi removido; o App Router controla rotas e assets diretamente.
 
 ## Composicao global
 

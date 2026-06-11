@@ -386,7 +386,7 @@ Auditoria realizada em 2026-06-11:
 Pendencias fora dos arquivos Markdown:
 
 - `.env.example` ainda lista `SUPABASE_SERVICE_ROLE_KEY`, que nao e usada, e nao lista `GEMINI_API_KEY`, que e obrigatoria.
-- `vercel.json` possui rewrite global para `/` e deve ser validado/removido se interferir em rotas e APIs.
+- O rewrite global legado de `vercel.json` foi removido em 2026-06-11 para evitar conflito com App Router, chunks e APIs.
 - `lib/api/endpoints.ts` ainda declara Storage e tabela `parcelamentos`, embora esses contratos nao estejam plenamente implementados.
 
 Recomendacoes:
@@ -435,6 +435,8 @@ Concluido em 2026-06-11:
 
 - Exportacao PDF refeita com imports tipados de `jsPDF` e `autoTable`.
 - Download por Blob, sem depender de navegacao para URL de arquivo.
+- Bibliotecas PDF incorporadas diretamente ao bundle client, sem import dinamico no clique.
+- Rewrite global da Vercel removido.
 - Relatorio completo com resumo por responsavel, divisoes, parcelamentos e gastos.
 - Relatorio individual com parte atribuida, percentual e valor original.
 
@@ -450,7 +452,6 @@ Concluido em 2026-06-11:
 
 - Atualizar `.env.example` para incluir `GEMINI_API_KEY` e remover variaveis sem uso.
 - Decidir se `CLAUDE.md` deve permanecer.
-- Revisar/remover o rewrite global de `vercel.json`.
 - Decidir o destino da tabela/constantes de `parcelamentos`.
 - Remover constantes de Storage ate a implementacao ou concluir o upload persistente.
 
