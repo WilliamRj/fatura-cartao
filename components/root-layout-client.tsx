@@ -24,7 +24,6 @@ export function RootLayoutClient({ children }: { children: ReactNode }) {
       attribute="class"
       defaultTheme="dark"
       enableSystem
-      disableTransitionOnChange
     >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
