@@ -39,23 +39,19 @@ Manutencao:
 - Manter `npm run lint` como verificacao obrigatoria antes de cada deploy.
 - Evitar desativar regras de lint para contornar novos erros; corrigir a causa sempre que possivel.
 
-### 2. Validar rigorosamente a resposta da IA antes de salvar
+### 2. Validar rigorosamente a resposta da IA antes de salvar - concluido em 2026-06-11
 
-`app/api/process-fatura/route.ts` parseia JSON retornado pelo Gemini e insere diretamente no Supabase. Isso e fragil para um fluxo financeiro.
+Resultado:
 
-Riscos:
+- A resposta do Gemini passa por schema `zod` estrito antes de qualquer escrita.
+- Mes de referencia, moeda, datas reais, valores positivos, parcelas, categorias e limites de texto/lista sao validados e normalizados.
+- Respostas invalidas retornam HTTP 422 com campos compreensiveis e deixam explicito que nenhum dado foi salvo.
+- Fatura e gastos sao inseridos pela RPC transacional `import_fatura_atomically`, impedindo estado parcialmente salvo.
+- Migration criada em `supabase/migrations/20260611_atomic_invoice_import.sql`.
 
-- `JSON.parse` sem schema em `app/api/process-fatura/route.ts:94-100`.
-- `parsedData.lancamentos.map((l: any) => ...)` em `app/api/process-fatura/route.ts:133`.
-- Valores, datas, parcelas e categorias podem vir fora do formato esperado.
-- Se `faturas` for inserida com sucesso e `gastos` falhar, o sistema pode ficar parcialmente salvo.
+Pendente de ambiente:
 
-Recomendacoes:
-
-- Usar `zod` para validar `mes_referencia`, `valor_total`, lista de `lancamentos`, data `YYYY-MM-DD`, valor positivo, categoria permitida e parcela no padrao esperado.
-- Normalizar moeda, datas e acentos antes de inserir.
-- Retornar erros de validacao compreensiveis para o usuario.
-- Considerar uma RPC/transacao no Supabase para inserir fatura e gastos atomicamente.
+- Executar a nova migration no projeto Supabase de producao antes de publicar a rota atualizada.
 - Persistir o arquivo PDF ou hash do arquivo para evitar importacao duplicada.
 
 ### 3. Revisar delecoes relacionadas
@@ -412,7 +408,7 @@ Recomendacoes:
 ### Sprint 1: estabilidade
 
 - [x] Fazer `npm run lint` passar.
-- Tipar e validar resposta da IA com `zod`.
+- [x] Tipar e validar resposta da IA com `zod`.
 - Validar variaveis de ambiente na Vercel para Production e Preview.
 - Corrigir deletes relacionados e estados parciais.
 - Adicionar `aria-label` em botoes de icone.

@@ -68,7 +68,19 @@ export default function FaturasPage() {
 
         if (!response.ok) {
           const errData = await response.json();
-          throw new Error(errData.error || "Erro ao processar fatura");
+          const details = Array.isArray(errData.detalhes)
+            ? errData.detalhes
+                .map(
+                  (detail: { campo?: string; mensagem?: string }) =>
+                    `${detail.campo}: ${detail.mensagem}`,
+                )
+                .join("; ")
+            : "";
+          throw new Error(
+            [errData.error || "Erro ao processar fatura", details]
+              .filter(Boolean)
+              .join(" "),
+          );
         }
       }
 

@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { normalizeCategory } from "@/lib/categories";
+import {
+  formatValidationIssues,
+  parsedFaturaSchema,
+} from "@/lib/ai/fatura-schema";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-interface ParsedLancamento {
-  data: string;
-  estabelecimento: string;
-  valor: number;
-  parcela: string | null;
-  categoria: string;
-}
-
-interface ParsedFatura {
-  mes_referencia: string;
-  valor_total: number;
-  lancamentos: ParsedLancamento[];
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -105,36 +94,51 @@ export async function POST(req: NextRequest) {
       textResult = textResult.replace(/\`\`\`/g, '');
     }
 
-    let parsedData: ParsedFatura;
+    let untrustedData: unknown;
     try {
-      parsedData = JSON.parse(textResult.trim()) as ParsedFatura;
+      untrustedData = JSON.parse(textResult.trim());
     } catch {
-      console.error("Failed to parse Gemini JSON:", textResult);
-      return NextResponse.json({ error: "Failed to understand AI output" }, { status: 500 });
+      console.error("Gemini returned invalid JSON");
+      return NextResponse.json(
+        {
+          error:
+            "A IA retornou uma resposta inválida. Nenhum dado foi salvo. Tente importar novamente.",
+        },
+        { status: 422 },
+      );
     }
 
-    const { data: fatura, error: faturaError } = await supabase
-      .from('faturas')
-      .insert({
-        user_id: user.id,
-        mes_referencia: parsedData.mes_referencia,
-        valor_total: parsedData.valor_total,
-        quantidade_lancamentos: parsedData.lancamentos.length,
-        data_importacao: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (faturaError) {
-      console.error("Error inserting fatura:", faturaError);
-      return NextResponse.json({ error: "Failed to save fatura" }, { status: 500 });
+    const validationResult = parsedFaturaSchema.safeParse(untrustedData);
+    if (!validationResult.success) {
+      const validationIssues = formatValidationIssues(validationResult.error);
+      console.error("Gemini response failed validation", {
+        issues: validationIssues,
+      });
+      return NextResponse.json(
+        {
+          error:
+            "A IA retornou dados inconsistentes. Nenhum dado foi salvo.",
+          detalhes: validationIssues,
+        },
+        { status: 422 },
+      );
     }
 
-    const { data: responsaveis } = await supabase
+    const parsedData = validationResult.data;
+
+    const { data: responsaveis, error: responsaveisError } = await supabase
       .from('responsaveis')
       .select('nome, cor')
       .eq('user_id', user.id);
-      
+
+    if (responsaveisError) {
+      console.error("Error loading responsaveis:", responsaveisError);
+      return NextResponse.json(
+        { error: "Não foi possível preparar a importação da fatura." },
+        { status: 500 },
+      );
+    }
+
     let responsavelName = "Não definido";
     if (responsaveis && responsaveis.length > 0) {
       const principal = responsaveis.find(r => r.cor === 'pessoal');
@@ -145,26 +149,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const gastosToInsert = parsedData.lancamentos.map((l) => ({
-      user_id: user.id,
-      fatura_id: fatura.id,
-      data: l.data,
-      estabelecimento: l.estabelecimento,
-      valor: l.valor,
-      parcela: l.parcela,
-      categoria: normalizeCategory(String(l.categoria || "Outros")),
-      responsavel: responsavelName,
-    }));
+    const { data: fatura, error: importError } = await supabase.rpc(
+      "import_fatura_atomically",
+      {
+        p_mes_referencia: parsedData.mes_referencia,
+        p_valor_total: parsedData.valor_total,
+        p_data_importacao: new Date().toISOString(),
+        p_responsavel: responsavelName,
+        p_lancamentos: parsedData.lancamentos,
+      },
+    );
 
-    if (gastosToInsert.length > 0) {
-      const { error: gastosError } = await supabase
-        .from('gastos')
-        .insert(gastosToInsert);
-        
-      if (gastosError) {
-        console.error("Error inserting gastos:", gastosError);
-        return NextResponse.json({ error: "Failed to save gastos" }, { status: 500 });
-      }
+    if (importError) {
+      console.error("Error importing fatura atomically:", importError);
+      return NextResponse.json(
+        {
+          error:
+            "Não foi possível salvar a fatura. Nenhum dado foi persistido.",
+        },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, fatura });
