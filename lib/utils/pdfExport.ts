@@ -12,10 +12,14 @@ export async function generatePDFReport(
     const jsPDFModule = await import('jspdf');
     const autoTableModule = await import('jspdf-autotable');
     
-    const jsPDF = jsPDFModule.default ? jsPDFModule.default : (jsPDFModule as any);
+    // Corrigir a instanciação do jsPDF
+    const JsPDFClass = jsPDFModule.default && typeof jsPDFModule.default !== 'function' 
+      ? (jsPDFModule.default as any).jsPDF 
+      : (typeof jsPDFModule.jsPDF === 'function' ? jsPDFModule.jsPDF : jsPDFModule.default);
+      
     const autoTable = autoTableModule.default ? autoTableModule.default : (autoTableModule as any);
-
-    const doc = new jsPDF();
+      
+    const doc = new JsPDFClass();
 
     const safeGastos = gastos || [];
     
@@ -156,25 +160,12 @@ export async function generatePDFReport(
       });
     }
 
-    // Exportação segura usando URL.createObjectURL (evita falhas de navegação que podem quebrar a página)
     const mesRef = fatura && fatura.mesReferencia ? fatura.mesReferencia.replace(/\s/g, '_') : 'Gastos';
     const respRef = responsavelFiltro !== 'todos' ? `_${responsavelFiltro}` : '';
     const fileName = `Relatorio_${mesRef}${respRef}.pdf`;
     
-    try {
-      const blob = doc.output('blob');
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (saveError) {
-      console.warn("Falha ao usar createObjectURL, tentando doc.save padrão...", saveError);
-      doc.save(fileName);
-    }
+    // Use the native save method which is safe and prevents Next.js router from intercepting blob URLs
+    doc.save(fileName);
     
     return true;
   } catch (error) {
