@@ -4,13 +4,19 @@ Documento criado em 2026-06-11 a partir de uma revisao estatica do codigo, com f
 
 ## Resumo executivo
 
-O projeto ja tem uma base funcional clara: Next.js App Router, Supabase, React Query, componentes reutilizaveis, tema claro/escuro, upload de PDF, processamento por IA e dashboards financeiros. O maior ganho para proximas atualizacoes esta em estabilizar qualidade automatizada, melhorar acessibilidade, reduzir acoplamento client-side, endurecer o processamento de faturas e transformar alguns fluxos em experiencias mais completas.
+O projeto ja tem uma base funcional clara: Next.js App Router, Supabase, React Query, componentes reutilizaveis, tema claro/escuro, upload de PDF, processamento por IA e dashboards financeiros. Como o app esta publicado na Vercel para acesso remoto, algumas melhorias ganham peso em producao: limites de serverless functions, variaveis de ambiente, logs, storage de PDFs, seguranca Supabase/RLS e performance em redes variadas. O maior ganho para proximas atualizacoes esta em estabilizar qualidade automatizada, melhorar acessibilidade, reduzir acoplamento client-side, endurecer o processamento de faturas e transformar alguns fluxos em experiencias mais completas.
 
 Verificacoes executadas:
 
 - `npm run lint`: falhou com 8 erros e 17 warnings.
 - `npx tsc --noEmit`: passou sem erros.
 - Guias locais consultados por causa do `AGENTS.md`: `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`, `15-route-handlers.md` e `10-error-handling.md`.
+
+Contexto de deploy:
+
+- O app roda na Vercel, entao rotas em `app/api/*` devem ser avaliadas como funcoes serverless/edge conforme a configuracao de runtime.
+- Variaveis como `GEMINI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` precisam estar configuradas por ambiente: Development, Preview e Production.
+- Uploads enviados para funcoes da Vercel nao sao armazenamento persistente; PDFs originais devem ir para Supabase Storage, Vercel Blob ou outro storage.
 
 ## Prioridade 0: corrigir antes de evoluir
 
@@ -92,9 +98,30 @@ Recomendacoes:
 - Evitar linha inteira como unico alvo interativo; manter botao "Editar" explicito e acessivel.
 - Substituir `window.confirm`/`confirm` por `Dialog` acessivel e consistente com o design system.
 
+### 5. Validar ambiente de producao na Vercel
+
+Usar a Vercel para acessar o app de qualquer lugar nao invalida as melhorias anteriores, mas muda a prioridade de alguns riscos operacionais.
+
+Riscos:
+
+- `app/api/process-fatura/route.ts` pode bater limite de tempo, memoria ou tamanho de payload ao processar PDFs grandes e chamar a IA.
+- Falta de variaveis de ambiente em Preview/Production pode causar falhas que nao aparecem localmente.
+- Logs de erro ficam distribuidos entre browser, Vercel Functions e Supabase.
+- Arquivos enviados para a function nao ficam salvos depois da requisicao.
+- Qualquer falha de RLS fica exposta para acesso remoto, nao apenas uso local.
+
+Recomendacoes:
+
+- Documentar variaveis obrigatorias da Vercel e validar no boot/healthcheck do app.
+- Separar ambientes Preview e Production no Supabase ou, no minimo, confirmar variaveis corretas por ambiente.
+- Definir limites de upload aceitos pela aplicacao antes de enviar para a rota.
+- Salvar PDFs originais ou hashes em storage persistente quando houver necessidade de auditoria/reprocessamento.
+- Adicionar logs estruturados para rotas serverless com `requestId`, usuario, etapa e status.
+- Testar o fluxo completo no dominio da Vercel, nao apenas em `localhost`.
+
 ## Prioridade 1: arquitetura e dados
 
-### 5. Reduzir o alcance de Client Components
+### 6. Reduzir o alcance de Client Components
 
 Hoje varias paginas inteiras estao marcadas com `"use client"`, como `app/gastos/page.tsx`, `app/faturas/page.tsx`, `app/parcelamentos/page.tsx`, `app/relatorios/page.tsx`, `app/configuracoes/page.tsx` e `components/dashboard-content.tsx`.
 
@@ -106,8 +133,9 @@ Recomendacoes:
 - Manter filtros, dialogos, tabelas editaveis e uploads como client components.
 - Avaliar buscar dados iniciais no servidor quando a autenticacao/RLS estiver bem modelada.
 - Evitar que providers globais tornem mais partes da arvore client-side do que o necessario.
+- Na Vercel, acompanhar o tamanho do bundle e o tempo de carregamento real, pois usuarios podem acessar em redes mais lentas que o ambiente local.
 
-### 6. Fortalecer limites de seguranca Supabase
+### 7. Fortalecer limites de seguranca Supabase
 
 O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS presumida. Isso e comum, mas exige politicas bem testadas.
 
@@ -124,8 +152,9 @@ Recomendacoes:
 - Criar testes manuais/SQL para garantir que usuarios nao acessam dados de outros usuarios.
 - Evitar mensagens de erro que exponham detalhes internos de tabelas.
 - Considerar mover mutacoes sensiveis para route handlers/server actions com validacao centralizada.
+- Como o app esta publico na Vercel, tratar RLS como barreira obrigatoria, nao apenas defesa adicional.
 
-### 7. Unificar modelo de dados e nomes
+### 8. Unificar modelo de dados e nomes
 
 Ha tipos em `lib/data.ts`, tipos de API em `lib/api/types.ts` e mapeamentos nos hooks. Isso funciona, mas tende a divergir.
 
@@ -142,7 +171,7 @@ Recomendacoes:
 - Decidir se `parcelamentos` sera entidade propria ou visao derivada de `gastos`.
 - Adicionar fixtures de teste para garantir que mappers continuam corretos.
 
-### 8. Melhorar cache e invalidações React Query
+### 9. Melhorar cache e invalidacoes React Query
 
 Ha mistura de query keys constantes e arrays literais.
 
@@ -159,9 +188,11 @@ Recomendacoes:
 - Evitar usar o array inteiro de gastos como parte da query key de estatisticas; calcular com `useMemo` ou query key por `faturaId`.
 - Fazer invalidacoes especificas apos mutacoes para reduzir refetch desnecessario.
 
-### 9. Tratar importacao de multiplos PDFs como job observavel
+### 10. Tratar importacao de multiplos PDFs como job observavel
 
 `app/faturas/page.tsx:55-80` processa arquivos em loop sequencial e mostra um estado unico `isProcessing`.
+
+Na Vercel, esse ponto e ainda mais importante porque o processamento acontece em uma requisicao serverless. Chamadas longas para Gemini, PDFs grandes ou varios arquivos em sequencia podem atingir limites de execucao, memoria ou payload.
 
 Recomendacoes:
 
@@ -170,10 +201,12 @@ Recomendacoes:
 - Validar tamanho maximo e tipo real do arquivo, nao apenas extensao/dropzone.
 - Evitar importacao duplicada por hash, mes ou combinacao de `mes_referencia` + usuario.
 - Considerar fila server-side se os PDFs forem grandes ou a IA demorar.
+- Considerar arquitetura assincrona: upload do PDF para storage, registro de job no banco, processamento posterior e polling/status na UI.
+- Definir timeout e mensagem de erro especifica para limite/indisponibilidade da IA.
 
 ## Prioridade 2: UI, UX e produto
 
-### 10. Reorganizar header mobile
+### 11. Reorganizar header mobile
 
 No mobile, `components/app-sidebar.tsx:284-293` coloca seletor de fatura, tema, logout e menu no mesmo bloco. O seletor tem largura fixa em `components/app-sidebar.tsx:285`.
 
@@ -189,7 +222,7 @@ Recomendacoes:
 - Mover tema e logout para o sheet.
 - Usar seletor compacto ou abrir selecao de fatura dentro do menu.
 
-### 11. Tornar filtros, labels e forms mais acessiveis
+### 12. Tornar filtros, labels e forms mais acessiveis
 
 Exemplos:
 
@@ -204,7 +237,7 @@ Recomendacoes:
 - Adicionar mensagens de erro por campo no modal de divisao.
 - Usar `aria-describedby` para textos auxiliares.
 
-### 12. Melhorar modal de edicao/divisao de gastos
+### 13. Melhorar modal de edicao/divisao de gastos
 
 O `DialogContent` padrao usa `sm:max-w-sm` em `components/ui/dialog.tsx:56`, estreito para o fluxo de divisao.
 
@@ -216,7 +249,7 @@ Recomendacoes:
 - Bloquear salvar enquanto houver diferenca.
 - Sugerir divisao automatica 50/50 ou por responsavel principal/outros.
 
-### 13. Implementar paginacao ou remover constante morta
+### 14. Implementar paginacao ou remover constante morta
 
 `app/gastos/page.tsx:44` define `ITEMS_PER_PAGE = 10`, mas a tabela mostra todos os itens.
 
@@ -227,17 +260,17 @@ Recomendacoes:
 - Manter contadores: total filtrado, pagina atual e itens por pagina.
 - Exibir botoes Proximo/Anterior com estado desabilitado acessivel.
 
-### 14. Finalizar a acao de visualizar fatura
+### 15. Finalizar a acao de visualizar fatura
 
 Ha botao com icone `Eye` em `app/faturas/page.tsx:246-248`, mas sem `onClick`.
 
 Recomendacoes:
 
 - Implementar detalhe da fatura com resumo, gastos, parcelamentos e auditoria da importacao.
-- Se o PDF for armazenado, permitir abrir/download do arquivo original.
+- Se o PDF for armazenado em Supabase Storage, Vercel Blob ou outro storage persistente, permitir abrir/download do arquivo original.
 - Se ainda nao houver detalhe, remover temporariamente o botao para nao criar falsa expectativa.
 
-### 15. Melhorar estados vazios e acoes contextuais
+### 16. Melhorar estados vazios e acoes contextuais
 
 `EmptyState` aceita `action`, mas varias telas usam apenas texto.
 
@@ -253,7 +286,7 @@ Recomendacoes:
 - Em relatorios: estado vazio quando nao houver dados suficientes para grafico.
 - Em configuracoes: CTA para adicionar primeiro responsavel.
 
-### 16. Melhorar graficos para leitura e acessibilidade
+### 17. Melhorar graficos para leitura e acessibilidade
 
 Graficos em `components/dashboard-content.tsx` e `app/relatorios/page.tsx` dependem fortemente de cores.
 
@@ -265,7 +298,7 @@ Recomendacoes:
 - Evitar que categorias diferentes recebam cores inconsistentes entre Dashboard e Relatorios.
 - Adicionar estados vazios especificos para grafico sem dados.
 
-### 17. Ajustar feedback visual de cards
+### 18. Ajustar feedback visual de cards
 
 `.card-hover` em `app/globals.css:231` eleva cards ao passar o mouse. Isso esta em cards informativos e graficos, podendo sugerir clique.
 
@@ -275,7 +308,7 @@ Recomendacoes:
 - Em cards estaticos, usar apenas borda/sombra sutil.
 - Padronizar densidade dos cards de metricas para uso financeiro recorrente.
 
-### 18. Revisar copy e consistencia visual
+### 19. Revisar copy e consistencia visual
 
 Pontos observados:
 
@@ -291,7 +324,7 @@ Recomendacoes:
 
 ## Prioridade 3: qualidade continua
 
-### 19. Adicionar testes de unidade para regras financeiras
+### 20. Adicionar testes de unidade para regras financeiras
 
 Areas de maior retorno:
 
@@ -301,7 +334,7 @@ Areas de maior retorno:
 - Calculo de estatisticas por categoria/responsavel em `lib/hooks/useGastos.ts:132-154`.
 - Calculo de parcelamentos restantes em `app/parcelamentos/page.tsx:24-69`.
 
-### 20. Adicionar testes de integracao para fluxos criticos
+### 21. Adicionar testes de integracao para fluxos criticos
 
 Fluxos sugeridos:
 
@@ -312,8 +345,9 @@ Fluxos sugeridos:
 - Dividir gasto e desfazer divisao.
 - Excluir fatura e invalidar dashboard.
 - Exportar PDF por todos e por responsavel.
+- Smoke test no deploy da Vercel para login, carregamento inicial e importacao controlada.
 
-### 21. Preparar observabilidade e auditoria
+### 22. Preparar observabilidade e auditoria
 
 Recomendacoes:
 
@@ -321,8 +355,10 @@ Recomendacoes:
 - Evitar `console.error` cru em producao; centralizar logger.
 - Adicionar `requestId` em route handlers para depuracao.
 - Separar erros esperados de falhas inesperadas, conforme guia local de error handling do Next.
+- Correlacionar logs do browser, Vercel Functions e Supabase para depurar problemas que so aparecem no dominio publicado.
+- Criar mensagens especificas para falhas comuns em producao: timeout da IA, limite de payload, variavel ausente, sessao expirada e erro de RLS.
 
-### 22. Revisar dependencias e scripts
+### 23. Revisar dependencias e scripts
 
 Pontos:
 
@@ -345,6 +381,7 @@ Recomendacoes:
 
 - Fazer `npm run lint` passar.
 - Tipar e validar resposta da IA com `zod`.
+- Validar variaveis de ambiente na Vercel para Production e Preview.
 - Corrigir deletes relacionados e estados parciais.
 - Adicionar `aria-label` em botoes de icone.
 - Implementar ou remover botao de visualizar fatura.
@@ -362,26 +399,38 @@ Recomendacoes:
 - Reorganizar Server/Client Components.
 - Centralizar mappers e query keys.
 - Documentar RLS Supabase.
+- Testar RLS considerando acesso remoto pelo dominio da Vercel.
 - Criar testes para regras financeiras.
 - Definir fluxo robusto de importacao com progresso por arquivo.
 
 ### Sprint 4: produto e relatorios
 
 - Tela de detalhe da fatura.
-- Historico/auditoria de importacoes.
+- Historico/auditoria de importacoes com storage persistente do PDF ou hash.
 - Relatorios com comparativos, filtros e graficos acessiveis.
 - Exportacao PDF com template mais consistente e sem `any`.
 - Melhorias de performance e bundle size.
+
+### Sprint 5: producao e operacao
+
+- Criar checklist de deploy Vercel: variaveis, ambiente, dominio, auth callback e smoke test.
+- Adicionar logs estruturados para funcoes serverless.
+- Definir estrategia de storage para PDFs: Supabase Storage, Vercel Blob ou outro provedor.
+- Adicionar monitoramento de falhas no processamento de faturas.
+- Revisar limites de timeout/payload e decidir se importacao precisa virar job assincrono.
 
 ## Checklist rapido para PRs futuros
 
 - `npm run lint` passa.
 - `npx tsc --noEmit` passa.
+- Deploy Preview da Vercel foi verificado quando a mudanca afeta runtime, env vars, auth, upload ou API.
 - Fluxo alterado foi testado manualmente em desktop e mobile.
 - Botoes icon-only tem `aria-label`.
 - Formularios tem labels associadas.
 - Mutacoes financeiras tem validacao e feedback de erro.
 - Queries invalidadas usam chaves centralizadas.
 - Nenhum dado vindo de IA/API externa e salvo sem validacao.
+- Nenhuma variavel secreta foi exposta com prefixo `NEXT_PUBLIC_`.
+- Uploads e arquivos que precisam persistir usam storage apropriado, nao filesystem temporario da function.
 - A UI nao mostra acoes sem implementacao.
 - Textos e termos seguem o padrao do produto.
