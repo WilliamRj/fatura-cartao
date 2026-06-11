@@ -1,0 +1,387 @@
+# Futuras melhorias do projeto
+
+Documento criado em 2026-06-11 a partir de uma revisao estatica do codigo, com foco em desenvolvimento de software, arquitetura, qualidade, seguranca, UX e UI.
+
+## Resumo executivo
+
+O projeto ja tem uma base funcional clara: Next.js App Router, Supabase, React Query, componentes reutilizaveis, tema claro/escuro, upload de PDF, processamento por IA e dashboards financeiros. O maior ganho para proximas atualizacoes esta em estabilizar qualidade automatizada, melhorar acessibilidade, reduzir acoplamento client-side, endurecer o processamento de faturas e transformar alguns fluxos em experiencias mais completas.
+
+Verificacoes executadas:
+
+- `npm run lint`: falhou com 8 erros e 17 warnings.
+- `npx tsc --noEmit`: passou sem erros.
+- Guias locais consultados por causa do `AGENTS.md`: `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`, `15-route-handlers.md` e `10-error-handling.md`.
+
+## Prioridade 0: corrigir antes de evoluir
+
+### 1. Fazer o lint passar
+
+O lint esta bloqueado por `any`, imports/constantes nao usados e uma regra de hooks do React.
+
+Pontos principais:
+
+- `app/api/process-fatura/route.ts:133` e `app/api/process-fatura/route.ts:157`: `any` em dados vindos da IA e no `catch`.
+- `lib/utils/pdfExport.ts:17`, `lib/utils/pdfExport.ts:20` e `lib/utils/pdfExport.ts:133`: `any` para lidar com interoperabilidade de `jspdf` e `jspdf-autotable`.
+- `app/configuracoes/page.tsx:38` e `app/faturas/page.tsx:90`: `catch (error: any)`.
+- `components/fatura-provider.tsx:25`: `setState` sincrono dentro de `useEffect`, apontado pela regra `react-hooks/set-state-in-effect`.
+- `app/gastos/page.tsx:44`: `ITEMS_PER_PAGE` definido mas sem uso.
+- `app/faturas/page.tsx:14`, `app/faturas/page.tsx:20-23`, `app/faturas/page.tsx:25`, `app/faturas/page.tsx:28`: imports nao utilizados.
+- `app/relatorios/page.tsx:27` e `app/relatorios/page.tsx:51`: `Button` e `CATEGORIA_COLORS` nao usados.
+
+Recomendacoes:
+
+- Criar tipos explicitos para a resposta esperada do Gemini, por exemplo `ParsedFatura`, `ParsedLancamento`.
+- Trocar `catch (error: any)` por tratamento com `unknown` e helper `getErrorMessage(error)`.
+- Remover imports mortos ou implementar as funcionalidades previstas.
+- Resolver o estado derivado de `FaturaProvider` sem efeito sincrono, por exemplo calculando `faturaSelecionada` a partir de `selectedFaturaId` + lista de faturas.
+
+### 2. Validar rigorosamente a resposta da IA antes de salvar
+
+`app/api/process-fatura/route.ts` parseia JSON retornado pelo Gemini e insere diretamente no Supabase. Isso e fragil para um fluxo financeiro.
+
+Riscos:
+
+- `JSON.parse` sem schema em `app/api/process-fatura/route.ts:94-100`.
+- `parsedData.lancamentos.map((l: any) => ...)` em `app/api/process-fatura/route.ts:133`.
+- Valores, datas, parcelas e categorias podem vir fora do formato esperado.
+- Se `faturas` for inserida com sucesso e `gastos` falhar, o sistema pode ficar parcialmente salvo.
+
+Recomendacoes:
+
+- Usar `zod` para validar `mes_referencia`, `valor_total`, lista de `lancamentos`, data `YYYY-MM-DD`, valor positivo, categoria permitida e parcela no padrao esperado.
+- Normalizar moeda, datas e acentos antes de inserir.
+- Retornar erros de validacao compreensiveis para o usuario.
+- Considerar uma RPC/transacao no Supabase para inserir fatura e gastos atomicamente.
+- Persistir o arquivo PDF ou hash do arquivo para evitar importacao duplicada.
+
+### 3. Revisar delecoes relacionadas
+
+`useDeleteFatura` apaga gastos e parcelamentos antes de apagar a fatura, mas ignora erros intermediarios.
+
+Trecho relevante:
+
+- `lib/hooks/useFaturas.ts:38-39`: deletes relacionados sem checar `{ error }`.
+- `lib/hooks/useFaturas.ts:44`: delete final da fatura.
+
+Recomendacoes:
+
+- Checar erro em cada delete.
+- Preferir `ON DELETE CASCADE` no banco, quando o modelo permitir.
+- Se precisar deletar manualmente, mover para funcao server-side/RPC com transacao.
+- Exibir confirmacao mais rica com impacto: quantidade de gastos e parcelamentos que serao removidos.
+
+### 4. Corrigir acessibilidade dos controles principais
+
+Varios botoes de icone nao tem nome acessivel, e algumas interacoes usam elementos nao semanticos.
+
+Exemplos:
+
+- Toggle de tema: `components/app-sidebar.tsx:108`.
+- Logout: `components/app-sidebar.tsx:133`.
+- Colapsar sidebar: `components/app-sidebar.tsx:250`.
+- Visualizar/excluir fatura: `app/faturas/page.tsx:246-254`.
+- Editar gasto: `app/gastos/page.tsx:440`.
+- Acoes de responsavel: `app/configuracoes/page.tsx:147-157`.
+- Ordenacao em `<TableHead onClick>`: `app/gastos/page.tsx:365`.
+- Linhas clicaveis com `<TableRow onClick>`: `app/gastos/page.tsx:401`.
+
+Recomendacoes:
+
+- Adicionar `aria-label` em todos os botoes icon-only.
+- Trocar ordenacao por `<button>` dentro do cabecalho, com `aria-sort`.
+- Evitar linha inteira como unico alvo interativo; manter botao "Editar" explicito e acessivel.
+- Substituir `window.confirm`/`confirm` por `Dialog` acessivel e consistente com o design system.
+
+## Prioridade 1: arquitetura e dados
+
+### 5. Reduzir o alcance de Client Components
+
+Hoje varias paginas inteiras estao marcadas com `"use client"`, como `app/gastos/page.tsx`, `app/faturas/page.tsx`, `app/parcelamentos/page.tsx`, `app/relatorios/page.tsx`, `app/configuracoes/page.tsx` e `components/dashboard-content.tsx`.
+
+Pelo guia local do Next em `node_modules/next/dist/docs/.../05-server-and-client-components.md`, Server Components devem ser preferidos para buscar dados, proteger segredos e reduzir JavaScript enviado ao navegador. Client Components ficam para estado, eventos e APIs do browser.
+
+Recomendacoes:
+
+- Separar paginas em camada server/container e componentes interativos menores.
+- Manter filtros, dialogos, tabelas editaveis e uploads como client components.
+- Avaliar buscar dados iniciais no servidor quando a autenticacao/RLS estiver bem modelada.
+- Evitar que providers globais tornem mais partes da arvore client-side do que o necessario.
+
+### 6. Fortalecer limites de seguranca Supabase
+
+O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS presumida. Isso e comum, mas exige politicas bem testadas.
+
+Pontos relevantes:
+
+- `lib/supabase/client.ts` usa variaveis publicas.
+- Hooks acessam tabelas diretamente do cliente em `lib/hooks/*`.
+- `app/api/process-fatura/route.ts` cria cliente Supabase com o token do usuario, o que depende de RLS correta.
+- `components/auth-provider.tsx` consulta `authorized_users` para permitir acesso.
+
+Recomendacoes:
+
+- Documentar no repo as politicas RLS esperadas por tabela.
+- Criar testes manuais/SQL para garantir que usuarios nao acessam dados de outros usuarios.
+- Evitar mensagens de erro que exponham detalhes internos de tabelas.
+- Considerar mover mutacoes sensiveis para route handlers/server actions com validacao centralizada.
+
+### 7. Unificar modelo de dados e nomes
+
+Ha tipos em `lib/data.ts`, tipos de API em `lib/api/types.ts` e mapeamentos nos hooks. Isso funciona, mas tende a divergir.
+
+Exemplos:
+
+- `ApiGasto` e `Gasto` duplicam varios campos.
+- `ApiFatura.quantidade_lancamentos` vira `Fatura.quantidadeLancamentos`.
+- `Parcelamento` e derivado de gastos em `lib/hooks/useParcelamentos.ts`, apesar de existir constante `TABLES.PARCELAMENTOS`.
+
+Recomendacoes:
+
+- Criar uma camada clara de DTOs e mappers em `lib/api/mappers.ts`.
+- Definir categorias/responsaveis com tipos literais quando possivel.
+- Decidir se `parcelamentos` sera entidade propria ou visao derivada de `gastos`.
+- Adicionar fixtures de teste para garantir que mappers continuam corretos.
+
+### 8. Melhorar cache e invalidações React Query
+
+Ha mistura de query keys constantes e arrays literais.
+
+Exemplos:
+
+- `QUERY_KEYS.GASTOS` em `lib/api/endpoints.ts`.
+- `['gastos', faturaId]` em `lib/hooks/useGastos.ts:8`.
+- `['parcelamentos', faturaId]` em `lib/hooks/useParcelamentos.ts:8`.
+- `['estatisticas', gastos]` em `lib/hooks/useGastos.ts:126`.
+
+Recomendacoes:
+
+- Centralizar factories de query keys: `gastos.list(faturaId)`, `estatisticas.byFatura(faturaId)`.
+- Evitar usar o array inteiro de gastos como parte da query key de estatisticas; calcular com `useMemo` ou query key por `faturaId`.
+- Fazer invalidacoes especificas apos mutacoes para reduzir refetch desnecessario.
+
+### 9. Tratar importacao de multiplos PDFs como job observavel
+
+`app/faturas/page.tsx:55-80` processa arquivos em loop sequencial e mostra um estado unico `isProcessing`.
+
+Recomendacoes:
+
+- Mostrar progresso por arquivo: aguardando, processando, salvo, erro.
+- Permitir remover/reprocessar arquivo que falhou sem repetir todos.
+- Validar tamanho maximo e tipo real do arquivo, nao apenas extensao/dropzone.
+- Evitar importacao duplicada por hash, mes ou combinacao de `mes_referencia` + usuario.
+- Considerar fila server-side se os PDFs forem grandes ou a IA demorar.
+
+## Prioridade 2: UI, UX e produto
+
+### 10. Reorganizar header mobile
+
+No mobile, `components/app-sidebar.tsx:284-293` coloca seletor de fatura, tema, logout e menu no mesmo bloco. O seletor tem largura fixa em `components/app-sidebar.tsx:285`.
+
+Riscos:
+
+- Quebra em telas estreitas.
+- Dificuldade com zoom de acessibilidade.
+- Meses longos podem truncar mal.
+
+Recomendacoes:
+
+- Priorizar menu + fatura atual no header.
+- Mover tema e logout para o sheet.
+- Usar seletor compacto ou abrir selecao de fatura dentro do menu.
+
+### 11. Tornar filtros, labels e forms mais acessiveis
+
+Exemplos:
+
+- Busca de gastos usa placeholder como label visual em `app/gastos/page.tsx:311`.
+- Campo de novo responsavel em `app/configuracoes/page.tsx:115`.
+- Labels do modal de gasto nem sempre tem `htmlFor`, como em `app/gastos/page.tsx:558`.
+
+Recomendacoes:
+
+- Usar `label` com `htmlFor` e `id`.
+- Quando a label nao deve aparecer, usar `sr-only`.
+- Adicionar mensagens de erro por campo no modal de divisao.
+- Usar `aria-describedby` para textos auxiliares.
+
+### 12. Melhorar modal de edicao/divisao de gastos
+
+O `DialogContent` padrao usa `sm:max-w-sm` em `components/ui/dialog.tsx:56`, estreito para o fluxo de divisao.
+
+Recomendacoes:
+
+- Permitir largura maior por tela, como `sm:max-w-lg` ou `md:max-w-2xl`.
+- Exibir resumo: valor original, soma das divisoes, diferenca restante.
+- Transformar linhas de divisao em grid responsivo.
+- Bloquear salvar enquanto houver diferenca.
+- Sugerir divisao automatica 50/50 ou por responsavel principal/outros.
+
+### 13. Implementar paginacao ou remover constante morta
+
+`app/gastos/page.tsx:44` define `ITEMS_PER_PAGE = 10`, mas a tabela mostra todos os itens.
+
+Recomendacoes:
+
+- Implementar paginacao client-side inicialmente.
+- Em escala maior, paginar no Supabase com `range()`.
+- Manter contadores: total filtrado, pagina atual e itens por pagina.
+- Exibir botoes Proximo/Anterior com estado desabilitado acessivel.
+
+### 14. Finalizar a acao de visualizar fatura
+
+Ha botao com icone `Eye` em `app/faturas/page.tsx:246-248`, mas sem `onClick`.
+
+Recomendacoes:
+
+- Implementar detalhe da fatura com resumo, gastos, parcelamentos e auditoria da importacao.
+- Se o PDF for armazenado, permitir abrir/download do arquivo original.
+- Se ainda nao houver detalhe, remover temporariamente o botao para nao criar falsa expectativa.
+
+### 15. Melhorar estados vazios e acoes contextuais
+
+`EmptyState` aceita `action`, mas varias telas usam apenas texto.
+
+Exemplos:
+
+- Gastos vazios em `app/gastos/page.tsx:282`.
+- Parcelamentos vazios em `app/parcelamentos/page.tsx:205`.
+
+Recomendacoes:
+
+- Em gastos: CTA para importar fatura ou selecionar outra fatura.
+- Em parcelamentos: explicar que depende de lancamentos parcelados e linkar para faturas/gastos.
+- Em relatorios: estado vazio quando nao houver dados suficientes para grafico.
+- Em configuracoes: CTA para adicionar primeiro responsavel.
+
+### 16. Melhorar graficos para leitura e acessibilidade
+
+Graficos em `components/dashboard-content.tsx` e `app/relatorios/page.tsx` dependem fortemente de cores.
+
+Recomendacoes:
+
+- Adicionar resumo textual abaixo ou ao lado dos graficos.
+- Mostrar valores e percentuais na legenda quando fizer sentido.
+- Garantir contraste das cores de `--chart-*` em claro e escuro.
+- Evitar que categorias diferentes recebam cores inconsistentes entre Dashboard e Relatorios.
+- Adicionar estados vazios especificos para grafico sem dados.
+
+### 17. Ajustar feedback visual de cards
+
+`.card-hover` em `app/globals.css:231` eleva cards ao passar o mouse. Isso esta em cards informativos e graficos, podendo sugerir clique.
+
+Recomendacoes:
+
+- Reservar hover com deslocamento para elementos clicaveis.
+- Em cards estaticos, usar apenas borda/sombra sutil.
+- Padronizar densidade dos cards de metricas para uso financeiro recorrente.
+
+### 18. Revisar copy e consistencia visual
+
+Pontos observados:
+
+- `app/relatorios/page.tsx:161`: "Por Responsavel" sem acento.
+- `app/layout.tsx:13`: "Itau" sem acento.
+- `app/login/page.tsx:61-65`: icones/emojis corrompidos/destoantes do restante da UI.
+
+Recomendacoes:
+
+- Padronizar portugues: "responsavel", "Itaú", "cartao de credito", "lancamentos", conforme decisao de acentos do projeto.
+- Trocar emojis do login por `Loader2` e icone/identidade coerente.
+- Criar uma pequena lista de termos oficiais do produto para evitar variacoes.
+
+## Prioridade 3: qualidade continua
+
+### 19. Adicionar testes de unidade para regras financeiras
+
+Areas de maior retorno:
+
+- `formatCurrency`, `formatDate` e `formatDateTime` em `lib/data.ts`.
+- Validacao de parcelas `X/Y`.
+- Soma de divisoes com tolerancia de centavos em `app/gastos/page.tsx:181-186`.
+- Calculo de estatisticas por categoria/responsavel em `lib/hooks/useGastos.ts:132-154`.
+- Calculo de parcelamentos restantes em `app/parcelamentos/page.tsx:24-69`.
+
+### 20. Adicionar testes de integracao para fluxos criticos
+
+Fluxos sugeridos:
+
+- Login autorizado vs nao autorizado.
+- Importar fatura com sucesso.
+- Importar fatura com resposta invalida da IA.
+- Editar categoria/responsavel de gasto.
+- Dividir gasto e desfazer divisao.
+- Excluir fatura e invalidar dashboard.
+- Exportar PDF por todos e por responsavel.
+
+### 21. Preparar observabilidade e auditoria
+
+Recomendacoes:
+
+- Registrar eventos de importacao: usuario, arquivo, hash, duracao, status e erro resumido.
+- Evitar `console.error` cru em producao; centralizar logger.
+- Adicionar `requestId` em route handlers para depuracao.
+- Separar erros esperados de falhas inesperadas, conforme guia local de error handling do Next.
+
+### 22. Revisar dependencias e scripts
+
+Pontos:
+
+- Existem `package-lock.json` e `pnpm-lock.yaml`; escolher um gerenciador oficial para evitar instalacoes divergentes.
+- `test-jspdf.js` na raiz parece script temporario; decidir se vira teste, utilitario documentado ou e removido.
+- `package.json` nao tem scripts de `typecheck`, `test` ou `format`.
+
+Recomendacoes:
+
+- Padronizar em npm ou pnpm.
+- Adicionar scripts:
+  - `typecheck`: `tsc --noEmit`
+  - `check`: `npm run lint && npm run typecheck`
+  - `test`: conforme framework escolhido
+- Considerar Prettier ou Biome para formatacao consistente.
+
+## Roadmap sugerido
+
+### Sprint 1: estabilidade
+
+- Fazer `npm run lint` passar.
+- Tipar e validar resposta da IA com `zod`.
+- Corrigir deletes relacionados e estados parciais.
+- Adicionar `aria-label` em botoes de icone.
+- Implementar ou remover botao de visualizar fatura.
+
+### Sprint 2: experiencia principal
+
+- Melhorar modal de divisao.
+- Implementar paginacao/filtros completos em gastos.
+- Melhorar header mobile.
+- Adicionar estados vazios com CTAs.
+- Trocar confirms nativos por dialogos do design system.
+
+### Sprint 3: arquitetura
+
+- Reorganizar Server/Client Components.
+- Centralizar mappers e query keys.
+- Documentar RLS Supabase.
+- Criar testes para regras financeiras.
+- Definir fluxo robusto de importacao com progresso por arquivo.
+
+### Sprint 4: produto e relatorios
+
+- Tela de detalhe da fatura.
+- Historico/auditoria de importacoes.
+- Relatorios com comparativos, filtros e graficos acessiveis.
+- Exportacao PDF com template mais consistente e sem `any`.
+- Melhorias de performance e bundle size.
+
+## Checklist rapido para PRs futuros
+
+- `npm run lint` passa.
+- `npx tsc --noEmit` passa.
+- Fluxo alterado foi testado manualmente em desktop e mobile.
+- Botoes icon-only tem `aria-label`.
+- Formularios tem labels associadas.
+- Mutacoes financeiras tem validacao e feedback de erro.
+- Queries invalidadas usam chaves centralizadas.
+- Nenhum dado vindo de IA/API externa e salvo sem validacao.
+- A UI nao mostra acoes sem implementacao.
+- Textos e termos seguem o padrao do produto.
