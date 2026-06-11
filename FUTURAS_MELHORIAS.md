@@ -8,7 +8,7 @@ O projeto ja tem uma base funcional clara: Next.js App Router, Supabase, React Q
 
 Verificacoes executadas:
 
-- `npm run lint`: falhou com 8 erros e 17 warnings.
+- `npm run lint`: inicialmente falhou com 8 erros e 17 warnings. A exportacao PDF foi tipada posteriormente; os demais problemas permanecem no backlog.
 - `npx tsc --noEmit`: passou sem erros.
 - Guias locais consultados por causa do `AGENTS.md`: `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`, `15-route-handlers.md` e `10-error-handling.md`.
 
@@ -27,7 +27,6 @@ O lint esta bloqueado por `any`, imports/constantes nao usados e uma regra de ho
 Pontos principais:
 
 - `app/api/process-fatura/route.ts:133` e `app/api/process-fatura/route.ts:157`: `any` em dados vindos da IA e no `catch`.
-- `lib/utils/pdfExport.ts:17`, `lib/utils/pdfExport.ts:20` e `lib/utils/pdfExport.ts:133`: `any` para lidar com interoperabilidade de `jspdf` e `jspdf-autotable`.
 - `app/configuracoes/page.tsx:38` e `app/faturas/page.tsx:90`: `catch (error: any)`.
 - `components/fatura-provider.tsx:25`: `setState` sincrono dentro de `useEffect`, apontado pela regra `react-hooks/set-state-in-effect`.
 - `app/gastos/page.tsx:44`: `ITEMS_PER_PAGE` definido mas sem uso.
@@ -430,8 +429,14 @@ Recomendacoes:
 - Tela de detalhe da fatura.
 - Historico/auditoria de importacoes com storage persistente do PDF ou hash.
 - Relatorios com comparativos, filtros e graficos acessiveis.
-- Exportacao PDF com template mais consistente e sem `any`.
 - Melhorias de performance e bundle size.
+
+Concluido em 2026-06-11:
+
+- Exportacao PDF refeita com imports tipados de `jsPDF` e `autoTable`.
+- Download por Blob, sem depender de navegacao para URL de arquivo.
+- Relatorio completo com resumo por responsavel, divisoes, parcelamentos e gastos.
+- Relatorio individual com parte atribuida, percentual e valor original.
 
 ### Sprint 5: producao e operacao
 

@@ -24,7 +24,6 @@ import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -47,20 +46,6 @@ const COLORS = [
   "var(--chart-7)",
   "var(--chart-8)",
 ];
-
-const CATEGORIA_COLORS: Record<string, string> = {
-  Alimentacao: "var(--chart-1)",
-  Transporte: "var(--chart-2)",
-  Entretenimento: "var(--chart-3)",
-  Compras: "var(--chart-4)",
-  Assinaturas: "var(--chart-5)",
-  Saude: "var(--chart-6)",
-  Educacao: "var(--chart-7)",
-  Pagamentos: "var(--chart-9)",
-  Condomínio: "var(--chart-10)",
-  Dívida: "var(--chart-11)",
-  Outros: "var(--chart-8)",
-};
 
 export default function RelatoriosPage() {
   const { faturaAtual } = useFaturaContext();
@@ -96,13 +81,29 @@ export default function RelatoriosPage() {
     );
   }
 
-  const handleExportPDF = async (responsavelId: string | 'todos') => {
-    toast.info("Gerando PDF, aguarde...");
-    const success = await generatePDFReport(faturaAtual, gastosAtuais, responsavelId);
-    if (success) {
-      toast.success("PDF exportado com sucesso!");
-    } else {
-      toast.error("Erro ao gerar PDF.");
+  const handleExportPDF = async (responsavelId: string | "todos") => {
+    if (!faturaAtual) {
+      toast.error("Selecione uma fatura antes de exportar.");
+      return;
+    }
+
+    const toastId = toast.loading("Gerando PDF...");
+
+    try {
+      const success = await generatePDFReport(
+        faturaAtual,
+        gastosAtuais,
+        responsavelId,
+      );
+
+      if (success) {
+        toast.success("PDF exportado com sucesso!", { id: toastId });
+      } else {
+        toast.error("Nao foi possivel gerar o PDF.", { id: toastId });
+      }
+    } catch (error: unknown) {
+      console.error("Erro inesperado ao exportar PDF:", error);
+      toast.error("Nao foi possivel gerar o PDF.", { id: toastId });
     }
   };
 
@@ -130,13 +131,16 @@ export default function RelatoriosPage() {
         </div>
         
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+          <DropdownMenuTrigger
+            disabled={!faturaAtual || gastosAtuais.length === 0}
+            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          >
             <Download className="h-4 w-4" />
             Exportar PDF
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Fatura: {faturaAtual?.mesReferencia}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleExportPDF('todos')}>
+            <DropdownMenuItem onClick={() => void handleExportPDF("todos")}>
               Fatura Completa (Todos)
             </DropdownMenuItem>
             {responsaveis.length > 0 && (
@@ -144,7 +148,10 @@ export default function RelatoriosPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Por Responsável</DropdownMenuLabel>
                 {responsaveis.map((resp) => (
-                  <DropdownMenuItem key={resp.id} onClick={() => handleExportPDF(resp.nome)}>
+                  <DropdownMenuItem
+                    key={resp.id}
+                    onClick={() => void handleExportPDF(resp.nome)}
+                  >
                     {resp.nome}
                   </DropdownMenuItem>
                 ))}

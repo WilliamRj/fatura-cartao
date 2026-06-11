@@ -1,175 +1,386 @@
-import { formatCurrency, formatDate } from '@/lib/data';
-import type { ApiGasto } from '@/lib/api/types';
-import type { Fatura } from '@/lib/data';
+import type { Fatura, Gasto } from "@/lib/data";
+
+type ReportScope = "todos" | string;
+
+type ReportExpense = Gasto & {
+  allocatedValue: number;
+  allocationLabel: string;
+  originalValue: number;
+};
+
+const COLORS = {
+  primary: [49, 46, 129] as [number, number, number],
+  primarySoft: [238, 242, 255] as [number, number, number],
+  text: [24, 24, 27] as [number, number, number],
+  muted: [82, 82, 91] as [number, number, number],
+  border: [212, 212, 216] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
+};
+
+function currency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+function date(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value || "-";
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(year, month - 1, day));
+}
+
+function safeFileName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[] {
+  return gastos
+    .flatMap((gasto) => {
+      const originalValue = Number(gasto.valor) || 0;
+
+      if (scope === "todos") {
+        const allocationLabel =
+          gasto.divisoes && gasto.divisoes.length > 0
+            ? gasto.divisoes
+                .map((division) => `${division.responsavel}: ${currency(Number(division.valor) || 0)}`)
+                .join(" | ")
+            : gasto.responsavel || "Nao definido";
+
+        return [{
+          ...gasto,
+          allocatedValue: originalValue,
+          allocationLabel,
+          originalValue,
+        }];
+      }
+
+      if (gasto.divisoes && gasto.divisoes.length > 0) {
+        const division = gasto.divisoes.find((item) => item.responsavel === scope);
+        if (!division) return [];
+
+        const allocatedValue = Number(division.valor) || 0;
+        const percentage = originalValue > 0
+          ? (allocatedValue / originalValue) * 100
+          : 0;
+
+        return [{
+          ...gasto,
+          allocatedValue,
+          allocationLabel: `${percentage.toFixed(1)}% de ${currency(originalValue)}`,
+          originalValue,
+        }];
+      }
+
+      if (gasto.responsavel !== scope) return [];
+
+      return [{
+        ...gasto,
+        allocatedValue: originalValue,
+        allocationLabel: "100% do gasto",
+        originalValue,
+      }];
+    })
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+
+function getResponsibleTotals(gastos: Gasto[]) {
+  const totals = new Map<string, number>();
+
+  gastos.forEach((gasto) => {
+    if (gasto.divisoes && gasto.divisoes.length > 0) {
+      gasto.divisoes.forEach((division) => {
+        totals.set(
+          division.responsavel,
+          (totals.get(division.responsavel) || 0) + (Number(division.valor) || 0),
+        );
+      });
+      return;
+    }
+
+    const responsible = gasto.responsavel || "Nao definido";
+    totals.set(responsible, (totals.get(responsible) || 0) + (Number(gasto.valor) || 0));
+  });
+
+  return [...totals.entries()]
+    .map(([responsible, value]) => ({ responsible, value }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function parseInstallment(value?: string) {
+  if (!value) return null;
+  const match = value.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!match) return null;
+
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  if (!current || !total || current > total) return null;
+
+  return { current, total };
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
 
 export async function generatePDFReport(
   fatura: Fatura | null,
-  gastos: ApiGasto[],
-  responsavelFiltro: string | 'todos' = 'todos'
+  gastos: Gasto[],
+  scope: ReportScope = "todos",
 ): Promise<boolean> {
+  if (!fatura) {
+    console.error("Nao ha fatura selecionada para exportacao.");
+    return false;
+  }
+
   try {
-    // Import dynamically to avoid Next.js SSR crashes with browser APIs
-    const jsPDFModule = await import('jspdf');
-    const autoTableModule = await import('jspdf-autotable');
-    
-    // Corrigir a instanciação do jsPDF
-    const JsPDFClass = jsPDFModule.default && typeof jsPDFModule.default !== 'function' 
-      ? (jsPDFModule.default as any).jsPDF 
-      : (typeof jsPDFModule.jsPDF === 'function' ? jsPDFModule.jsPDF : jsPDFModule.default);
-      
-    const autoTable = autoTableModule.default ? autoTableModule.default : (autoTableModule as any);
-      
-    const doc = new JsPDFClass();
+    const [{ jsPDF }, { autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
 
-    const safeGastos = gastos || [];
-    
-    // Título
-    let title = 'Relatório de Gastos';
-    if (fatura && fatura.mesReferencia) {
-      title += ` - ${fatura.mesReferencia}`;
-    }
-    if (responsavelFiltro !== 'todos') {
-      title += ` (Responsável: ${responsavelFiltro})`;
-    }
-
-    doc.setFontSize(18);
-    doc.text(title, 14, 22);
-
-    // Filtrar e processar os dados baseados no responsável
-    let gastosProcessados: (ApiGasto & { valorParte: number; porcentagem?: number })[] = [];
-
-    if (responsavelFiltro === 'todos') {
-      gastosProcessados = safeGastos.map((gasto) => ({
-        ...gasto,
-        valorParte: Number(gasto.valor) || 0,
-      }));
-    } else {
-      gastosProcessados = safeGastos.reduce((acc, gasto) => {
-        let percentual = 0;
-        let valorParte = 0;
-        const gastoValor = Number(gasto.valor) || 0;
-
-        if (gasto.divisoes && gasto.divisoes.length > 0) {
-          const divisao = gasto.divisoes.find(d => d.responsavel === responsavelFiltro);
-          if (divisao) {
-            valorParte = Number(divisao.valor) || 0;
-            percentual = gastoValor > 0 ? (valorParte / gastoValor) * 100 : 0;
-          }
-        } else if (gasto.responsavel === responsavelFiltro) {
-          percentual = 100;
-          valorParte = gastoValor;
-        }
-
-        if (valorParte > 0) {
-          acc.push({
-            ...gasto,
-            valorParte,
-            porcentagem: percentual
-          });
-        }
-
-        return acc;
-      }, [] as typeof gastosProcessados);
-    }
-
-    // Ordenar por data
-    gastosProcessados.sort((a, b) => {
-      const dateA = a.data ? new Date(a.data).getTime() : 0;
-      const dateB = b.data ? new Date(b.data).getTime() : 0;
-      return dateA - dateB;
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
     });
 
-    // Calcular totais
-    const totalValor = gastosProcessados.reduce((acc, g) => acc + (g.valorParte || 0), 0);
+    const expenses = getReportExpenses(gastos || [], scope);
+    const installmentExpenses = expenses
+      .map((expense) => ({ expense, installment: parseInstallment(expense.parcela) }))
+      .filter((item): item is {
+        expense: ReportExpense;
+        installment: { current: number; total: number };
+      } => item.installment !== null);
 
-    // Resumo
+    const splitCount = expenses.filter(
+      (expense) => expense.divisoes && expense.divisoes.length > 0,
+    ).length;
+    const total = expenses.reduce((sum, expense) => sum + expense.allocatedValue, 0);
+    const scopeLabel = scope === "todos" ? "Todos os responsaveis" : scope;
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFillColor(...COLORS.primary);
+    doc.rect(0, 0, pageWidth, 30, "F");
+    doc.setTextColor(...COLORS.white);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("Relatorio da fatura", 14, 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`${fatura.mesReferencia} | ${scopeLabel}`, 14, 22);
+
+    doc.setTextColor(...COLORS.text);
+    doc.setFontSize(9);
+    doc.text(
+      `Gerado em ${new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(new Date())}`,
+      pageWidth - 14,
+      22,
+      { align: "right" },
+    );
+
+    const metrics = [
+      { label: "Total atribuido", value: currency(total) },
+      { label: "Lancamentos", value: expenses.length.toString() },
+      { label: "Parcelamentos", value: installmentExpenses.length.toString() },
+      { label: "Gastos divididos", value: splitCount.toString() },
+    ];
+
+    metrics.forEach((metric, index) => {
+      const x = 14 + index * 69;
+      doc.setFillColor(...COLORS.primarySoft);
+      doc.roundedRect(x, 38, 62, 22, 2, 2, "F");
+      doc.setTextColor(...COLORS.muted);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(metric.label, x + 4, 45);
+      doc.setTextColor(...COLORS.text);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(metric.value, x + 4, 55);
+    });
+
+    const summaryY = 70;
+
+    if (scope === "todos") {
+      const responsibleTotals = getResponsibleTotals(gastos || []);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Resumo por responsavel", 14, summaryY);
+
+      autoTable(doc, {
+        startY: summaryY + 4,
+        head: [["Responsavel", "Valor atribuido"]],
+        body: responsibleTotals.map((item) => [
+          item.responsible,
+          currency(item.value),
+        ]),
+        theme: "grid",
+        margin: { left: 14, right: 152 },
+        styles: { fontSize: 9, cellPadding: 2.5, textColor: COLORS.text },
+        headStyles: {
+          fillColor: COLORS.primary,
+          textColor: COLORS.white,
+          fontStyle: "bold",
+        },
+        columnStyles: { 1: { halign: "right" } },
+      });
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.muted);
+      doc.text(
+        "Valores divididos exibem apenas a parte atribuida ao responsavel selecionado.",
+        14,
+        summaryY,
+      );
+    }
+
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(`Total de Lançamentos: ${gastosProcessados.length}`, 14, 32);
-    doc.text(`Valor Total: ${formatCurrency(totalValor)}`, 14, 38);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Parcelamentos da selecao", 159, summaryY);
 
-    // Preparação dos dados da tabela
-    const tableData = gastosProcessados.map(g => {
-      let responsavelText = g.responsavel || '-';
-      if (g.divisoes && g.divisoes.length > 0) {
-        responsavelText = 'Dividido';
-      }
-
-      const gastoValor = Number(g.valor) || 0;
-      let valorText = formatCurrency(gastoValor);
-      
-      if (responsavelFiltro !== 'todos' && g.valorParte !== gastoValor) {
-        valorText = `${formatCurrency(g.valorParte)} (${g.porcentagem?.toFixed(0)}% de ${formatCurrency(gastoValor)})`;
-      }
-
-      return [
-        g.data ? formatDate(g.data) : '-',
-        g.estabelecimento || '-',
-        g.categoria || '-',
-        responsavelFiltro === 'todos' ? responsavelText : '', // Índice 3
-        g.parcela || '-',
-        valorText
-      ];
+    autoTable(doc, {
+      startY: summaryY + 4,
+      head: [["Estabelecimento", "Parcela", "Valor", "Restante"]],
+      body: installmentExpenses.length > 0
+        ? installmentExpenses.map(({ expense, installment }) => [
+            expense.estabelecimento,
+            `${installment.current}/${installment.total}`,
+            currency(expense.allocatedValue),
+            currency(expense.allocatedValue * (installment.total - installment.current)),
+          ])
+        : [["Nenhum parcelamento", "-", "-", "-"]],
+      theme: "grid",
+      margin: { left: 159, right: 14 },
+      styles: { fontSize: 8, cellPadding: 2.2, textColor: COLORS.text },
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        2: { halign: "right" },
+        3: { halign: "right" },
+      },
     });
 
-    const columns = [
-      'Data', 
-      'Estabelecimento', 
-      'Categoria', 
-      responsavelFiltro === 'todos' ? 'Responsável' : '', 
-      'Parcela', 
-      'Valor'
-    ].filter(Boolean) as string[];
+    doc.addPage("a4", "landscape");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Detalhamento dos gastos", 14, 16);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.muted);
+    doc.text(`${fatura.mesReferencia} | ${scopeLabel}`, 14, 23);
 
-    const rows = tableData.map(row => {
-      if (responsavelFiltro !== 'todos') {
-        // Remover a coluna de 'Responsável' (índice 3) pois ela fica vazia quando filtrado
-        return row.filter((_, index) => index !== 3);
-      }
-      return row;
+    const detailHead = scope === "todos"
+      ? [["Data", "Estabelecimento", "Categoria", "Responsavel / divisao", "Parcela", "Valor"]]
+      : [["Data", "Estabelecimento", "Categoria", "Participacao", "Parcela", "Sua parte", "Original"]];
+
+    const detailBody = expenses.length > 0
+      ? expenses.map((expense) => {
+          const common = [
+            date(expense.data),
+            expense.estabelecimento,
+            expense.categoria,
+            expense.allocationLabel,
+            expense.parcela || "-",
+            currency(expense.allocatedValue),
+          ];
+
+          return scope === "todos"
+            ? common
+            : [...common, currency(expense.originalValue)];
+        })
+      : [[
+          "-",
+          "Nenhum gasto encontrado para esta selecao",
+          "-",
+          "-",
+          "-",
+          currency(0),
+          ...(scope === "todos" ? [] : [currency(0)]),
+        ]];
+
+    autoTable(doc, {
+      startY: 29,
+      head: detailHead,
+      body: detailBody,
+      theme: "striped",
+      margin: { left: 14, right: 14, bottom: 14 },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2.2,
+        overflow: "linebreak",
+        textColor: COLORS.text,
+        lineColor: COLORS.border,
+      },
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: scope === "todos"
+        ? {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 55 },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 91 },
+            4: { cellWidth: 20, halign: "center" },
+            5: { cellWidth: 34, halign: "right" },
+          }
+        : {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 52 },
+            2: { cellWidth: 32 },
+            3: { cellWidth: 55 },
+            4: { cellWidth: 19, halign: "center" },
+            5: { cellWidth: 33, halign: "right" },
+            6: { cellWidth: 33, halign: "right" },
+          },
     });
 
-    if (autoTable) {
-      // Handles potential Next.js/Webpack ESM interop issues where autoTable might be under .default
-      const applyAutoTable = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
-      
-      if (typeof applyAutoTable === 'function') {
-        applyAutoTable(doc, {
-          startY: 45,
-          head: [columns],
-          body: rows,
-          theme: 'striped',
-          headStyles: { fillColor: [41, 128, 185] },
-          styles: { fontSize: 9 },
-        });
-      } else {
-        console.warn("jspdf-autotable plugin not correctly loaded (not a function), outputting raw data");
-        doc.text("Erro ao carregar layout da tabela. Dados brutos:", 14, 50);
-        let y = 60;
-        rows.forEach(r => {
-          doc.text(r.join(" | "), 14, y);
-          y += 10;
-        });
-      }
-    } else {
-      console.warn("jspdf-autotable plugin not correctly loaded, outputting raw data");
-      doc.text("Erro ao carregar layout da tabela. Dados brutos:", 14, 50);
-      let y = 60;
-      rows.forEach(r => {
-        doc.text(r.join(" | "), 14, y);
-        y += 10;
+    const pageCount = doc.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page += 1) {
+      doc.setPage(page);
+      doc.setDrawColor(...COLORS.border);
+      doc.line(14, 198, pageWidth - 14, 198);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.muted);
+      doc.text("Cartao Inteligente", 14, 203);
+      doc.text(`Pagina ${page} de ${pageCount}`, pageWidth - 14, 203, {
+        align: "right",
       });
     }
 
-    const mesRef = fatura && fatura.mesReferencia ? fatura.mesReferencia.replace(/\s/g, '_') : 'Gastos';
-    const respRef = responsavelFiltro !== 'todos' ? `_${responsavelFiltro}` : '';
-    const fileName = `Relatorio_${mesRef}${respRef}.pdf`;
-    
-    // Use the native save method which is safe and prevents Next.js router from intercepting blob URLs
-    doc.save(fileName);
-    
+    const scopeSuffix = scope === "todos" ? "completa" : safeFileName(scope);
+    const fileName = `Relatorio_${safeFileName(fatura.mesReferencia)}_${scopeSuffix}.pdf`;
+    downloadBlob(doc.output("blob"), fileName);
+
     return true;
-  } catch (error) {
-    console.error("Erro completo na geração do PDF:", error);
+  } catch (error: unknown) {
+    console.error("Erro na geracao do PDF:", error);
     return false;
   }
 }
