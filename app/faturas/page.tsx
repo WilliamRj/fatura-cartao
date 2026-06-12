@@ -6,6 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Upload,
   FileText,
   Calendar,
@@ -14,8 +23,9 @@ import {
   Trash2,
   Loader2,
   Eye,
+  TriangleAlert,
 } from "lucide-react";
-import { formatCurrency, formatDateTime } from "@/lib/data";
+import { formatCurrency, formatDateTime, type Fatura } from "@/lib/data";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
@@ -30,6 +40,9 @@ export default function FaturasPage() {
   const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [viewingFaturaId, setViewingFaturaId] = React.useState<string | null>(
+    null,
+  );
+  const [faturaToDelete, setFaturaToDelete] = React.useState<Fatura | null>(
     null,
   );
   const { data: faturas, isLoading, error, refetch } = useFaturas();
@@ -147,6 +160,24 @@ export default function FaturasPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleDeleteFatura = () => {
+    if (!faturaToDelete) {
+      return;
+    }
+
+    const deletedMonth = faturaToDelete.mesReferencia;
+    deleteFatura.mutate(faturaToDelete.id, {
+      onSuccess: () => {
+        setFaturaToDelete(null);
+        toast.success(`Fatura de ${deletedMonth} excluída com sucesso.`);
+      },
+      onError: (deleteError: Error) => {
+        console.error(deleteError);
+        toast.error("Não foi possível excluir a fatura. Tente novamente.");
+      },
+    });
   };
 
   if (isLoading) {
@@ -328,11 +359,7 @@ export default function FaturasPage() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => {
-                        if (confirm("Tem certeza que deseja excluir esta fatura?")) {
-                          deleteFatura.mutate(fatura.id);
-                        }
-                      }}
+                      onClick={() => setFaturaToDelete(fatura)}
                       aria-label={`Excluir fatura ${fatura.mesReferencia}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -378,6 +405,90 @@ export default function FaturasPage() {
           ))}
         </div>
       </div>
+
+      <Dialog
+        open={faturaToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleteFatura.isPending) {
+            setFaturaToDelete(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          showCloseButton={!deleteFatura.isPending}
+        >
+          <DialogHeader className="gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <TriangleAlert className="h-5 w-5" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle>
+                Excluir fatura de {faturaToDelete?.mesReferencia}?
+              </DialogTitle>
+              <DialogDescription>
+                Esta ação é permanente e não poderá ser desfeita.
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          {faturaToDelete && (
+            <div className="rounded-lg border border-border bg-muted/40 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-foreground">
+                    {faturaToDelete.mesReferencia}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {faturaToDelete.quantidadeLançamentos}{" "}
+                    {faturaToDelete.quantidadeLançamentos === 1
+                      ? "lançamento"
+                      : "lançamentos"}
+                  </p>
+                </div>
+                <p className="font-semibold text-foreground">
+                  {formatCurrency(faturaToDelete.valorTotal)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Todos os lançamentos vinculados e o PDF original armazenado também
+            serão removidos.
+          </p>
+
+          <DialogFooter>
+            <DialogClose
+              render={
+                <Button
+                  variant="outline"
+                  disabled={deleteFatura.isPending}
+                />
+              }
+            >
+              Cancelar
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteFatura}
+              disabled={deleteFatura.isPending}
+            >
+              {deleteFatura.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 />
+                  Excluir fatura
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
