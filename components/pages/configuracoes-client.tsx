@@ -17,8 +17,11 @@ import { useResponsaveis, useCreateResponsavel, useDeleteResponsavel, useSetResp
 import { LoadingSkeleton } from "@/components/loading"
 import { ErrorAlert } from "@/components/error"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAccessCard } from "@/components/admin-access-card"
 
 export function ConfiguracoesClient() {
+  const { isAdmin } = useAuth()
   const { data: responsaveisData = [], isLoading, error, refetch } = useResponsaveis()
   const createResponsavel = useCreateResponsavel()
   const deleteResponsavel = useDeleteResponsavel()
@@ -89,6 +92,8 @@ export function ConfiguracoesClient() {
 
   return (
     <div className="space-y-6">
+      {isAdmin && <AdminAccessCard />}
+
       {/* Responsaveis */}
       <Card className="bg-card border-border card-hover">
         <CardHeader>

@@ -16,11 +16,11 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 | Importação | PDF persistido, validado por IA e salvo de forma transacional |
 | Foco atual | Segurança operacional, modelo de dados, UX mobile e testes |
 
-### Progresso dos 24 itens
+### Progresso dos 25 itens
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 12 | Implementado e validado no código |
+| ✅ Concluído | 13 | Implementado e validado no código |
 | 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
 | 📌 Planejado | 9 | Priorizado para ciclos futuros |
 
@@ -506,6 +506,43 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 - Trocar emojis do login por `Loader2` e icone/identidade coerente.
 - Criar uma pequena lista de termos oficiais do produto para evitar variacoes.
 
+### ✅ 20. Implementar solicitações e administração de acesso
+
+**Concluído em:** 12 de junho de 2026
+
+**Fluxo do usuário**
+
+- O primeiro login Google registra automaticamente uma solicitação pendente.
+- Estados pendente, recusado, suspenso e retirado possuem telas próprias.
+- Usuários recusados ou que retiraram o pedido podem solicitar nova análise.
+- O motivo de recusa ou suspensão é apresentado ao usuário.
+- Apenas contas com estado `approved` recebem acesso às áreas internas.
+
+**Painel Master**
+
+- O card administrativo aparece somente para usuários presentes em `system_admins`.
+- Solicitações são organizadas em pendentes, aprovadas, encerradas e suspensas.
+- O Master pode aprovar, recusar, suspender e reativar contas.
+- Busca, contadores, perfil Google, último pedido e quantidade de reenvios auxiliam a análise.
+- Cada usuário possui histórico de decisões e motivos.
+
+**Segurança e operação**
+
+- Masters são definidos exclusivamente por `supabase/scripts/set_system_master.sql`.
+- RPCs administrativas validam o Master no PostgreSQL; a UI não é a barreira de segurança.
+- RLS impede enumeração e escrita direta nas tabelas administrativas.
+- Usuários da allowlist legada são migrados como aprovados quando já existem em `auth.users`.
+- `authorized_users` permanece temporariamente como compatibilidade.
+
+**Evoluções futuras sugeridas**
+
+- Enviar email quando uma solicitação for aprovada, recusada ou suspensa.
+- Adicionar paginação server-side quando a lista crescer.
+- Permitir observação interna do Master, separada do motivo exibido ao usuário.
+- Definir política de recuperação com pelo menos dois Masters ativos.
+- Adicionar expiração opcional para acessos temporários.
+- Criar exportação do histórico administrativo para auditoria.
+
 ---
 
 <a id="prioridade-3"></a>
@@ -514,7 +551,7 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 
 > Investimentos que aumentam confiança em cada alteração e reduzem regressões.
 
-### 📌 20. Adicionar testes unitários para regras financeiras
+### 📌 21. Adicionar testes unitários para regras financeiras
 
 Areas de maior retorno:
 
@@ -524,11 +561,12 @@ Areas de maior retorno:
 - Calculo de estatisticas por categoria/responsavel em `lib/hooks/useGastos.ts:132-154`.
 - Calculo de parcelamentos restantes em `components/pages/parcelamentos-client.tsx`.
 
-### 📌 21. Adicionar testes de integração para fluxos críticos
+### 📌 22. Adicionar testes de integração para fluxos críticos
 
 Fluxos sugeridos:
 
-- Login autorizado vs nao autorizado.
+- Login aprovado, pendente, recusado e suspenso.
+- Aprovação, recusa, nova solicitação e reativação pelo Master.
 - Importar fatura com sucesso.
 - Importar fatura com resposta invalida da IA.
 - Editar categoria/responsavel de gasto.
@@ -537,7 +575,7 @@ Fluxos sugeridos:
 - Exportar PDF por todos e por responsavel.
 - Smoke test no deploy da Vercel para login, carregamento inicial e importacao controlada.
 
-### 📌 22. Preparar observabilidade e auditoria
+### 📌 23. Preparar observabilidade e auditoria
 
 **Próximas ações**
 
@@ -548,7 +586,7 @@ Fluxos sugeridos:
 - Correlacionar logs do browser, Vercel Functions e Supabase para depurar problemas que so aparecem no dominio publicado.
 - Criar mensagens especificas para falhas comuns em producao: timeout da IA, limite de payload, variavel ausente, sessao expirada e erro de RLS.
 
-### 🚧 23. Revisar dependências e scripts
+### 🚧 24. Revisar dependências e scripts
 
 **Situação atual**
 
@@ -565,7 +603,7 @@ Fluxos sugeridos:
 - [ ] Adicionar `format` após escolher Prettier ou Biome.
 - Considerar Prettier ou Biome para formatacao consistente.
 
-### 📌 24. Manter documentação e configuração sincronizadas
+### 📌 25. Manter documentação e configuração sincronizadas
 
 **Auditoria realizada em 11 de junho de 2026**
 
@@ -636,6 +674,8 @@ Fluxos sugeridos:
 - [ ] Executar as migrations pendentes no Supabase de produção.
 - [ ] Testar isolamento completo com duas contas autorizadas.
 - [x] Definir parcelamentos como visão derivada de gastos.
+- [x] Implementar solicitações de acesso e painel Master protegido por RPC.
+- [ ] Aplicar a migration de controle de acesso e definir o primeiro Master em produção.
 
 **Critério de conclusão:** duas contas não conseguem consultar, alterar ou excluir dados uma da outra, inclusive por chamadas diretas ao Supabase.
 
@@ -645,7 +685,8 @@ Fluxos sugeridos:
 
 - [ ] Escolher o framework de testes.
 - [ ] Testar parcelas, moedas, datas, divisões e estatísticas.
-- [ ] Testar login autorizado e não autorizado.
+- [ ] Testar login aprovado, pendente, recusado e suspenso.
+- [ ] Testar decisões administrativas e auditoria de acesso.
 - [ ] Testar importação válida, inválida e duplicada.
 - [ ] Testar edição, divisão e exclusão de gastos.
 - [ ] Testar exportação PDF completa e por responsável.

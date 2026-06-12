@@ -18,7 +18,8 @@ Acesse [http://localhost:3000](http://localhost:3000).
 - npm.
 - Projeto Supabase configurado.
 - Credencial Google Gemini.
-- Usuário incluído em `authorized_users`.
+- Conta Google disponível para autenticação.
+- Migration de controle de acesso aplicada.
 
 > [!NOTE]
 > O repositório também possui `pnpm-lock.yaml`. A escolha de um único gerenciador permanece no roadmap.
@@ -79,6 +80,19 @@ Este passo é opcional e serve para consultar o schema ou enviar migrations:
 npx supabase login
 npx supabase link --project-ref SEU_PROJECT_REF
 ```
+
+### Definir o usuário Master
+
+1. Aplique `supabase/migrations/20260612_zz_access_request_workflow.sql`.
+2. Entre uma vez no app com a conta Google que será Master.
+3. Edite o email em `supabase/scripts/set_system_master.sql`.
+4. Execute o script no SQL Editor com uma função administrativa.
+5. Saia e entre novamente no app.
+
+> [!IMPORTANT]
+> A interface não promove usuários a Master. Antes de remover um Master por
+> SQL, confirme que existe outro administrador ativo para evitar perda do
+> painel de acesso.
 
 O `project-ref` aparece na URL do painel:
 

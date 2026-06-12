@@ -93,9 +93,13 @@ LoginClient
 `AuthProvider`:
 
 1. recupera a sessão;
-2. consulta `authorized_users` pelo email atual;
-3. encerra a sessão se o email não estiver autorizado;
-4. disponibiliza o usuário ao restante da aplicação.
+2. chama `get_my_access_state()`, que registra a primeira solicitação quando necessário;
+3. libera a aplicação somente para `access_status = 'approved'`;
+4. apresenta uma tela específica para solicitações pendentes, recusadas, suspensas ou retiradas;
+5. disponibiliza o usuário e o papel Master ao restante da aplicação.
+
+O cadastro legado `authorized_users` é mantido como compatibilidade, mas
+`app_users` passa a ser a fonte oficial do estado de acesso.
 
 ### Isolamento
 
@@ -104,18 +108,21 @@ LoginClient
 | Aplicação | Queries e mutações incluem `user_id` |
 | Cache | Query keys incluem o ID do usuário |
 | Sessão | Logout e troca de conta limpam o cache |
-| Banco | RLS exige `auth.uid() = user_id` |
-| Storage | Caminhos e policies são separados por usuário |
+| Banco | RLS exige propriedade e estado de acesso aprovado |
+| Storage | Caminhos são separados por usuário e suspensões bloqueiam o bucket |
 
 Migrations:
 
 ```text
 supabase/migrations/20260611_user_data_isolation.sql
 supabase/migrations/20260612_supabase_security_hardening.sql
+supabase/migrations/20260612_zz_access_request_workflow.sql
 ```
 
 O endurecimento adiciona RLS forçada, privilégios mínimos, RPCs restritas e
-integridade composta entre o ID da fatura e seu proprietário.
+integridade composta entre o ID da fatura e seu proprietário. A migration de
+acesso adiciona policies restritivas para que recusas e suspensões também
+bloqueiem sessões já abertas e chamadas diretas ao Supabase.
 
 ## 🔄 Estado e dados
 
@@ -245,7 +252,25 @@ Supabase Row (snake_case)
 
 ### `authorized_users`
 
-`email`.
+`email`. Allowlist legada mantida durante a transição.
+
+### `app_users`
+
+Perfil Google, estado de acesso, datas da solicitação e decisão, motivo,
+quantidade de reenvios e último login.
+
+Estados válidos: `pending`, `approved`, `rejected`, `suspended` e `withdrawn`.
+
+### `system_admins`
+
+IDs dos usuários Master. Não possui fluxo de escrita pela aplicação; inclusão
+e remoção são feitas somente por script administrativo.
+
+### `access_audit_log`
+
+Histórico imutável das solicitações e decisões de acesso. As ações
+administrativas são realizadas por RPCs `security definer`, que verificam o
+Master novamente no banco.
 
 ### `parcelamentos`
 

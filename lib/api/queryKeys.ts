@@ -45,4 +45,10 @@ export const queryKeys = {
     list: (userId: string) =>
       [...queryKeys.importJobs.lists(), userId] as const,
   },
+  accessControl: {
+    all: ["access-control"] as const,
+    users: () => [...queryKeys.accessControl.all, "users"] as const,
+    audit: (userId: string) =>
+      [...queryKeys.accessControl.all, "audit", userId] as const,
+  },
 } as const;

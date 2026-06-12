@@ -108,6 +108,34 @@ create table if not exists public.authorized_users (
 
 O usuário autenticado deve conseguir verificar apenas o próprio email, sem enumerar a lista.
 
+> Tabela legada mantida como compatibilidade. O estado oficial passa a ser
+> armazenado em `app_users`.
+
+### Controle de acesso
+
+```text
+app_users
+  perfil Google + access_status + datas e motivo da decisão
+
+system_admins
+  usuários Master definidos somente por SQL
+
+access_audit_log
+  histórico de solicitações, aprovações, recusas e suspensões
+```
+
+RPCs:
+
+- `get_my_access_state()`: registra ou consulta a própria solicitação.
+- `renew_my_access_request()`: reabre uma solicitação recusada ou retirada.
+- `withdraw_my_access_request()`: retira uma solicitação pendente.
+- `admin_list_access_requests(status)`: lista usuários para o Master.
+- `admin_set_access_status(user_id, status, reason)`: aprova, recusa, suspende ou reativa.
+- `admin_get_access_audit(user_id)`: consulta o histórico administrativo.
+
+As RPCs administrativas verificam `system_admins` no banco. Ocultar o card no
+frontend não é considerado uma barreira de segurança.
+
 ### Parcelamentos
 
 A tela deriva parcelamentos de `gastos.parcela`. Essa é a decisão oficial do

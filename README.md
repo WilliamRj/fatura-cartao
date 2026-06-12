@@ -8,7 +8,7 @@ Aplicação web em PT-BR para importar faturas em PDF, organizar despesas, divid
 
 | Área | Recursos |
 |---|---|
-| 🔐 Acesso | Login Google, lista de usuários autorizados e isolamento por conta |
+| 🔐 Acesso | Login Google, solicitações de acesso, aprovação Master e isolamento por conta |
 | 📄 Faturas | Upload, processamento por IA, visualização e exclusão transacional |
 | 🧾 Gastos | Busca, filtros, ordenação, edição, observações e divisões |
 | 💰 Parcelamentos | Progresso, filtro por responsável e valores divididos |
@@ -119,12 +119,16 @@ Cada fatura, gasto e responsável pertence ao usuário autenticado.
 - Logout e troca de sessão limpam o cache.
 - RLS no Supabase bloqueia acesso cruzado.
 - PDFs ficam em caminhos privados por usuário.
+- Novas contas entram como solicitação pendente até a decisão de um Master.
+- Masters são definidos exclusivamente por script SQL e não podem ser promovidos pela interface.
+- Aprovações, recusas, suspensões e reativações ficam registradas em auditoria.
 
 Migration principal:
 
 ```text
 supabase/migrations/20260611_user_data_isolation.sql
 supabase/migrations/20260612_supabase_security_hardening.sql
+supabase/migrations/20260612_zz_access_request_workflow.sql
 ```
 
 > [!WARNING]
