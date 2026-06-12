@@ -3,8 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import {
   GoogleGenerativeAI,
   GoogleGenerativeAIAbortError,
-  SchemaType,
-  type ResponseSchema,
 } from "@google/generative-ai";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -24,70 +22,6 @@ const stagedPdfSchema = z.object({
   fileSize: z.number().int().positive().max(MAX_PDF_SIZE),
 });
 const requestIdSchema = z.string().uuid();
-const aiResponseSchema: ResponseSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    mes_referencia: {
-      type: SchemaType.STRING,
-      description: "Mês e ano da emissão, por exemplo: Maio 2026",
-    },
-    valor_total: {
-      type: SchemaType.NUMBER,
-      description: "Valor total positivo da fatura",
-    },
-    lancamentos: {
-      type: SchemaType.ARRAY,
-      minItems: 1,
-      maxItems: 5_000,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          data: {
-            type: SchemaType.STRING,
-            description: "Data real no formato YYYY-MM-DD",
-          },
-          estabelecimento: {
-            type: SchemaType.STRING,
-          },
-          valor: {
-            type: SchemaType.NUMBER,
-            description: "Valor positivo do lançamento",
-          },
-          parcela: {
-            type: SchemaType.STRING,
-            nullable: true,
-            description: "Parcela no formato 01/10 ou null",
-          },
-          categoria: {
-            type: SchemaType.STRING,
-            format: "enum" as const,
-            enum: [
-              "Alimentação",
-              "Transporte",
-              "Saúde",
-              "Educação",
-              "Compras",
-              "Assinaturas",
-              "Entretenimento",
-              "Pagamentos",
-              "Condomínio",
-              "Dívida",
-              "Outros",
-            ],
-          },
-        },
-        required: [
-          "data",
-          "estabelecimento",
-          "valor",
-          "parcela",
-          "categoria",
-        ],
-      },
-    },
-  },
-  required: ["mes_referencia", "valor_total", "lancamentos"],
-};
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -308,7 +242,6 @@ export async function POST(req: NextRequest) {
         model: "gemini-3.5-flash",
         generationConfig: {
           responseMimeType: "application/json",
-          responseSchema: aiResponseSchema,
         },
       },
       { timeout: GEMINI_TIMEOUT_MS },
@@ -508,6 +441,21 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "";
+
+    if (
+      errorMessage.includes("400 Bad Request") ||
+      errorMessage.includes("invalid argument")
+    ) {
+      return respond(
+        {
+          error:
+            "A configuração da inteligência artificial foi rejeitada pelo provedor. Nenhum dado foi salvo.",
+        },
+        502,
+        "ai_request_configuration",
+        error,
+      );
+    }
 
     if (
       error instanceof GoogleGenerativeAIAbortError ||

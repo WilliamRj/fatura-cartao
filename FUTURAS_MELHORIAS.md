@@ -207,7 +207,8 @@ Complementos implementados:
 
 - Falhas 422 ficam associadas ao arquivo e informam explicitamente que nenhum dado foi salvo.
 - O `requestId` aparece durante o processamento e pode ser correlacionado com os logs da Vercel.
-- A saida do Gemini usa JSON estruturado por schema, mantendo Zod como validacao final.
+- A saida do Gemini usa modo JSON e mantém Zod como validacao final.
+- O schema nativo fica pendente da migracao do SDK legado `@google/generative-ai` para `@google/genai`, exigido pela API atual do Gemini 3.5 para `responseFormat`.
 
 ## Prioridade 2: UI, UX e produto
 
