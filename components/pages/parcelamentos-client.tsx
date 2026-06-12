@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { CreditCard, Calendar, TrendingUp, Users } from "lucide-react";
-import { formatCurrency } from "@/lib/data";
-import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
-import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
+import { useMemo, useState } from "react";
+import { Calendar, CreditCard, TrendingUp, Users } from "lucide-react";
+
+import { EmptyState, ErrorAlert } from "@/components/error";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
-import { ErrorAlert, EmptyState } from "@/components/error";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -18,73 +16,98 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency, type Parcelamento } from "@/lib/data";
+import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
+import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
+
+interface DivisaoExibida {
+  responsavel: string;
+  valor: number;
+}
+
+interface ParcelamentoProcessado extends Parcelamento {
+  valorExibido: number;
+  restanteExibido: number;
+  totalExibido: number;
+  temDivisao: boolean;
+  percentual: number;
+  divisoesExibidas: DivisaoExibida[];
+}
 
 export function ParcelamentosClient() {
   const { faturaAtual } = useFaturaContext();
-  const { data: parcelamentos = [], isLoading, error, refetch } = useParcelamentos(faturaAtual?.id || null);
+  const {
+    data: parcelamentos = [],
+    isLoading,
+    error,
+    refetch,
+  } = useParcelamentos(faturaAtual?.id || null);
   const { data: responsaveis = [] } = useResponsaveis();
-  const [responsavelId, setResponsavelId] = useState<string>("todos");
+  const [responsavelSelecionado, setResponsavelSelecionado] = useState("todos");
 
-  const parcelamentosProcessados = useMemo(() => {
-    if (!parcelamentos) return [];
-
-    if (responsavelId === "todos") {
-      return parcelamentos.map(p => ({
-        ...p,
-        valorExibido: p.valorParcela,
-        restanteExibido: p.valorParcela * (p.totalParcelas - p.parcelaAtual),
-        totalExibido: p.valorTotal,
-        temDivisao: false,
-        percentual: 0,
+  const parcelamentosProcessados = useMemo<ParcelamentoProcessado[]>(() => {
+    return parcelamentos.flatMap((parcelamento) => {
+      const divisoes = (parcelamento.divisoes ?? []).map((divisao) => ({
+        responsavel: divisao.responsavel,
+        valor: Number(divisao.valor),
       }));
-    }
+      const temDivisao = divisoes.length > 0;
 
-    return parcelamentos.reduce((acc, p) => {
-      let percentual = 0;
-      let temDivisao = false;
-      let valorParte = 0;
-
-      if (p.divisoes && p.divisoes.length > 0) {
-        temDivisao = true;
-        const divisao = p.divisoes.find(d => d.responsavel === responsavelId);
-        if (divisao) {
-          valorParte = divisao.valor;
-          percentual = p.valorParcela > 0 ? divisao.valor / p.valorParcela : 0;
-        }
-      } else if (p.responsavel === responsavelId) {
-        percentual = 1;
-        valorParte = p.valorParcela;
-      }
-
-      if (percentual > 0) {
-        acc.push({
-          ...p,
-          valorExibido: valorParte,
-          restanteExibido: valorParte * (p.totalParcelas - p.parcelaAtual),
-          totalExibido: valorParte * p.totalParcelas,
+      if (responsavelSelecionado === "todos") {
+        return [{
+          ...parcelamento,
+          valorExibido: parcelamento.valorParcela,
+          restanteExibido:
+            parcelamento.valorParcela *
+            (parcelamento.totalParcelas - parcelamento.parcelaAtual),
+          totalExibido: parcelamento.valorTotal,
           temDivisao,
-          percentual
-        });
+          percentual: 1,
+          divisoesExibidas: divisoes,
+        }];
       }
 
-      return acc;
-    }, [] as (typeof parcelamentos[0] & {
-      valorExibido: number;
-      restanteExibido: number;
-      totalExibido: number;
-      temDivisao: boolean;
-      percentual: number;
-    })[]);
-  }, [parcelamentos, responsavelId]);
+      const valorDaDivisao = divisoes
+        .filter((divisao) => divisao.responsavel === responsavelSelecionado)
+        .reduce((total, divisao) => total + divisao.valor, 0);
+      const valorDoResponsavel = temDivisao
+        ? valorDaDivisao
+        : parcelamento.responsavel === responsavelSelecionado
+          ? parcelamento.valorParcela
+          : 0;
+
+      if (valorDoResponsavel <= 0) {
+        return [];
+      }
+
+      return [{
+        ...parcelamento,
+        valorExibido: valorDoResponsavel,
+        restanteExibido:
+          valorDoResponsavel *
+          (parcelamento.totalParcelas - parcelamento.parcelaAtual),
+        totalExibido: valorDoResponsavel * parcelamento.totalParcelas,
+        temDivisao,
+        percentual:
+          parcelamento.valorParcela > 0
+            ? valorDoResponsavel / parcelamento.valorParcela
+            : 0,
+        divisoesExibidas: temDivisao
+          ? [{ responsavel: responsavelSelecionado, valor: valorDoResponsavel }]
+          : [],
+      }];
+    });
+  }, [parcelamentos, responsavelSelecionado]);
 
   const totalParcelamentos = parcelamentosProcessados.reduce(
-    (acc, p) => acc + p.valorExibido,
+    (total, parcelamento) => total + parcelamento.valorExibido,
     0
   );
   const totalRestante = parcelamentosProcessados.reduce(
-    (acc, p) => acc + p.restanteExibido,
+    (total, parcelamento) => total + parcelamento.restanteExibido,
     0
   );
+  const possuiFiltro = responsavelSelecionado !== "todos";
 
   if (isLoading) {
     return <LoadingSkeleton count={3} />;
@@ -96,21 +119,33 @@ export function ParcelamentosClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center justify-between gap-4">
+        <p className="hidden text-sm text-muted-foreground sm:block">
+          {possuiFiltro
+            ? `Exibindo valores atribuídos a ${responsavelSelecionado}`
+            : "Visão consolidada de todos os responsáveis"}
+        </p>
+        <div className="ml-auto flex items-center gap-2">
+          <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Select
-            value={responsavelId}
-            onValueChange={(val) => setResponsavelId(val ?? "todos")}
+            value={responsavelSelecionado}
+            onValueChange={(value) => setResponsavelSelecionado(value ?? "todos")}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por responsável" />
+            <SelectTrigger
+              aria-label="Filtrar parcelamentos por responsável"
+              className="w-[200px]"
+            >
+              <SelectValue>
+                {responsavelSelecionado === "todos"
+                  ? "Todos Responsáveis"
+                  : responsavelSelecionado}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {responsaveis.map((resp) => (
-                <SelectItem key={resp.id} value={resp.nome}>
-                  {resp.nome}
+              <SelectItem value="todos">Todos Responsáveis</SelectItem>
+              {responsaveis.map((responsavel) => (
+                <SelectItem key={responsavel.id} value={responsavel.nome}>
+                  {responsavel.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -119,144 +154,190 @@ export function ParcelamentosClient() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-card border-border card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Total Mensal em Parcelas
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(totalParcelamentos)}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Total a Pagar (Restante)
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(totalRestante)}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-chart-3/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-chart-3" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Parcelamentos Ativos
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {parcelamentosProcessados.length}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-chart-2/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-chart-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SummaryCard
+          icon={CreditCard}
+          iconClassName="bg-primary/10 text-primary"
+          label={possuiFiltro ? "Parte Mensal em Parcelas" : "Total Mensal em Parcelas"}
+          value={formatCurrency(totalParcelamentos)}
+        />
+        <SummaryCard
+          icon={TrendingUp}
+          iconClassName="bg-chart-3/10 text-chart-3"
+          label={possuiFiltro ? "Parte Restante a Pagar" : "Total a Pagar (Restante)"}
+          value={formatCurrency(totalRestante)}
+        />
+        <SummaryCard
+          icon={Calendar}
+          iconClassName="bg-chart-2/10 text-chart-2"
+          label="Parcelamentos Ativos"
+          value={parcelamentosProcessados.length.toString()}
+        />
       </div>
 
-      {!parcelamentosProcessados || parcelamentosProcessados.length === 0 ? (
+      {parcelamentosProcessados.length === 0 ? (
         <EmptyState
-          title={responsavelId !== "todos" ? "Nenhum parcelamento para este responsável" : "Nenhum parcelamento encontrado"}
+          title={
+            possuiFiltro
+              ? "Nenhum parcelamento para este responsável"
+              : "Nenhum parcelamento encontrado"
+          }
           description="Os lançamentos com parcelas (ex: 1/10) aparecerão aqui automaticamente."
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {parcelamentosProcessados.map((parcelamento) => {
-            const progresso =
-              (parcelamento.parcelaAtual / parcelamento.totalParcelas) * 100;
-
-            return (
-              <Card
-                key={parcelamento.id}
-                className="bg-card border-border hover:border-primary/50 transition-colors"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-foreground text-lg">
-                      {parcelamento.nome}
-                      {responsavelId !== "todos" && parcelamento.temDivisao && (
-                         <span className="ml-2 text-xs font-normal text-muted-foreground">
-                           (Sua parte: {(parcelamento.percentual * 100).toFixed(0)}%)
-                         </span>
-                      )}
-                    </CardTitle>
-                    <Badge variant="secondary">
-                      {parcelamento.parcelaAtual}/{parcelamento.totalParcelas}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progresso</span>
-                      <span className="text-foreground font-medium">
-                        {progresso.toFixed(0)}%
-                      </span>
-                    </div>
-                    <Progress value={progresso} className="h-2" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Valor da Parcela
-                      </p>
-                      <p className="text-sm font-semibold text-foreground">
-                        {formatCurrency(parcelamento.valorExibido)}
-                        {responsavelId !== "todos" && parcelamento.temDivisao && (
-                          <span className="block text-[10px] text-muted-foreground">
-                            Total: {formatCurrency(parcelamento.valorParcela)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Valor Total</p>
-                      <p className="text-sm font-semibold text-foreground">
-                        {formatCurrency(parcelamento.totalExibido)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Parcelas Restantes
-                      </p>
-                      <p className="text-sm font-semibold text-foreground">
-                        {parcelamento.totalParcelas - parcelamento.parcelaAtual}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Valor Restante
-                      </p>
-                      <p className="text-sm font-semibold text-foreground">
-                        {formatCurrency(parcelamento.restanteExibido)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {parcelamentosProcessados.map((parcelamento) => (
+            <ParcelamentoCard
+              key={parcelamento.id}
+              parcelamento={parcelamento}
+              possuiFiltro={possuiFiltro}
+              responsavelSelecionado={responsavelSelecionado}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon: Icon,
+  iconClassName,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card className="card-hover border-border bg-card">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold text-foreground">{value}</p>
+          </div>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ParcelamentoCard({
+  parcelamento,
+  possuiFiltro,
+  responsavelSelecionado,
+}: {
+  parcelamento: ParcelamentoProcessado;
+  possuiFiltro: boolean;
+  responsavelSelecionado: string;
+}) {
+  const progresso =
+    (parcelamento.parcelaAtual / parcelamento.totalParcelas) * 100;
+  const parcelasRestantes =
+    parcelamento.totalParcelas - parcelamento.parcelaAtual;
+
+  return (
+    <Card className="border-border bg-card transition-colors hover:border-primary/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <CardTitle className="break-words text-lg text-foreground">
+              {parcelamento.nome}
+            </CardTitle>
+            <div className="flex flex-wrap gap-2">
+              {parcelamento.temDivisao ? (
+                <Badge variant="outline">
+                  <Users className="mr-1 h-3 w-3" />
+                  Gasto dividido
+                </Badge>
+              ) : parcelamento.responsavel ? (
+                <Badge variant="outline">{parcelamento.responsavel}</Badge>
+              ) : null}
+              {possuiFiltro && parcelamento.temDivisao && (
+                <Badge variant="secondary">
+                  {(parcelamento.percentual * 100).toFixed(0)}% para {responsavelSelecionado}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <Badge className="shrink-0" variant="secondary">
+            {parcelamento.parcelaAtual}/{parcelamento.totalParcelas}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Progresso</span>
+            <span className="font-medium text-foreground">
+              {progresso.toFixed(0)}%
+            </span>
+          </div>
+          <Progress value={progresso} className="h-2" />
+        </div>
+
+        {parcelamento.temDivisao && (
+          <div className="rounded-lg border border-border/70 bg-muted/35 p-3">
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-2">
+              <span className="text-xs text-muted-foreground">
+                Valor original da parcela
+              </span>
+              <span className="text-sm font-semibold text-foreground">
+                {formatCurrency(parcelamento.valorParcela)}
+              </span>
+            </div>
+            <div className="space-y-2 pt-2">
+              {parcelamento.divisoesExibidas.map((divisao) => (
+                <div
+                  key={`${parcelamento.id}-${divisao.responsavel}`}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="truncate text-muted-foreground">
+                    {possuiFiltro ? "Parte selecionada" : divisao.responsavel}
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(divisao.valor)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          <Metric
+            label={possuiFiltro ? "Parcela do responsável" : "Valor da Parcela"}
+            value={formatCurrency(parcelamento.valorExibido)}
+          />
+          <Metric
+            label={possuiFiltro ? "Total do responsável" : "Valor Total"}
+            value={formatCurrency(parcelamento.totalExibido)}
+          />
+          <Metric
+            label="Parcelas Restantes"
+            value={parcelasRestantes.toString()}
+          />
+          <Metric
+            label={possuiFiltro ? "Restante do responsável" : "Valor Restante"}
+            value={formatCurrency(parcelamento.restanteExibido)}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <p className="text-xs leading-snug text-muted-foreground">{label}</p>
+      <p className="break-words text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
