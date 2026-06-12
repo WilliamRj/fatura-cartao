@@ -7,22 +7,65 @@ import {
   parsedFaturaSchema,
 } from "@/lib/ai/fatura-schema";
 import { STORAGE } from "@/lib/api/endpoints";
+import { getServerEnvironment } from "@/lib/env/server";
+import { logServerEvent } from "@/lib/server/logger";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const importStartedAt = new Date().toISOString();
+  const requestStartedAt = Date.now();
+  const requestId = randomUUID();
+  let userId: string | undefined;
+
+  const respond = (
+    body: Record<string, unknown>,
+    status: number,
+    stage: string,
+    error?: unknown,
+  ) => {
+    logServerEvent(
+      status >= 500 ? "error" : status >= 400 ? "warn" : "info",
+      status >= 400 ? "invoice_import.failed" : "invoice_import.completed",
+      {
+        requestId,
+        userId,
+        stage,
+        status,
+        durationMs: Date.now() - requestStartedAt,
+      },
+      error,
+    );
+
+    const response = NextResponse.json(body, { status });
+    response.headers.set("X-Request-Id", requestId);
+    return response;
+  };
 
   try {
+    const environment = getServerEnvironment();
+    const genAI = new GoogleGenerativeAI(environment.GEMINI_API_KEY);
+
+    logServerEvent("info", "invoice_import.started", {
+      requestId,
+      stage: "authentication",
+    });
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return NextResponse.json({ error: "Missing authorization header" }, { status: 401 });
+      return respond(
+        { error: "Missing authorization header" },
+        401,
+        "authentication",
+      );
     }
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      environment.NEXT_PUBLIC_SUPABASE_URL,
+      environment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         global: {
           headers: {
@@ -34,40 +77,40 @@ export async function POST(req: NextRequest) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respond({ error: "Unauthorized" }, 401, "authentication", authError);
     }
+    userId = user.id;
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return respond({ error: "No file provided" }, 400, "file_validation");
     }
 
     if (file.size === 0 || file.size > MAX_PDF_SIZE) {
-      return NextResponse.json(
+      return respond(
         { error: "O PDF deve ter entre 1 byte e 20 MB." },
-        { status: 400 },
+        400,
+        "file_validation",
       );
     }
 
     if (file.type !== "application/pdf") {
-      return NextResponse.json(
+      return respond(
         { error: "O arquivo enviado deve ser um PDF." },
-        { status: 400 },
+        400,
+        "file_validation",
       );
-    }
-
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Gemini API key is missing. Add GEMINI_API_KEY to .env.local" }, { status: 500 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
     if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
-      return NextResponse.json(
+      return respond(
         { error: "O conteúdo do arquivo não corresponde a um PDF válido." },
-        { status: 400 },
+        400,
+        "file_validation",
       );
     }
 
@@ -80,21 +123,23 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (duplicateCheckError) {
-      console.error("Error checking duplicate invoice PDF:", duplicateCheckError);
-      return NextResponse.json(
+      return respond(
         { error: "Não foi possível verificar se esta fatura já foi importada." },
-        { status: 500 },
+        500,
+        "duplicate_check",
+        duplicateCheckError,
       );
     }
 
     if (existingFatura) {
-      return NextResponse.json(
+      return respond(
         {
           error: `Este PDF já foi importado como a fatura de ${existingFatura.mes_referencia}.`,
           codigo: "FATURA_DUPLICADA",
           faturaId: existingFatura.id,
         },
-        { status: 409 },
+        409,
+        "duplicate_check",
       );
     }
     
@@ -150,30 +195,35 @@ export async function POST(req: NextRequest) {
     let untrustedData: unknown;
     try {
       untrustedData = JSON.parse(textResult.trim());
-    } catch {
-      console.error("Gemini returned invalid JSON");
-      return NextResponse.json(
+    } catch (error) {
+      return respond(
         {
           error:
             "A IA retornou uma resposta inválida. Nenhum dado foi salvo. Tente importar novamente.",
         },
-        { status: 422 },
+        422,
+        "ai_response_parsing",
+        error,
       );
     }
 
     const validationResult = parsedFaturaSchema.safeParse(untrustedData);
     if (!validationResult.success) {
       const validationIssues = formatValidationIssues(validationResult.error);
-      console.error("Gemini response failed validation", {
-        issues: validationIssues,
+      logServerEvent("warn", "invoice_import.ai_validation_failed", {
+        requestId,
+        userId,
+        stage: "ai_response_validation",
+        issueCount: validationIssues.length,
       });
-      return NextResponse.json(
+      return respond(
         {
           error:
             "A IA retornou dados inconsistentes. Nenhum dado foi salvo.",
           detalhes: validationIssues,
         },
-        { status: 422 },
+        422,
+        "ai_response_validation",
       );
     }
 
@@ -185,10 +235,11 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id);
 
     if (responsaveisError) {
-      console.error("Error loading responsaveis:", responsaveisError);
-      return NextResponse.json(
+      return respond(
         { error: "Não foi possível preparar a importação da fatura." },
-        { status: 500 },
+        500,
+        "responsaveis_query",
+        responsaveisError,
       );
     }
 
@@ -212,10 +263,11 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error("Error uploading invoice PDF:", uploadError);
-      return NextResponse.json(
+      return respond(
         { error: "Não foi possível armazenar o PDF da fatura." },
-        { status: 500 },
+        500,
+        "pdf_upload",
+        uploadError,
       );
     }
 
@@ -233,49 +285,84 @@ export async function POST(req: NextRequest) {
     );
 
     if (importError) {
-      console.error("Error importing fatura atomically:", importError);
+      logServerEvent(
+        "error",
+        "invoice_import.database_failed",
+        {
+          requestId,
+          userId,
+          stage: "database_import",
+        },
+        importError,
+      );
       const { error: cleanupError } = await supabase.storage
         .from(STORAGE.FATURAS)
         .remove([pdfPath]);
 
       if (cleanupError) {
-        console.error("Error removing orphaned invoice PDF:", cleanupError);
+        logServerEvent(
+          "error",
+          "invoice_import.cleanup_failed",
+          {
+            requestId,
+            userId,
+            stage: "pdf_cleanup",
+          },
+          cleanupError,
+        );
       }
 
       if (importError.code === "23505") {
-        return NextResponse.json(
+        return respond(
           {
             error: "Este PDF já foi importado anteriormente.",
             codigo: "FATURA_DUPLICADA",
           },
-          { status: 409 },
+          409,
+          "database_import",
+          importError,
         );
       }
 
-      return NextResponse.json(
+      return respond(
         {
           error:
             "Não foi possível salvar a fatura. Nenhum dado foi persistido.",
         },
-        { status: 500 },
+        500,
+        "database_import",
+        importError,
       );
     }
 
-    return NextResponse.json({ success: true, fatura });
+    return respond({ success: true, fatura }, 200, "completed");
 
   } catch (error: unknown) {
-    console.error("API error:", error);
-    
     const errorMessage = error instanceof Error ? error.message : "";
     
     if (errorMessage.includes("503 Service Unavailable") || errorMessage.includes("high demand")) {
-      return NextResponse.json({ error: "A inteligência artificial está temporariamente indisponível devido à alta demanda. Por favor, tente novamente em alguns instantes." }, { status: 503 });
+      return respond(
+        { error: "A inteligência artificial está temporariamente indisponível devido à alta demanda. Por favor, tente novamente em alguns instantes." },
+        503,
+        "ai_processing",
+        error,
+      );
     }
     
     if (errorMessage.includes("429 Too Many Requests") || errorMessage.includes("quota") || errorMessage.includes("exhausted")) {
-      return NextResponse.json({ error: "O limite de uso (tokens/cota) da inteligência artificial foi atingido. Por favor, tente novamente mais tarde." }, { status: 429 });
+      return respond(
+        { error: "O limite de uso (tokens/cota) da inteligência artificial foi atingido. Por favor, tente novamente mais tarde." },
+        429,
+        "ai_processing",
+        error,
+      );
     }
 
-    return NextResponse.json({ error: "Ocorreu um erro interno ao processar a fatura. Tente novamente." }, { status: 500 });
+    return respond(
+      { error: "Ocorreu um erro interno ao processar a fatura. Tente novamente." },
+      500,
+      "unexpected",
+      error,
+    );
   }
 }

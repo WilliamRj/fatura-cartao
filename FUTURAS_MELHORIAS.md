@@ -81,26 +81,24 @@ Resultado:
 - Confirmacoes nativas foram substituidas por dialogs do design system.
 - O botao padrao de fechar dialogs anuncia "Fechar" em portugues.
 
-### 5. Validar ambiente de producao na Vercel
+### 5. Validar ambiente de producao na Vercel - implementado no codigo em 2026-06-12
 
-Usar a Vercel para acessar o app de qualquer lugar nao invalida as melhorias anteriores, mas muda a prioridade de alguns riscos operacionais.
+Resultado:
 
-Riscos:
+- Variaveis obrigatorias centralizadas e validadas durante a inicializacao do servidor, com erro estruturado em configuracao invalida.
+- Healthcheck `GET /api/health` retorna HTTP 200/503 sem expor segredos.
+- `.env.example` versionado com Supabase e Gemini.
+- `/api/process-fatura` usa runtime Node.js, `maxDuration` de 60 segundos e limite de PDF de 20 MB.
+- Logs serverless em JSON incluem `requestId`, usuario, etapa, status e duracao.
+- Respostas da importacao retornam `X-Request-Id` para correlacao com os logs da Vercel.
+- PDF original e hash SHA-256 persistem no Supabase.
+- Configuracao por ambiente e smoke test documentados em `VERCEL_DEPLOYMENT.md`.
 
-- `app/api/process-fatura/route.ts` pode bater limite de tempo, memoria ou tamanho de payload ao processar PDFs grandes e chamar a IA.
-- Falta de variaveis de ambiente em Preview/Production pode causar falhas que nao aparecem localmente.
-- Logs de erro ficam distribuidos entre browser, Vercel Functions e Supabase.
-- Arquivos enviados para a function nao ficam salvos depois da requisicao.
-- Qualquer falha de RLS fica exposta para acesso remoto, nao apenas uso local.
+Validacao operacional pendente:
 
-Recomendacoes:
-
-- Documentar variaveis obrigatorias da Vercel e validar no boot/healthcheck do app.
-- Separar ambientes Preview e Production no Supabase ou, no minimo, confirmar variaveis corretas por ambiente.
-- Definir limites de upload aceitos pela aplicacao antes de enviar para a rota.
-- Salvar PDFs originais ou hashes em storage persistente quando houver necessidade de auditoria/reprocessamento.
-- Adicionar logs estruturados para rotas serverless com `requestId`, usuario, etapa e status.
-- Testar o fluxo completo no dominio da Vercel, nao apenas em `localhost`.
+- Confirmar no painel o repositorio, Production Branch e variaveis de Preview/Production.
+- Confirmar os limites reais do plano atual da Vercel.
+- Executar o smoke test no dominio de Preview e no dominio final de Production.
 
 ## Prioridade 1: arquitetura e dados
 

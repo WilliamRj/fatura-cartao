@@ -36,6 +36,7 @@ Aplicacao web para gerenciar faturas de cartao de credito, importar PDFs de fatu
 
 ```text
 app/
+  api/health/route.ts               # Healthcheck de ambiente do deploy
   api/process-fatura/route.ts      # Processa PDF com Gemini e salva no Supabase
   auth/callback/route.ts           # Callback OAuth do Supabase
   logout/route.ts                  # Logout POST
@@ -55,7 +56,9 @@ components/
 lib/
   api/endpoints.ts                 # Tabelas e query keys
   api/types.ts                     # Tipos vindos do Supabase
+  env/server.ts                    # Validacao das variaveis server-side
   hooks/                           # Hooks React Query
+  server/logger.ts                 # Logs estruturados das funcoes
   supabase/client.ts               # Cliente Supabase browser
   utils/pdfExport.ts               # Exportacao PDF
   data.ts                          # Tipos de dominio, mocks e formatadores
@@ -96,7 +99,8 @@ npm run dev      # servidor de desenvolvimento
 npm run build    # build de producao
 npm run start    # servir build
 npm run lint     # eslint
-npx tsc --noEmit # typecheck manual
+npm run typecheck # typecheck
+npm run check    # lint + typecheck + build de producao
 ```
 
 Nao existe script `npm test` configurado atualmente.
@@ -109,6 +113,15 @@ Configure no projeto da Vercel:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `GEMINI_API_KEY`
 
+As tres variaveis sao obrigatorias em cada ambiente usado pelo app. Preview e
+Production devem apontar para projetos/chaves deliberadamente escolhidos, sem
+depender dos valores de Development.
+
+Depois do deploy, acesse `https://<dominio>/api/health`. O endpoint deve retornar
+HTTP 200 com `status: "ok"` e nao expoe os valores das chaves. A inicializacao
+do servidor tambem valida as variaveis e registra um erro estruturado quando
+alguma esta ausente ou invalida; nesse caso, o healthcheck retorna HTTP 503.
+
 Tambem configure URLs de OAuth no Google Cloud Console e no Supabase para o dominio da Vercel, incluindo `/auth/callback`.
 
 Antes do deploy com multiplos usuarios, execute no Supabase:
@@ -120,6 +133,8 @@ supabase/migrations/20260611_user_data_isolation.sql
 Pontos de atencao em producao:
 
 - `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
+- A funcao usa runtime Node.js, limite declarado de 60 segundos e upload maximo de 20 MB.
+- Os logs JSON incluem `requestId`, usuario, etapa, status e duracao; o mesmo `requestId` volta no header `X-Request-Id`.
 - PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
 - A visualizacao usa URL assinada; a exclusao transacional remove os dados relacionados e depois limpa o arquivo original.
 - Cada PDF recebe um hash SHA-256; uma segunda importacao do mesmo arquivo pelo mesmo usuario e bloqueada antes da chamada a IA.
@@ -131,12 +146,15 @@ Pontos de atencao em producao:
 - [API_INTEGRATION.md](./API_INTEGRATION.md): schema Supabase e integracao.
 - [DEVELOPMENT.md](./DEVELOPMENT.md): guia de desenvolvimento.
 - [BACKEND_INTEGRATION_CHECKLIST.md](./BACKEND_INTEGRATION_CHECKLIST.md): checklist operacional de Supabase/Vercel.
+- [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md): configuracao e validacao do deploy.
 - [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md): backlog tecnico e de UI.
 - [CLAUDE.md](./CLAUDE.md): guia legado para assistentes; pode ser removido se ninguem usar Claude.
 
 ## Estado conhecido
 
-Em 2026-06-11:
+Em 2026-06-12:
 
-- `npx tsc --noEmit` passa.
-- `npm run lint` falha com erros/warnings documentados em [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md).
+- `npm run lint` passa.
+- `npm run typecheck` passa.
+- `npm run build` passa.
+- O healthcheck retorna 503 quando falta configuracao e 200 quando o ambiente esta completo.

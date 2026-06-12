@@ -68,7 +68,7 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 - [x] Falha ao inserir gastos nao deixa fatura orfa.
 - [ ] Usuario recebe progresso por arquivo.
 - [ ] Timeout da IA gera mensagem compreensivel.
-- [ ] Logs registram request, usuario, duracao e etapa da falha.
+- [x] Logs registram request, usuario, duracao e etapa da falha.
 - [x] Foi decidido que o PDF original deve ser armazenado.
 
 ## 7. Storage
@@ -104,21 +104,27 @@ Status atual: implementado com Supabase Storage pela migration `20260611_invoice
 - [ ] Dominio customizado e HTTPS funcionam.
 - [ ] Callback OAuth funciona no dominio final.
 - [x] Rewrite global legado de `vercel.json` removido; rotas e assets ficam sob controle do Next.js.
+- [x] Variaveis obrigatorias estao documentadas e validadas no boot.
+- [x] `/api/health` valida a configuracao sem expor segredos.
+- [x] `/api/process-fatura` declara runtime Node.js e `maxDuration` de 60 segundos.
+- [x] Limite de upload de 20 MB e validado no cliente e no servidor.
+- [x] Logs estruturados podem ser correlacionados pelo header `X-Request-Id`.
 
 ## 10. Qualidade
 
-- [ ] `npx tsc --noEmit` passa.
-- [ ] `npm run lint` passa.
-- [ ] `npm run build` passa.
+- [x] `npm run typecheck` passa.
+- [x] `npm run lint` passa.
+- [x] `npm run build` passa.
 - [ ] Nao ha erros relevantes no console.
 - [ ] Dashboard, faturas, gastos, parcelamentos, relatorios e configuracoes foram testados.
 - [ ] Mobile e desktop foram testados.
 - [ ] Tema claro e escuro foram testados.
 
-Estado observado em 2026-06-11:
+Estado observado em 2026-06-12:
 
 - [x] TypeScript passa.
-- [ ] Lint passa.
+- [x] Lint passa.
+- [x] Build de producao passa.
 - [ ] Suite automatizada de testes existe.
 
 ## 11. Smoke test de producao
@@ -133,6 +139,8 @@ Estado observado em 2026-06-11:
 8. Exportar relatorio PDF.
 9. Fazer logout.
 10. Verificar logs Vercel/Supabase.
+
+Procedimento detalhado: `VERCEL_DEPLOYMENT.md`.
 
 ## Documentos relacionados
 
