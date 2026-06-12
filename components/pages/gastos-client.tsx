@@ -31,6 +31,8 @@ import {
 import {
   ArrowUpDown,
   Calculator,
+  ChevronLeft,
+  ChevronRight,
   CornerDownRight,
   Edit2,
   Filter,
@@ -61,6 +63,8 @@ type SplitDraft = {
   responsavel: string;
 };
 
+type PageSize = "10" | "20" | "50" | "all";
+
 function divideAmount(total: number, parts: number) {
   const totalInCents = Math.round(total * 100);
   const baseValue = Math.floor(totalInCents / parts);
@@ -82,6 +86,7 @@ export function GastosClient() {
   const responsibleInputId = `${formId}-responsible`;
   const observationInputId = `${formId}-observation`;
   const splitSummaryId = `${formId}-split-summary`;
+  const pageSizeInputId = `${formId}-page-size`;
   const { faturaAtual } = useFaturaContext();
   const { data: gastos, isLoading, error, refetch } = useGastos(faturaAtual?.id || null);
   const { data: responsaveis = [] } = useResponsaveis();
@@ -92,6 +97,8 @@ export function GastosClient() {
   const [responsavelFilter, setResponsavelFilter] = React.useState("all");
   const [sortField, setSortField] = React.useState<keyof Gasto>("data");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>("20");
   
   const [editingGasto, setEditingGasto] = React.useState<Gasto | null>(null);
   const [editedValor, setEditedValor] = React.useState<number | "">("");
@@ -181,7 +188,34 @@ export function GastosClient() {
     return result;
   }, [gastos, search, categoriaFilter, responsavelFilter, sortField, sortDirection]);
 
+  const pagination = React.useMemo(() => {
+    const itemsPerPage =
+      pageSize === "all"
+        ? Math.max(filteredGastos.length, 1)
+        : Number(pageSize);
+    const pageCount =
+      pageSize === "all"
+        ? 1
+        : Math.max(1, Math.ceil(filteredGastos.length / itemsPerPage));
+    const currentPage = Math.min(page, pageCount);
+    const startIndex =
+      filteredGastos.length === 0 ? 0 : (currentPage - 1) * itemsPerPage;
+    const endIndex =
+      pageSize === "all"
+        ? filteredGastos.length
+        : Math.min(startIndex + itemsPerPage, filteredGastos.length);
+
+    return {
+      currentPage,
+      pageCount,
+      startIndex,
+      endIndex,
+      items: filteredGastos.slice(startIndex, endIndex),
+    };
+  }, [filteredGastos, page, pageSize]);
+
   const handleSort = (field: keyof Gasto) => {
+    setPage(1);
     if (sortField === field) {
       setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -425,7 +459,10 @@ export function GastosClient() {
                   id={searchInputId}
                   placeholder="Buscar estabelecimento..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="pl-9"
                 />
               </div>
@@ -439,7 +476,10 @@ export function GastosClient() {
               </label>
               <Select
                 value={categoriaFilter}
-                onValueChange={(val) => setCategoriaFilter(val ?? "all")}
+                onValueChange={(val) => {
+                  setCategoriaFilter(val ?? "all");
+                  setPage(1);
+                }}
               >
                 <SelectTrigger id={categoryFilterId} className="w-full">
                   <SelectValue placeholder="Categoria">
@@ -465,7 +505,10 @@ export function GastosClient() {
               </label>
               <Select
                 value={responsavelFilter}
-                onValueChange={(val) => setResponsavelFilter(val ?? "all")}
+                onValueChange={(val) => {
+                  setResponsavelFilter(val ?? "all");
+                  setPage(1);
+                }}
               >
                 <SelectTrigger id={responsibleFilterId} className="w-full">
                   <SelectValue placeholder="Responsável">
@@ -569,7 +612,7 @@ export function GastosClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredGastos.map((gasto) => (
+                {pagination.items.map((gasto) => (
                   <React.Fragment key={gasto.id}>
                     <TableRow
                       className="border-border hover:bg-muted/50"
@@ -668,10 +711,96 @@ export function GastosClient() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between px-4 py-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {filteredGastos.length} gastos
-            </p>
+          <div className="flex flex-col gap-4 border-t border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div
+              className="text-sm text-muted-foreground"
+              aria-live="polite"
+            >
+              {filteredGastos.length === 0 ? (
+                "Nenhum gasto corresponde aos filtros"
+              ) : (
+                <>
+                  Mostrando {pagination.startIndex + 1}-
+                  {pagination.endIndex} de {filteredGastos.length} gastos
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
+              <div className="flex items-center gap-2">
+                <label
+                  className="text-sm text-muted-foreground"
+                  htmlFor={pageSizeInputId}
+                >
+                  Por página
+                </label>
+                <Select
+                  value={pageSize}
+                  onValueChange={(value) => {
+                    setPageSize((value ?? "20") as PageSize);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger
+                    id={pageSizeInputId}
+                    className="w-[112px]"
+                    size="sm"
+                  >
+                    <SelectValue>
+                      {pageSize === "all" ? "Todos" : pageSize}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {pageSize !== "all" && (
+                <nav
+                  className="flex items-center justify-between gap-2 sm:justify-end"
+                  aria-label="Paginação dos gastos"
+                >
+                  <Button
+                    aria-label="Página anterior"
+                    disabled={pagination.currentPage <= 1}
+                    onClick={() =>
+                      setPage(Math.max(1, pagination.currentPage - 1))
+                    }
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronLeft />
+                  </Button>
+                  <span className="min-w-24 text-center text-sm text-muted-foreground">
+                    Página {pagination.currentPage} de {pagination.pageCount}
+                  </span>
+                  <Button
+                    aria-label="Próxima página"
+                    disabled={
+                      pagination.currentPage >= pagination.pageCount
+                    }
+                    onClick={() =>
+                      setPage(
+                        Math.min(
+                          pagination.pageCount,
+                          pagination.currentPage + 1,
+                        ),
+                      )
+                    }
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronRight />
+                  </Button>
+                </nav>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

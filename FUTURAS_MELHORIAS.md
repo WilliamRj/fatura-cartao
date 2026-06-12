@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 13 | Implementado e validado no código |
+| ✅ Concluído | 14 | Implementado e validado no código |
 | 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 9 | Priorizado para ciclos futuros |
+| 📌 Planejado | 8 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -428,16 +428,23 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - É possível iniciar uma divisão e voltar ao modo simples sem fechar o modal.
 - Divisões existentes continuam podendo ser desfeitas pela ação dedicada.
 
-### 📌 14. Implementar paginação na lista de gastos
+### ✅ 14. Implementar paginação na lista de gastos
 
-A constante sem uso foi removida para manter o lint limpo, mas a tabela ainda exibe todos os itens. A paginação continua relevante para faturas maiores.
+**Concluído em:** 12 de junho de 2026
 
-**Próximas ações**
+**Implementação**
 
-- Implementar paginacao client-side inicialmente.
-- Em escala maior, paginar no Supabase com `range()`.
-- Manter contadores: total filtrado, pagina atual e itens por pagina.
-- Exibir botoes Proximo/Anterior com estado desabilitado acessivel.
+- A lista usa paginação client-side depois dos filtros e da ordenação.
+- O padrão exibe 20 gastos por página.
+- O usuário pode escolher 10, 20, 50 ou `Todos`.
+- O rodapé informa o intervalo visível, o total filtrado e a página atual.
+- Botões anterior e próximo possuem nomes acessíveis e estados desabilitados.
+- Alterar busca, filtros, ordenação ou tamanho da página retorna à primeira página.
+- Linhas de divisão permanecem junto ao gasto principal e não contam como itens separados.
+
+**Evolução futura**
+
+- Migrar para paginação server-side com `range()` quando uma única fatura atingir volume que justifique novas consultas.
 
 ### ✅ 15. Finalizar a ação de visualizar fatura
 
@@ -670,7 +677,7 @@ Fluxos sugeridos:
 - [x] Reorganizar o header mobile.
 - [x] Tornar filtros, labels e formulários mais acessíveis.
 - [x] Concluir a reorganização visual do modal de edição e divisão.
-- [ ] Implementar paginação e contagem na tela de gastos.
+- [x] Implementar paginação e contagem na tela de gastos.
 - [ ] Adicionar CTAs úteis aos estados vazios.
 - [x] Substituir confirmações nativas por dialogs do design system.
 - [x] Filtrar parcelamentos por responsável, respeitando divisões.
