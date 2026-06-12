@@ -129,6 +129,7 @@ Migration principal:
 supabase/migrations/20260611_user_data_isolation.sql
 supabase/migrations/20260612_supabase_security_hardening.sql
 supabase/migrations/20260612_zz_access_request_workflow.sql
+supabase/migrations/20260612_zzz_owner_responsible.sql
 ```
 
 > [!WARNING]

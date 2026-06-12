@@ -243,7 +243,7 @@ export function GastosClient() {
     if (!originalValor) return;
 
     const primaryResponsible =
-      responsaveis.find((responsavel) => responsavel.cor === "pessoal")?.nome ||
+      responsaveis.find((responsavel) => responsavel.isOwner)?.nome ||
       editedResponsavel ||
       responsaveis[0]?.nome;
     const otherResponsible = responsaveis.find(
@@ -274,7 +274,7 @@ export function GastosClient() {
   const handleStartSplit = () => {
     const value = editingGasto?.valor ?? 0;
     const primaryResponsible =
-      responsaveis.find((responsavel) => responsavel.cor === "pessoal")?.nome ||
+      responsaveis.find((responsavel) => responsavel.isOwner)?.nome ||
       editedResponsavel;
     const otherResponsible = responsaveis.find(
       (responsavel) => responsavel.nome !== primaryResponsible,

@@ -84,10 +84,11 @@ npx supabase link --project-ref SEU_PROJECT_REF
 ### Definir o usuário Master
 
 1. Aplique `supabase/migrations/20260612_zz_access_request_workflow.sql`.
-2. Entre uma vez no app com a conta Google que será Master.
-3. Edite o email em `supabase/scripts/set_system_master.sql`.
-4. Execute o script no SQL Editor com uma função administrativa.
-5. Saia e entre novamente no app.
+2. Aplique `supabase/migrations/20260612_zzz_owner_responsible.sql`.
+3. Entre uma vez no app com a conta Google que será Master.
+4. Edite o email em `supabase/scripts/set_system_master.sql`.
+5. Execute o script no SQL Editor com uma função administrativa.
+6. Saia e entre novamente no app.
 
 > [!IMPORTANT]
 > A interface não promove usuários a Master. Antes de remover um Master por

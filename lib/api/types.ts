@@ -5,6 +5,7 @@ export interface ResponsavelRow {
   user_id: string;
   nome: string;
   cor: string | null;
+  is_owner: boolean;
   created_at?: string;
 }
 

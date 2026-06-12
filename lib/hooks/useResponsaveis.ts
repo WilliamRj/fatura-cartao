@@ -25,12 +25,13 @@ export function useResponsaveis() {
         .from(TABLES.RESPONSAVEIS)
         .select("*")
         .eq("user_id", user!.id)
+        .order("is_owner", { ascending: false })
         .order("nome", { ascending: true });
 
       if (error) {
         throw createPublicDataError(
           error,
-          "Não foi possível carregar os responsáveis."
+          "Não foi possível carregar os responsáveis.",
         );
       }
 
@@ -60,7 +61,9 @@ export function useCreateResponsavel() {
       if (error) {
         throw createPublicDataError(
           error,
-          "Não foi possível adicionar o responsável."
+          error.code === "23505"
+            ? "Já existe um responsável com esse nome."
+            : "Não foi possível adicionar o responsável.",
         );
       }
 
@@ -87,16 +90,16 @@ export function useDeleteResponsavel() {
         throw new Error("Usuário não autenticado");
       }
 
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from(TABLES.RESPONSAVEIS)
-        .delete()
+        .delete({ count: "exact" })
         .eq("id", id)
         .eq("user_id", user.id);
 
-      if (error) {
+      if (error || count === 0) {
         throw createPublicDataError(
           error,
-          "Não foi possível remover o responsável."
+          "Não foi possível remover este responsável.",
         );
       }
     },
@@ -111,47 +114,46 @@ export function useDeleteResponsavel() {
   });
 }
 
-export function useSetResponsavelPrincipal() {
+export function useRenameResponsavel() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, nome }: { id: string; nome: string }) => {
       if (!user) {
         throw new Error("Usuário não autenticado");
       }
 
-      const { error: resetError } = await supabase
-        .from(TABLES.RESPONSAVEIS)
-        .update({ cor: null })
-        .eq("user_id", user.id);
+      const { data, error } = await supabase.rpc("rename_responsavel", {
+        p_responsavel_id: id,
+        p_new_name: nome,
+      });
 
-      if (resetError) {
+      if (error) {
         throw createPublicDataError(
-          resetError,
-          "Não foi possível alterar o responsável principal."
+          error,
+          error.code === "23505"
+            ? "Já existe um responsável com esse nome."
+            : "Não foi possível alterar o nome do responsável.",
         );
       }
 
-      const { error: updateError } = await supabase
-        .from(TABLES.RESPONSAVEIS)
-        .update({ cor: "pessoal" })
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (updateError) {
-        throw createPublicDataError(
-          updateError,
-          "Não foi possível alterar o responsável principal."
-        );
-      }
+      return mapResponsavelRow(data as ResponsavelRow);
     },
     onSuccess: () => {
       if (user) {
-        return queryClient.invalidateQueries({
-          queryKey: queryKeys.responsaveis.list(user.id),
-          exact: true,
-        });
+        return Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.responsaveis.list(user.id),
+            exact: true,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.gastos.userLists(user.id),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.parcelamentos.userLists(user.id),
+          }),
+        ]);
       }
     },
   });

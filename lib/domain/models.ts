@@ -7,6 +7,7 @@ export interface Responsavel {
   id: string;
   nome: string;
   cor: string;
+  isOwner: boolean;
 }
 
 export interface Categoria {

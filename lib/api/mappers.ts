@@ -50,6 +50,7 @@ export function mapResponsavelRow(row: ResponsavelRow): Responsavel {
     id: row.id,
     nome: row.nome,
     cor: row.cor ?? "bg-primary/20",
+    isOwner: row.is_owner,
   };
 }
 

@@ -246,9 +246,15 @@ Supabase Row (snake_case)
 
 ### `responsaveis`
 
-`id`, `user_id`, `nome`, `cor`.
+`id`, `user_id`, `nome`, `cor`, `is_owner`.
 
-> O valor `cor = 'pessoal'` identifica o responsável principal. Isso mistura apresentação e regra de negócio e permanece como dívida técnica.
+`is_owner = true` identifica o titular criado automaticamente para a conta.
+Existe exatamente um titular por usuário, ele não pode ser removido nem
+substituído pela interface e continua editável apenas no nome. `cor =
+'pessoal'` permanece como compatibilidade visual derivada desse papel.
+
+A RPC `rename_responsavel` atualiza atomicamente o cadastro, os gastos e os
+nomes armazenados dentro de `gastos.divisoes`.
 
 ### `authorized_users`
 

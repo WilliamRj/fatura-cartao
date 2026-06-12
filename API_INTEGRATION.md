@@ -90,12 +90,20 @@ create table if not exists public.responsaveis (
   user_id uuid not null references auth.users(id) on delete cascade,
   nome text not null,
   cor text,
+  is_owner boolean not null default false,
   created_at timestamptz not null default now(),
   unique (user_id, nome)
 );
 ```
 
-`cor = 'pessoal'` identifica o responsável principal.
+`is_owner = true` identifica o titular da conta. A migration cria índices para
+garantir um único titular e impedir nomes repetidos sem diferenciar
+maiúsculas/minúsculas.
+
+RPCs:
+
+- `ensure_owner_responsavel()`: cria o titular automaticamente após o acesso ser aprovado.
+- `rename_responsavel(id, nome)`: renomeia o cadastro, gastos e divisões na mesma transação.
 
 ### `authorized_users`
 

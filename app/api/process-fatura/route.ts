@@ -357,7 +357,7 @@ export async function POST(req: NextRequest) {
 
     const { data: responsaveis, error: responsaveisError } = await supabase
       .from('responsaveis')
-      .select('nome, cor')
+      .select('nome, is_owner')
       .eq('user_id', user.id);
 
     if (responsaveisError) {
@@ -371,7 +371,7 @@ export async function POST(req: NextRequest) {
 
     let responsavelName = "Não definido";
     if (responsaveis && responsaveis.length > 0) {
-      const principal = responsaveis.find(r => r.cor === 'pessoal');
+      const principal = responsaveis.find(r => r.is_owner);
       if (principal) {
         responsavelName = principal.nome;
       } else {

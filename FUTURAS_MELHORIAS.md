@@ -534,6 +534,21 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 - Usuários da allowlist legada são migrados como aprovados quando já existem em `auth.users`.
 - `authorized_users` permanece temporariamente como compatibilidade.
 
+**Responsável titular**
+
+- Cada conta aprovada recebe automaticamente um responsável titular no login.
+- O nome inicial usa o perfil Google e pode ser alterado em Configurações.
+- Apenas esse responsável pode ser Principal; o papel não pode ser transferido ou removido.
+- Nomes repetidos são bloqueados sem diferenciar maiúsculas e minúsculas.
+- A renomeação atualiza atomicamente gastos e divisões históricas.
+- A migration `20260612_zzz_owner_responsible.sql` protege essas regras no banco.
+
+**Evolução futura do modelo**
+
+- Substituir nomes desnormalizados em `gastos` e `divisoes` por IDs de responsáveis.
+- Arquivar responsáveis secundários em vez de excluí-los quando já possuírem histórico.
+- Preservar o nome exibido no momento do lançamento como informação de auditoria.
+
 **Evoluções futuras sugeridas**
 
 - Enviar email quando uma solicitação for aprovada, recusada ou suspensa.

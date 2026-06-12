@@ -95,7 +95,21 @@ export async function getMyAccessProfile(user: User) {
     throw new Error("O estado de acesso retornado é inválido.");
   }
 
-  return mapAccessProfile(row);
+  const profile = mapAccessProfile(row);
+  if (profile.status === "approved") {
+    const { error: responsibleError } = await supabase.rpc(
+      "ensure_owner_responsavel",
+    );
+
+    if (responsibleError) {
+      throw createPublicDataError(
+        responsibleError,
+        "Não foi possível preparar o responsável principal da conta.",
+      );
+    }
+  }
+
+  return profile;
 }
 
 export async function renewMyAccessRequest() {
