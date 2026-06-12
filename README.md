@@ -97,13 +97,16 @@ supabase/migrations/          # Evolução versionada do banco
 
 ## 🔄 Fluxo de importação
 
-1. O navegador envia o PDF ao bucket privado `faturas`.
-2. `/api/process-fatura` valida sessão, caminho, assinatura e tamanho.
-3. O arquivo recebe um hash SHA-256 para bloquear duplicidades.
+1. O navegador valida assinatura e tamanho, calcula SHA-256 e bloqueia duplicidade.
+2. O PDF segue para o bucket privado `faturas`.
+3. `/api/process-fatura` valida sessão, caminho, assinatura, tamanho e hash.
 4. O Gemini extrai os lançamentos.
 5. Zod valida e normaliza a resposta.
 6. Uma RPC salva fatura e gastos de forma transacional.
-7. Falhas removem o upload recém-enviado.
+7. Falhas removem o PDF temporário e retornam estágio, duração e `requestId`.
+
+Lotes são processados sequencialmente e exibem progresso e resultado por
+arquivo. A página deve permanecer aberta até o término.
 
 ## 🔒 Segurança por usuário
 

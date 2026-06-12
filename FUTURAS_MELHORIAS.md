@@ -20,8 +20,8 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 8 | Implementado e validado no código |
-| 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
+| ✅ Concluído | 9 | Implementado e validado no código |
+| 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
 | 📌 Planejado | 12 | Priorizado para ciclos futuros |
 
 ### Legenda
@@ -301,33 +301,44 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Projeções síncronas de dados já carregados devem preferir `useMemo`.
 - Invalidações globais só devem ser usadas quando a mutação não permitir identificar a fatura afetada.
 
-### 🚧 10. Tratar importação de múltiplos PDFs como job observável
+### ✅ 10. Tratar importação de múltiplos PDFs como job observável
 
-**Implementação parcial em:** 12 de junho de 2026
+**Concluído em:** 12 de junho de 2026
 
-`components/pages/faturas-client.tsx` processa arquivos em loop sequencial com estado individual por arquivo.
+**Execução do lote**
 
-Na Vercel, esse ponto e ainda mais importante porque o processamento acontece em uma requisicao serverless. Chamadas longas para Gemini, PDFs grandes ou varios arquivos em sequencia podem atingir limites de execucao, memoria ou payload.
+- O lote continua sequencial para limitar memória, chamadas ao Gemini e concorrência na Vercel.
+- Cada arquivo percorre os estados aguardando, validando, verificando, enviando, processando e concluído.
+- A interface mostra progresso geral, progresso individual, duração e resultado consolidado.
+- Falhas podem ser reprocessadas individualmente sem repetir arquivos concluídos.
+- A saída acidental da página é protegida enquanto o lote está em execução.
 
-**Checklist da evolução**
+**Validação e duplicidade**
 
-- [x] Mostrar progresso por arquivo: aguardando, enviando, processando, salvo, erro.
-- [x] Permitir remover/reprocessar arquivo que falhou sem repetir todos.
-- Validar tamanho maximo e tipo real do arquivo, nao apenas extensao/dropzone.
-- Evitar importacao duplicada por hash, mes ou combinacao de `mes_referencia` + usuario.
-- Considerar fila server-side se os PDFs forem grandes ou a IA demorar.
-- Considerar arquitetura assincrona: upload do PDF para storage, registro de job no banco, processamento posterior e polling/status na UI.
-- [x] Definir timeout e mensagem de erro especifica para limite/indisponibilidade da IA.
+- `lib/files/pdf.ts` valida tamanho, MIME declarado e assinatura `%PDF-` antes do upload.
+- O navegador calcula SHA-256 e detecta arquivos repetidos no mesmo lote.
+- O hash é consultado no Supabase antes do upload e do processamento por IA.
+- O servidor recalcula o hash e compara com o valor declarado pelo navegador.
+- O índice único `(user_id, arquivo_hash)` permanece como proteção final contra concorrência.
 
-**Complementos implementados**
+**Observabilidade**
 
-- Falhas 422 ficam associadas ao arquivo e informam explicitamente que nenhum dado foi salvo.
-- O `requestId` aparece durante o processamento e pode ser correlacionado com os logs da Vercel.
-- A saida do Gemini usa modo JSON e mantém Zod como validacao final.
-- O schema nativo fica pendente da migracao do SDK legado `@google/generative-ai` para `@google/genai`, exigido pela API atual do Gemini 3.5 para `responseFormat`.
-- Valores monetarios brasileiros e internacionais comuns sao normalizados.
-- Creditos, estornos e ajustes negativos sao preservados para conciliacao; valores zero e ilegíveis continuam invalidos.
-- A soma dos lancamentos e comparada ao total da fatura em centavos antes de qualquer persistencia.
+- Cada requisição usa um `requestId` exibido na interface e registrado nos logs.
+- A API retorna `requestId`, estágio final e duração em respostas de sucesso e erro.
+- Falhas mostram a etapa server-side que interrompeu a importação.
+- PDFs temporários são removidos quando validação, IA ou persistência falham.
+
+**Decisão sobre fila assíncrona**
+
+- Uma fila persistente não foi adicionada nesta fase porque ainda não existe um worker independente para consumir jobs; polling sem worker não tornaria o processamento assíncrono.
+- O fluxo atual exige que a página permaneça aberta e atende ao volume atual com execução sequencial.
+- Migrar para tabela de jobs + worker quando houver lotes frequentes, duração próxima ao limite da Vercel, necessidade de continuar após fechar a página ou monitoramento operacional persistente.
+
+**Validações financeiras mantidas**
+
+- A saída do Gemini usa JSON e passa pelo schema Zod.
+- Créditos, estornos e ajustes negativos são preservados.
+- A soma dos lançamentos é comparada ao total da fatura em centavos antes da persistência.
 
 ---
 
@@ -631,7 +642,7 @@ Fluxos sugeridos:
 - [x] Definir timeout e limite de upload.
 - [ ] Executar smoke test no domínio final.
 - [ ] Adicionar monitoramento de falhas.
-- [ ] Decidir quando a importação deve migrar para job assíncrono.
+- [x] Definir critérios para migrar a importação para job assíncrono.
 - [ ] Correlacionar logs de browser, Vercel e Supabase.
 
 ### Sprint 7 · Organização do repositório

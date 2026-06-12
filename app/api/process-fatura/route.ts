@@ -20,6 +20,7 @@ const stagedPdfSchema = z.object({
   pdfPath: z.string().min(1),
   fileName: z.string().min(1).max(255),
   fileSize: z.number().int().positive().max(MAX_PDF_SIZE),
+  fileHash: z.string().regex(/^[0-9a-f]{64}$/),
 });
 const requestIdSchema = z.string().uuid();
 
@@ -42,6 +43,8 @@ export async function POST(req: NextRequest) {
     stage: string,
     error?: unknown,
   ) => {
+    const durationMs = Date.now() - requestStartedAt;
+
     if (status >= 400 && cleanupStagedPdf) {
       await cleanupStagedPdf();
       cleanupStagedPdf = undefined;
@@ -55,12 +58,20 @@ export async function POST(req: NextRequest) {
         userId,
         stage,
         status,
-        durationMs: Date.now() - requestStartedAt,
+        durationMs,
       },
       error,
     );
 
-    const response = NextResponse.json(body, { status });
+    const response = NextResponse.json(
+      {
+        ...body,
+        requestId,
+        stage,
+        durationMs,
+      },
+      { status },
+    );
     response.headers.set("X-Request-Id", requestId);
     return response;
   };
@@ -104,6 +115,7 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get("content-type") ?? "";
     let buffer: Buffer;
     let storedPdfPath: string | undefined;
+    let expectedPdfHash: string | undefined;
 
     if (contentType.includes("application/json")) {
       const stagedPdfResult = stagedPdfSchema.safeParse(await req.json());
@@ -115,7 +127,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const { pdfPath, fileSize } = stagedPdfResult.data;
+      const { pdfPath, fileSize, fileHash } = stagedPdfResult.data;
       const expectedPath = new RegExp(
         `^${user.id}/[0-9a-f-]{36}\\.pdf$`,
         "i",
@@ -166,6 +178,7 @@ export async function POST(req: NextRequest) {
 
       buffer = Buffer.from(await pdfBlob.arrayBuffer());
       storedPdfPath = pdfPath;
+      expectedPdfHash = fileHash;
     } else {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
@@ -202,6 +215,13 @@ export async function POST(req: NextRequest) {
     }
 
     const pdfHash = createHash("sha256").update(buffer).digest("hex");
+    if (expectedPdfHash && pdfHash !== expectedPdfHash) {
+      return respond(
+        { error: "A assinatura do PDF armazenado não corresponde ao envio." },
+        400,
+        "file_validation",
+      );
+    }
     const { data: existingFatura, error: duplicateCheckError } = await supabase
       .from("faturas")
       .select("id, mes_referencia")

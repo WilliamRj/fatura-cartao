@@ -175,10 +175,12 @@ Quando `gastos.divisoes` existe, os cálculos por responsável usam as partes do
 
 ```text
 Selecionar PDF
+  → validar tamanho, MIME e assinatura
+  → calcular SHA-256 e verificar duplicidade
   → upload direto ao Storage
   → enviar caminho à API
-  → validar token, caminho, tamanho e assinatura
-  → calcular SHA-256
+  → validar token, caminho, tamanho, assinatura e hash
+  → recalcular SHA-256
   → bloquear duplicidade
   → chamar Gemini
   → validar resposta com Zod
@@ -195,6 +197,14 @@ Detalhes:
 5. A rota possui `maxDuration` de 300 segundos.
 6. Falhas removem o objeto recém-enviado.
 7. Logs incluem `requestId`, etapa, status e duração.
+
+O navegador executa lotes sequencialmente e mantém um job observável por
+arquivo, com estado, progresso, duração, erro e `requestId`. A API devolve o
+estágio final e a duração para correlação com os logs.
+
+O modelo ainda não é uma fila persistente: fechar a página interrompe a
+orquestração do lote. A migração para tabela de jobs e worker independente deve
+ocorrer quando o volume ou a duração se aproximarem dos limites da Vercel.
 
 ## 🗃️ Modelo de dados
 

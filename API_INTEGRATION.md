@@ -279,6 +279,11 @@ Bucket privado: `faturas`.
 - compensação quando a importação falha;
 - hash único por usuário.
 
+Antes do upload, o cliente calcula SHA-256 e consulta `faturas.arquivo_hash`
+sob RLS. A API recebe `fileHash`, recalcula o digest do conteúdo armazenado e
+rejeita divergências. Todas as respostas incluem `requestId`, `stage` e
+`durationMs` para observabilidade do lote.
+
 Migrations:
 
 ```text
@@ -341,4 +346,4 @@ consumir diretamente linhas do Supabase.
 - [ ] Remover ou adotar a rota `/logout`.
 - [x] Remover o contrato `TABLES.PARCELAMENTOS` e manter visão derivada.
 - [ ] Criar testes de integração para RLS.
-- [ ] Avaliar job assíncrono para importações longas.
+- [x] Avaliar job assíncrono e definir critérios para adotar worker persistente.

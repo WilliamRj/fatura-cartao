@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogClose,
@@ -26,6 +27,8 @@ import {
   TriangleAlert,
   CircleCheck,
   CircleX,
+  RotateCcw,
+  ShieldCheck,
 } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/data";
 import type { Fatura } from "@/lib/domain/models";
@@ -38,8 +41,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { STORAGE, TABLES } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/queryKeys";
 import { useAuth } from "@/components/auth-provider";
-
-const MAX_PDF_SIZE = 20 * 1024 * 1024;
+import { MAX_PDF_SIZE, validatePdfFile } from "@/lib/files/pdf";
 
 interface DeleteImpact {
   gastos: number;
@@ -49,9 +51,12 @@ interface DeleteImpact {
 
 type ImportStatus =
   | "queued"
+  | "validating"
+  | "checking"
   | "uploading"
   | "processing"
   | "success"
+  | "duplicate"
   | "error";
 
 interface ImportItem {
@@ -60,18 +65,59 @@ interface ImportItem {
   status: ImportStatus;
   error?: string;
   requestId?: string;
+  hash?: string;
+  startedAt?: number;
+  completedAt?: number;
+  durationMs?: number;
+  serverStage?: string;
 }
 
 const IMPORT_STATUS_LABELS: Record<ImportStatus, string> = {
   queued: "Aguardando",
+  validating: "Validando PDF",
+  checking: "Verificando duplicidade",
   uploading: "Enviando PDF",
   processing: "Processando pela IA",
   success: "Importada",
+  duplicate: "Já importada",
   error: "Falhou",
 };
 
+const IMPORT_STATUS_PROGRESS: Record<ImportStatus, number> = {
+  queued: 0,
+  validating: 10,
+  checking: 20,
+  uploading: 35,
+  processing: 65,
+  success: 100,
+  duplicate: 100,
+  error: 100,
+};
+
+function formatDuration(durationMs?: number) {
+  if (durationMs === undefined) {
+    return null;
+  }
+
+  if (durationMs < 1_000) {
+    return `${durationMs} ms`;
+  }
+
+  const seconds = Math.round(durationMs / 100) / 10;
+  return `${seconds.toLocaleString("pt-BR")} s`;
+}
+
+function isActiveImportStatus(status: ImportStatus) {
+  return ["validating", "checking", "uploading", "processing"].includes(status);
+}
+
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
 export function FaturasClient() {
   const { user } = useAuth();
+  const processingRef = React.useRef(false);
   const [importItems, setImportItems] = React.useState<ImportItem[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [viewingFaturaId, setViewingFaturaId] = React.useState<string | null>(
@@ -86,6 +132,40 @@ export function FaturasClient() {
   const { data: faturas, isLoading, error, refetch } = useFaturas();
   const deleteFatura = useDeleteFatura();
   const queryClient = useQueryClient();
+  const importSummary = React.useMemo(() => {
+    const completed = importItems.filter((item) =>
+      ["success", "duplicate", "error"].includes(item.status),
+    ).length;
+    const success = importItems.filter(
+      (item) => item.status === "success",
+    ).length;
+    const failed = importItems.filter((item) => item.status === "error").length;
+    const duplicates = importItems.filter(
+      (item) => item.status === "duplicate",
+    ).length;
+    const progress =
+      importItems.length === 0
+        ? 0
+        : importItems.reduce(
+            (total, item) => total + IMPORT_STATUS_PROGRESS[item.status],
+            0,
+          ) / importItems.length;
+
+    return { completed, success, failed, duplicates, progress };
+  }, [importItems]);
+
+  React.useEffect(() => {
+    if (!isProcessing) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isProcessing]);
 
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
     setImportItems((previousItems) => [
@@ -117,6 +197,7 @@ export function FaturasClient() {
     },
     maxSize: MAX_PDF_SIZE,
     multiple: true,
+    disabled: isProcessing,
   });
 
   const handleViewFatura = async (
@@ -157,36 +238,105 @@ export function FaturasClient() {
     }
   };
 
-  const handleProcess = async () => {
+  const handleProcess = async (selectedItemIds?: string[]) => {
+    if (processingRef.current) {
+      return;
+    }
+
     const pendingItems = importItems.filter(
-      (item) => item.status === "queued" || item.status === "error",
+      (item) =>
+        (item.status === "queued" || item.status === "error") &&
+        (!selectedItemIds || selectedItemIds.includes(item.id)),
     );
     if (pendingItems.length === 0) return;
+    processingRef.current = true;
     setIsProcessing(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Usuário não autenticado");
-        setIsProcessing(false);
         return;
       }
 
       let successCount = 0;
       let errorCount = 0;
+      let duplicateCount = 0;
+      const seenHashes = new Map(
+        importItems
+          .filter(
+            (item) =>
+              item.hash &&
+              item.status === "success" &&
+              !pendingItems.some((pendingItem) => pendingItem.id === item.id),
+          )
+          .map((item) => [item.hash!, item.id]),
+      );
 
       for (const item of pendingItems) {
         const { file } = item;
-        const pdfPath = `${session.user.id}/${crypto.randomUUID()}.pdf`;
+        let pdfPath: string | undefined;
         let importCompleted = false;
         const requestId = crypto.randomUUID();
+        const startedAt = getCurrentTimestamp();
+        let serverStage: string | undefined;
+        let serverDurationMs: number | undefined;
 
         try {
           updateImportItem(item.id, {
-            status: "uploading",
+            status: "validating",
             error: undefined,
             requestId: undefined,
+            startedAt,
+            completedAt: undefined,
+            durationMs: undefined,
+            serverStage: undefined,
           });
+
+          const { hash } = await validatePdfFile(file);
+          updateImportItem(item.id, { status: "checking", hash });
+
+          const duplicateBatchItemId = seenHashes.get(hash);
+          if (duplicateBatchItemId && duplicateBatchItemId !== item.id) {
+            duplicateCount += 1;
+            updateImportItem(item.id, {
+              status: "duplicate",
+              error: "Este mesmo PDF já está presente neste lote.",
+              completedAt: getCurrentTimestamp(),
+              durationMs: getCurrentTimestamp() - startedAt,
+            });
+            continue;
+          }
+
+          const { data: existingFatura, error: duplicateCheckError } =
+            await supabase
+              .from(TABLES.FATURAS)
+              .select("id, mes_referencia")
+              .eq("user_id", session.user.id)
+              .eq("arquivo_hash", hash)
+              .maybeSingle();
+
+          if (duplicateCheckError) {
+            throw new Error(
+              "Não foi possível verificar se este PDF já foi importado.",
+            );
+          }
+
+          if (existingFatura) {
+            duplicateCount += 1;
+            updateImportItem(item.id, {
+              status: "duplicate",
+              error: `Este PDF já foi importado como a fatura de ${existingFatura.mes_referencia}.`,
+              completedAt: getCurrentTimestamp(),
+              durationMs: getCurrentTimestamp() - startedAt,
+            });
+            continue;
+          }
+
+          pdfPath = `${session.user.id}/${crypto.randomUUID()}.pdf`;
+          updateImportItem(item.id, { status: "uploading" });
 
           const { error: uploadError } = await supabase.storage
             .from(STORAGE.FATURAS)
@@ -213,24 +363,38 @@ export function FaturasClient() {
               pdfPath,
               fileName: file.name,
               fileSize: file.size,
+              fileHash: hash,
             }),
           });
 
+          const responseData = (await response.json().catch(() => ({
+            error:
+              "A importação foi interrompida antes de receber uma resposta válida.",
+          }))) as {
+            error?: string;
+            detalhes?: Array<{ campo?: string; mensagem?: string }>;
+            requestId?: string;
+            stage?: string;
+            durationMs?: number;
+          };
+          serverStage = responseData.stage;
+          serverDurationMs = responseData.durationMs;
+          const responseRequestId =
+            responseData.requestId ??
+            response.headers.get("X-Request-Id") ??
+            requestId;
+
           if (!response.ok) {
-            const errData = await response.json().catch(() => ({
-              error:
-                "A importação foi interrompida antes de receber uma resposta válida.",
-            }));
-            const details = Array.isArray(errData.detalhes)
-              ? errData.detalhes
+            const details = Array.isArray(responseData.detalhes)
+              ? responseData.detalhes
                   .map(
-                    (detail: { campo?: string; mensagem?: string }) =>
-                      `${detail.campo}: ${detail.mensagem}`,
+                    (detail) =>
+                      `${detail.campo ?? "resposta"}: ${detail.mensagem ?? "inválida"}`,
                   )
                   .join("; ")
               : "";
             throw new Error(
-              [errData.error || "Erro ao processar fatura", details]
+              [responseData.error || "Erro ao processar fatura", details]
                 .filter(Boolean)
                 .join(" "),
             );
@@ -238,23 +402,30 @@ export function FaturasClient() {
 
           importCompleted = true;
           successCount += 1;
+          seenHashes.set(hash, item.id);
           updateImportItem(item.id, {
             status: "success",
-            requestId,
+            requestId: responseRequestId,
+            completedAt: getCurrentTimestamp(),
+            durationMs: getCurrentTimestamp() - startedAt,
+            serverStage,
           });
         } catch (error: unknown) {
           errorCount += 1;
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Ocorreu um erro inesperado.";
           updateImportItem(item.id, {
             status: "error",
-            error: message,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Ocorreu um erro inesperado.",
             requestId,
+            completedAt: getCurrentTimestamp(),
+            durationMs:
+              serverDurationMs ?? getCurrentTimestamp() - startedAt,
+            serverStage,
           });
         } finally {
-          if (!importCompleted) {
+          if (!importCompleted && pdfPath) {
             await supabase.storage.from(STORAGE.FATURAS).remove([pdfPath]);
           }
         }
@@ -291,12 +462,21 @@ export function FaturasClient() {
             : `${errorCount} arquivos não foram importados. Confira os motivos abaixo.`,
         );
       }
+
+      if (duplicateCount > 0) {
+        toast.info(
+          duplicateCount === 1
+            ? "1 PDF duplicado foi ignorado."
+            : `${duplicateCount} PDFs duplicados foram ignorados.`,
+        );
+      }
     } catch (error: unknown) {
       console.error(error);
       toast.error(
         "Não foi possível iniciar a importação. Verifique sua conexão e tente novamente.",
       );
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -436,23 +616,53 @@ export function FaturasClient() {
           </div>
 
           {importItems.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                Arquivos selecionados:
-              </p>
+            <div className="mt-5 space-y-3">
+              <div className="space-y-2 border-y border-border py-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Lote de importação
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {importSummary.completed} de {importItems.length} concluídos
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">
+                      {importSummary.success} importados
+                    </Badge>
+                    {importSummary.duplicates > 0 && (
+                      <Badge variant="outline">
+                        {importSummary.duplicates} duplicados
+                      </Badge>
+                    )}
+                    {importSummary.failed > 0 && (
+                      <Badge variant="destructive">
+                        {importSummary.failed} falharam
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Progress
+                  value={importSummary.progress}
+                  aria-label="Progresso total da importação"
+                  className="h-2"
+                />
+              </div>
               {importItems.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-lg bg-muted p-3"
+                  className="rounded-md border border-border bg-muted/35 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
                       {item.status === "success" ? (
                         <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                      ) : item.status === "duplicate" ? (
+                        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                       ) : item.status === "error" ? (
                         <CircleX className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-                      ) : item.status === "uploading" ||
-                        item.status === "processing" ? (
+                      ) : isActiveImportStatus(item.status) ? (
                         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-primary" />
                       ) : (
                         <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -463,50 +673,87 @@ export function FaturasClient() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {IMPORT_STATUS_LABELS[item.status]}
+                          {formatDuration(item.durationMs)
+                            ? ` · ${formatDuration(item.durationMs)}`
+                            : ""}
                         </p>
-                        {item.status === "processing" && item.requestId && (
+                        <Progress
+                          value={IMPORT_STATUS_PROGRESS[item.status]}
+                          aria-label={`Progresso de ${item.file.name}`}
+                          className="mt-2 h-1.5 w-full max-w-xs"
+                        />
+                        {item.requestId && (
                           <p className="mt-1 font-mono text-[11px] text-muted-foreground">
                             ID: {item.requestId}
                           </p>
                         )}
+                        {item.serverStage && item.status === "error" && (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Etapa: {item.serverStage}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setImportItems((items) =>
-                          items.filter((current) => current.id !== item.id),
-                        )
-                      }
-                      disabled={
-                        item.status === "uploading" ||
-                        item.status === "processing"
-                      }
-                      aria-label={`Remover arquivo ${item.file.name} da seleção`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex shrink-0 gap-1">
+                      {item.status === "error" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => void handleProcess([item.id])}
+                          disabled={isProcessing}
+                          aria-label={`Tentar importar ${item.file.name} novamente`}
+                          title="Tentar novamente"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setImportItems((items) =>
+                            items.filter((current) => current.id !== item.id),
+                          )
+                        }
+                        disabled={
+                          isProcessing || isActiveImportStatus(item.status)
+                        }
+                        aria-label={`Remover arquivo ${item.file.name} da seleção`}
+                        title="Remover arquivo"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                   {item.error && (
-                    <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-                      <p className="text-sm text-destructive">{item.error}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Nenhum dado deste arquivo foi salvo. Você pode tentar
-                        novamente.
+                    <div
+                      className={`mt-3 rounded-md border p-3 ${
+                        item.status === "duplicate"
+                          ? "border-border bg-background/50"
+                          : "border-destructive/20 bg-destructive/5"
+                      }`}
+                    >
+                      <p
+                        className={`text-sm ${
+                          item.status === "duplicate"
+                            ? "text-foreground"
+                            : "text-destructive"
+                        }`}
+                      >
+                        {item.error}
                       </p>
-                      {item.requestId && (
-                        <p className="mt-1 font-mono text-xs text-muted-foreground">
-                          ID da requisição: {item.requestId}
-                        </p>
-                      )}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.status === "duplicate"
+                          ? "Nenhum processamento adicional foi executado."
+                          : "Nenhum dado deste arquivo foi salvo. Você pode tentar novamente."}
+                      </p>
                     </div>
                   )}
                 </div>
               ))}
-              <Button 
-                className="w-full mt-4" 
-                onClick={handleProcess}
+              <Button
+                className="mt-4 w-full"
+                onClick={() => void handleProcess()}
                 disabled={
                   isProcessing ||
                   !importItems.some(
@@ -522,7 +769,7 @@ export function FaturasClient() {
                   </>
                 ) : (
                   importItems.some((item) => item.status === "error")
-                    ? "Tentar novamente"
+                    ? "Processar pendentes e falhas"
                     : "Processar faturas"
                 )}
               </Button>
