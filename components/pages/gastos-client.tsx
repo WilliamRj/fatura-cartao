@@ -23,6 +23,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -42,6 +43,15 @@ import { ErrorAlert, EmptyState } from "@/components/error";
 import { toast } from "sonner";
 
 export function GastosClient() {
+  const formId = React.useId();
+  const searchInputId = `${formId}-search`;
+  const categoryFilterId = `${formId}-category-filter`;
+  const responsibleFilterId = `${formId}-responsible-filter`;
+  const valueInputId = `${formId}-value`;
+  const categoryInputId = `${formId}-category`;
+  const responsibleInputId = `${formId}-responsible`;
+  const observationInputId = `${formId}-observation`;
+  const splitSummaryId = `${formId}-split-summary`;
   const { faturaAtual } = useFaturaContext();
   const { data: gastos, isLoading, error, refetch } = useGastos(faturaAtual?.id || null);
   const { data: responsaveis = [] } = useResponsaveis();
@@ -62,6 +72,45 @@ export function GastosClient() {
   const [isSplitMode, setIsSplitMode] = React.useState(false);
   const [originalValor, setOriginalValor] = React.useState<number | null>(null);
   const [splits, setSplits] = React.useState<{ id?: string; valor: number | ""; responsavel: string }[]>([]);
+  const [validationAttempted, setValidationAttempted] = React.useState(false);
+
+  const splitValidation = React.useMemo(() => {
+    const total = splits.reduce(
+      (sum, split) => sum + (Number(split.valor) || 0),
+      0,
+    );
+    const difference = (originalValor ?? 0) - total;
+    const responsibleCounts = splits.reduce<Record<string, number>>(
+      (counts, split) => {
+        if (split.responsavel) {
+          counts[split.responsavel] =
+            (counts[split.responsavel] ?? 0) + 1;
+        }
+        return counts;
+      },
+      {},
+    );
+    const rows = splits.map((split) => ({
+      value:
+        !split.valor || Number(split.valor) <= 0
+          ? "Informe um valor maior que zero."
+          : "",
+      responsible: !split.responsavel
+        ? "Selecione um responsável."
+        : responsibleCounts[split.responsavel] > 1
+          ? "Esse responsável já foi usado em outra divisão."
+          : "",
+    }));
+
+    return {
+      total,
+      difference,
+      rows,
+      isValid:
+        Math.abs(difference) <= 0.01 &&
+        rows.every((row) => !row.value && !row.responsible),
+    };
+  }, [originalValor, splits]);
 
   const filteredGastos = React.useMemo(() => {
     if (!gastos) return [];
@@ -112,6 +161,7 @@ export function GastosClient() {
   };
 
   const openEditModal = (gasto: Gasto) => {
+    setValidationAttempted(false);
     setEditingGasto(gasto);
     setEditedCategoria(gasto.categoria);
     setEditedResponsavel(gasto.responsavel);
@@ -166,27 +216,14 @@ export function GastosClient() {
 
   const handleSaveEdit = async () => {
     if (!editingGasto) return;
+    setValidationAttempted(true);
 
     try {
       if (isSplitMode) {
         if (!originalValor) return;
-        
-        // Validation
-        const sum = splits.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
-        // Using Math.abs to handle floating point precision issues
-        if (Math.abs(sum - originalValor) > 0.01) {
-          toast.error("A soma das divisões deve ser exatamente igual ao valor original");
-          return;
-        }
 
-        const responsaveisSet = new Set(splits.map(s => s.responsavel).filter(Boolean));
-        if (responsaveisSet.size !== splits.filter(s => s.responsavel).length) {
-          toast.error("Não pode haver responsáveis repetidos");
-          return;
-        }
-
-        if (splits.some(s => !s.valor || !s.responsavel)) {
-          toast.error("Preencha todos os campos da divisão");
+        if (!splitValidation.isValid) {
+          toast.error("Revise os campos da divisão antes de salvar.");
           return;
         }
 
@@ -264,11 +301,19 @@ export function GastosClient() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+          <fieldset className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+            <legend className="sr-only">Filtros da lista de gastos</legend>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor={searchInputId}
+              >
+                Estabelecimento
+              </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
+                  id={searchInputId}
                   placeholder="Buscar estabelecimento..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -276,49 +321,59 @@ export function GastosClient() {
                 />
               </div>
             </div>
-            <Select 
-              value={categoriaFilter} 
-              onValueChange={(val) => setCategoriaFilter(val ?? "all")}
-            >
-              <SelectTrigger
-                className="w-full md:w-[180px]"
-                aria-label="Filtrar por categoria"
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor={categoryFilterId}
               >
-                <SelectValue placeholder="Categoria">
-                  {categoriaFilter === "all" ? "Todas Categorias" : categoriaFilter}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Categorias</SelectItem>
-                {categorias.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.nome}>
-                    {cat.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={responsavelFilter}
-              onValueChange={(val) => setResponsavelFilter(val ?? "all")}
-            >
-              <SelectTrigger
-                className="w-full md:w-[180px]"
-                aria-label="Filtrar por responsável"
+                Categoria
+              </label>
+              <Select
+                value={categoriaFilter}
+                onValueChange={(val) => setCategoriaFilter(val ?? "all")}
               >
-                <SelectValue placeholder="Responsável">
-                  {responsavelFilter === "all" ? "Todos Responsáveis" : responsavelFilter}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Responsáveis</SelectItem>
-                {responsaveis.map((resp) => (
-                  <SelectItem key={resp.id} value={resp.nome}>
-                    {resp.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <SelectTrigger id={categoryFilterId} className="w-full">
+                  <SelectValue placeholder="Categoria">
+                    {categoriaFilter === "all" ? "Todas Categorias" : categoriaFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Categorias</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.nome}>
+                      {cat.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor={responsibleFilterId}
+              >
+                Responsável
+              </label>
+              <Select
+                value={responsavelFilter}
+                onValueChange={(val) => setResponsavelFilter(val ?? "all")}
+              >
+                <SelectTrigger id={responsibleFilterId} className="w-full">
+                  <SelectValue placeholder="Responsável">
+                    {responsavelFilter === "all" ? "Todos Responsáveis" : responsavelFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Responsáveis</SelectItem>
+                  {responsaveis.map((resp) => (
+                    <SelectItem key={resp.id} value={resp.nome}>
+                      {resp.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </fieldset>
         </CardContent>
       </Card>
 
@@ -517,11 +572,22 @@ export function GastosClient() {
         onOpenChange={(open) => !open && setEditingGasto(null)}
       >
         <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
-          </DialogHeader>
-          {editingGasto && (
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+          <form
+            className="contents"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSaveEdit();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
+              <DialogDescription>
+                Atualize a categoria, o responsável, a observação ou a divisão
+                deste lançamento.
+              </DialogDescription>
+            </DialogHeader>
+            {editingGasto && (
+              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground">
                   Estabelecimento
@@ -541,56 +607,141 @@ export function GastosClient() {
                   </div>
                   
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-foreground mb-2">Divisões</p>
+                    <div
+                      id={splitSummaryId}
+                      className="text-sm text-muted-foreground"
+                      aria-live="polite"
+                    >
+                      Soma: {formatCurrency(splitValidation.total)} · Restante:{" "}
+                      {formatCurrency(splitValidation.difference)}
+                    </div>
+                    {validationAttempted && !splitValidation.isValid && (
+                      <p className="text-sm text-destructive" role="alert">
+                        Corrija os campos indicados e faça a soma coincidir com
+                        o valor original.
+                      </p>
+                    )}
                     {splits.map((split, index) => (
-                      <div key={split.id} className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Valor"
-                          className="w-32"
-                          value={split.valor}
-                          onChange={(e) => handleSplitChange(index, 'valor', e.target.value)}
-                        />
-                        <Select
-                          value={split.responsavel}
-                          onValueChange={(val) => handleSplitChange(index, 'responsavel', val ?? "")}
-                        >
-                          <SelectTrigger
-                            className="flex-1"
-                            aria-label={`Responsável da divisão ${index + 1}`}
-                          >
-                            <SelectValue placeholder="Responsável" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {responsaveis.map((resp) => (
-                              <SelectItem key={resp.id} value={resp.nome}>
-                                {resp.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {splits.length > 2 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-destructive"
-                            onClick={() => handleRemoveSplit(index)}
-                            aria-label={`Remover divisão ${index + 1}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+                      <div key={split.id} className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-32 space-y-1">
+                            <label
+                              className="sr-only"
+                              htmlFor={`${formId}-split-${index}-value`}
+                            >
+                              Valor da divisão {index + 1}
+                            </label>
+                            <Input
+                              id={`${formId}-split-${index}-value`}
+                              type="number"
+                              inputMode="decimal"
+                              step="0.01"
+                              min="0.01"
+                              placeholder="Valor"
+                              value={split.valor}
+                              onChange={(e) => handleSplitChange(index, 'valor', e.target.value)}
+                              aria-invalid={
+                                validationAttempted &&
+                                !!splitValidation.rows[index]?.value
+                              }
+                              aria-describedby={
+                                validationAttempted &&
+                                splitValidation.rows[index]?.value
+                                  ? `${splitSummaryId} ${formId}-split-${index}-value-error`
+                                  : splitSummaryId
+                              }
+                            />
+                            {validationAttempted &&
+                              splitValidation.rows[index]?.value && (
+                                <p
+                                  id={`${formId}-split-${index}-value-error`}
+                                  className="text-xs text-destructive"
+                                >
+                                  {splitValidation.rows[index].value}
+                                </p>
+                              )}
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <label
+                              className="sr-only"
+                              htmlFor={`${formId}-split-${index}-responsible`}
+                            >
+                              Responsável da divisão {index + 1}
+                            </label>
+                            <Select
+                              value={split.responsavel}
+                              onValueChange={(val) => handleSplitChange(index, 'responsavel', val ?? "")}
+                            >
+                              <SelectTrigger
+                                id={`${formId}-split-${index}-responsible`}
+                                className="w-full"
+                                aria-invalid={
+                                  validationAttempted &&
+                                  !!splitValidation.rows[index]?.responsible
+                                }
+                                aria-describedby={
+                                  validationAttempted &&
+                                  splitValidation.rows[index]?.responsible
+                                    ? `${formId}-split-${index}-responsible-error`
+                                    : undefined
+                                }
+                              >
+                                <SelectValue placeholder="Responsável" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {responsaveis.map((resp) => (
+                                  <SelectItem key={resp.id} value={resp.nome}>
+                                    {resp.nome}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {validationAttempted &&
+                              splitValidation.rows[index]?.responsible && (
+                                <p
+                                  id={`${formId}-split-${index}-responsible-error`}
+                                  className="text-xs text-destructive"
+                                >
+                                  {splitValidation.rows[index].responsible}
+                                </p>
+                              )}
+                          </div>
+                          {splits.length > 2 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              type="button"
+                              className="h-9 w-9 text-destructive"
+                              onClick={() => handleRemoveSplit(index)}
+                              aria-label={`Remover divisão ${index + 1}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
-                    <Button variant="ghost" size="sm" className="w-full mt-2 border border-dashed" onClick={handleAddSplit}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="w-full mt-2 border border-dashed"
+                      onClick={handleAddSplit}
+                    >
                       <Plus className="h-4 w-4 mr-2" /> Adicionar divisão
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Valor</label>
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor={valueInputId}
+                  >
+                    Valor
+                  </label>
                   <Input
+                    id={valueInputId}
                     type="number"
                     value={editedValor}
                     disabled
@@ -599,14 +750,17 @@ export function GastosClient() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label
+                  className="text-sm font-medium text-foreground"
+                  htmlFor={categoryInputId}
+                >
                   Categoria
                 </label>
                 <Select
                   value={editedCategoria}
                   onValueChange={(val) => setEditedCategoria(val ?? "")}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={categoryInputId}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -621,14 +775,17 @@ export function GastosClient() {
 
               {!isSplitMode && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor={responsibleInputId}
+                  >
                     Responsável
                   </label>
                   <Select
                     value={editedResponsavel}
                     onValueChange={(val) => setEditedResponsavel(val ?? "")}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id={responsibleInputId}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -643,50 +800,77 @@ export function GastosClient() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label
+                  className="text-sm font-medium text-foreground"
+                  htmlFor={observationInputId}
+                >
                   Observação
                 </label>
                 <Input
+                  id={observationInputId}
                   placeholder="Adicione uma observação..."
+                  aria-describedby={`${observationInputId}-description`}
                   value={editedObservacao}
                   onChange={(e) => setEditedObservacao(e.target.value)}
                 />
+                <p
+                  id={`${observationInputId}-description`}
+                  className="text-xs text-muted-foreground"
+                >
+                  Campo opcional, usado apenas para complementar o lançamento.
+                </p>
               </div>
-            </div>
-          )}
-          <DialogFooter className="sm:justify-between">
-            <div className="flex-1 mr-auto">
-              {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
-                <Button variant="outline" size="sm" onClick={handleUndoSplit} disabled={updateGasto.isPending}>
+              </div>
+            )}
+            <DialogFooter className="sm:justify-between">
+              <div className="flex-1 mr-auto">
+                {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={handleUndoSplit}
+                    disabled={updateGasto.isPending}
+                  >
                   <Undo2 className="h-4 w-4 mr-2" />
                   Desfazer divisão
                 </Button>
               ) : !isSplitMode && (
-                <Button variant="outline" size="sm" onClick={() => {
-                  setIsSplitMode(true);
-                  setOriginalValor(editingGasto?.valor || 0);
-                  setSplits([
-                    { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
-                    { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
-                  ]);
-                }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    setIsSplitMode(true);
+                    setOriginalValor(editingGasto?.valor || 0);
+                    setSplits([
+                      { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
+                      { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
+                    ]);
+                  }}
+                >
                   <SplitSquareHorizontal className="h-4 w-4 mr-2" />
                   Dividir valor
                 </Button>
               )}
-            </div>
-            <div className="flex gap-2 mt-2 sm:mt-0">
-              <Button variant="outline" onClick={() => setEditingGasto(null)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSaveEdit}
-                disabled={updateGasto.isPending}
-              >
-                {updateGasto.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
-          </DialogFooter>
+              </div>
+              <div className="flex gap-2 mt-2 sm:mt-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingGasto(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateGasto.isPending}
+                >
+                  {updateGasto.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

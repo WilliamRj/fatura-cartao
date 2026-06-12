@@ -25,23 +25,35 @@ export function ConfiguracoesClient() {
   const setResponsavelPrincipal = useSetResponsavelPrincipal()
 
   const [novoResponsavel, setNovoResponsavel] = React.useState("")
+  const [novoResponsavelError, setNovoResponsavelError] = React.useState("")
+  const responsavelInputId = React.useId()
+  const responsavelDescriptionId = `${responsavelInputId}-description`
+  const responsavelErrorId = `${responsavelInputId}-error`
 
   const handleAddResponsavel = async () => {
-    if (novoResponsavel.trim()) {
-      const exists = responsaveisData.some((r) => r.nome.toLowerCase() === novoResponsavel.trim().toLowerCase())
-      if (!exists) {
-        try {
-          await createResponsavel.mutateAsync({ nome: novoResponsavel.trim() })
-          setNovoResponsavel("")
-          refetch()
-          toast.success("Responsável adicionado com sucesso!")
-        } catch (error: unknown) {
-          console.error("Erro ao criar responsável", error)
-          toast.error("Não foi possível adicionar o responsável.")
-        }
-      } else {
-        toast.warning("Responsável já existe!")
-      }
+    const nome = novoResponsavel.trim()
+    if (!nome) {
+      setNovoResponsavelError("Informe o nome do responsável.")
+      return
+    }
+
+    const exists = responsaveisData.some(
+      (responsavel) => responsavel.nome.toLowerCase() === nome.toLowerCase(),
+    )
+    if (exists) {
+      setNovoResponsavelError("Já existe um responsável com esse nome.")
+      return
+    }
+
+    try {
+      setNovoResponsavelError("")
+      await createResponsavel.mutateAsync({ nome })
+      setNovoResponsavel("")
+      toast.success("Responsável adicionado com sucesso!")
+    } catch (error: unknown) {
+      console.error("Erro ao criar responsável", error)
+      setNovoResponsavelError("Não foi possível adicionar o responsável.")
+      toast.error("Não foi possível adicionar o responsável.")
     }
   }
 
@@ -90,19 +102,63 @@ export function ConfiguracoesClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Adicionar novo */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome do responsável..."
-              value={novoResponsavel}
-              onChange={(e) => setNovoResponsavel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddResponsavel()}
-              disabled={createResponsavel.isPending}
-            />
-            <Button onClick={handleAddResponsavel} disabled={createResponsavel.isPending}>
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar
-            </Button>
-          </div>
+          <form
+            className="space-y-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleAddResponsavel()
+            }}
+          >
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor={responsavelInputId}
+            >
+              Nome do responsável
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id={responsavelInputId}
+                placeholder="Ex.: Maria"
+                value={novoResponsavel}
+                onChange={(event) => {
+                  setNovoResponsavel(event.target.value)
+                  if (novoResponsavelError) {
+                    setNovoResponsavelError("")
+                  }
+                }}
+                disabled={createResponsavel.isPending}
+                aria-invalid={novoResponsavelError ? true : undefined}
+                aria-describedby={
+                  novoResponsavelError
+                    ? `${responsavelDescriptionId} ${responsavelErrorId}`
+                    : responsavelDescriptionId
+                }
+              />
+              <Button
+                type="submit"
+                disabled={createResponsavel.isPending}
+                className="sm:self-end"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {createResponsavel.isPending ? "Adicionando..." : "Adicionar"}
+              </Button>
+            </div>
+            <p
+              id={responsavelDescriptionId}
+              className="text-xs text-muted-foreground"
+            >
+              Esse nome aparecerá na atribuição e divisão dos gastos.
+            </p>
+            {novoResponsavelError && (
+              <p
+                id={responsavelErrorId}
+                className="text-sm text-destructive"
+                role="alert"
+              >
+                {novoResponsavelError}
+              </p>
+            )}
+          </form>
 
           {/* Lista */}
           <div className="space-y-2">

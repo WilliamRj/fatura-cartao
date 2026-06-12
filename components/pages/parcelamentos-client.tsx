@@ -36,6 +36,7 @@ interface ParcelamentoProcessado extends Parcelamento {
 }
 
 export function ParcelamentosClient() {
+  const responsavelFilterId = "parcelamentos-responsavel-filter";
   const { faturaAtual } = useFaturaContext();
   const {
     data: parcelamentos = [],
@@ -128,11 +129,18 @@ export function ParcelamentosClient() {
         </p>
         <div className="ml-auto flex items-center gap-2">
           <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <label
+            className="sr-only"
+            htmlFor={responsavelFilterId}
+          >
+            Filtrar parcelamentos por responsável
+          </label>
           <Select
             value={responsavelSelecionado}
             onValueChange={(value) => setResponsavelSelecionado(value ?? "todos")}
           >
             <SelectTrigger
+              id={responsavelFilterId}
               aria-label="Filtrar parcelamentos por responsável"
               className="w-[200px]"
             >

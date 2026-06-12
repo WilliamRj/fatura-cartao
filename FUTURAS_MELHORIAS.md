@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 10 | Implementado e validado no código |
-| 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 11 | Priorizado para ciclos futuros |
+| ✅ Concluído | 11 | Implementado e validado no código |
+| 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
+| 📌 Planejado | 9 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -376,32 +376,45 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - A ação principal do contexto financeiro, trocar a fatura, continua disponível em um toque.
 - Ações menos frequentes deixaram de competir por espaço no header.
 
-### 📌 12. Tornar filtros, labels e formulários mais acessíveis
+### ✅ 12. Tornar filtros, labels e formulários mais acessíveis
 
-Exemplos:
+**Concluído em:** 12 de junho de 2026
 
-- Busca de gastos usa placeholder como label visual em `components/pages/gastos-client.tsx`.
-- Campo de novo responsavel fica em `components/pages/configuracoes-client.tsx`.
-- Labels do modal de gasto em `components/pages/gastos-client.tsx` ainda devem ser auditadas.
+**Filtros e seleção de arquivos**
 
-**Próximas ações**
+- A busca e os filtros de gastos possuem labels visíveis ligadas aos controles por `htmlFor` e `id`.
+- Os filtros foram agrupados em `fieldset` com legenda acessível.
+- O filtro de responsável dos parcelamentos possui label para leitores de tela.
+- O seletor de PDFs anuncia sua finalidade e mantém uma descrição estável durante o arraste.
 
-- Usar `label` com `htmlFor` e `id`.
-- Quando a label nao deve aparecer, usar `sr-only`.
-- Adicionar mensagens de erro por campo no modal de divisao.
-- Usar `aria-describedby` para textos auxiliares.
+**Formulários**
 
-### 📌 13. Melhorar o modal de edição e divisão de gastos
+- O cadastro de responsável usa um formulário real, pode ser enviado pelo teclado e exibe estado de processamento.
+- O campo possui nome, descrição auxiliar e erro específico associados por `aria-describedby`.
+- Nome vazio, duplicado e falha de persistência são apresentados junto ao campo com `role="alert"`.
+- Os campos do modal de gasto possuem identificadores e labels explícitas, visíveis ou `sr-only` conforme o espaço.
+
+**Validação da divisão**
+
+- Cada valor e responsável da divisão possui mensagem de erro própria.
+- Campos inválidos informam `aria-invalid` e apontam para seus erros por `aria-describedby`.
+- O resumo de soma e valor restante é atualizado em uma região `aria-live`.
+- O modal usa submissão de formulário, preservando o envio por teclado e diferenciando ações secundárias.
+
+### 🚧 13. Melhorar o modal de edição e divisão de gastos
 
 O `DialogContent` padrao usa `sm:max-w-sm` em `components/ui/dialog.tsx:56`, estreito para o fluxo de divisao.
 
 **Próximas ações**
 
 - Permitir largura maior por tela, como `sm:max-w-lg` ou `md:max-w-2xl`.
-- Exibir resumo: valor original, soma das divisoes, diferenca restante.
 - Transformar linhas de divisao em grid responsivo.
-- Bloquear salvar enquanto houver diferenca.
 - Sugerir divisao automatica 50/50 ou por responsavel principal/outros.
+
+**Já entregue**
+
+- Resumo com valor original, soma das divisões e diferença restante.
+- Validação por campo e bloqueio da persistência enquanto houver diferença ou responsáveis inválidos.
 
 ### 📌 14. Implementar paginação na lista de gastos
 
@@ -590,7 +603,8 @@ Fluxos sugeridos:
 **Objetivo:** melhorar os fluxos mais usados no dia a dia.
 
 - [x] Reorganizar o header mobile.
-- [ ] Melhorar o modal de edição e divisão.
+- [x] Tornar filtros, labels e formulários mais acessíveis.
+- [ ] Concluir a reorganização visual do modal de edição e divisão.
 - [ ] Implementar paginação e contagem na tela de gastos.
 - [ ] Adicionar CTAs úteis aos estados vazios.
 - [x] Substituir confirmações nativas por dialogs do design system.

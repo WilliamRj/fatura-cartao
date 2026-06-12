@@ -126,6 +126,7 @@ function getCurrentTimestamp() {
 }
 
 export function FaturasClient() {
+  const uploadDescriptionId = React.useId();
   const { user } = useAuth();
   const processingRef = React.useRef(false);
   const [importItems, setImportItems] = React.useState<ImportItem[]>([]);
@@ -630,7 +631,15 @@ export function FaturasClient() {
               }
             `}
           >
-            <input {...getInputProps()} />
+            <input
+              {...getInputProps({
+                "aria-label": "Selecionar faturas em PDF para importação",
+                "aria-describedby": uploadDescriptionId,
+              })}
+            />
+            <p id={uploadDescriptionId} className="sr-only">
+              Selecione um ou mais arquivos PDF para iniciar a importação.
+            </p>
             <div className="flex flex-col items-center gap-4">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <FileText className="h-8 w-8 text-primary" />
