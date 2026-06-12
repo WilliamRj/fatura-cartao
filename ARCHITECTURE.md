@@ -102,7 +102,15 @@ LoginClient
 | Banco | RLS exige `auth.uid() = user_id` |
 | Storage | Caminhos e policies são separados por usuário |
 
-Migration: `supabase/migrations/20260611_user_data_isolation.sql`.
+Migrations:
+
+```text
+supabase/migrations/20260611_user_data_isolation.sql
+supabase/migrations/20260612_supabase_security_hardening.sql
+```
+
+O endurecimento adiciona RLS forçada, privilégios mínimos, RPCs restritas e
+integridade composta entre o ID da fatura e seu proprietário.
 
 ## 🔄 Estado e dados
 

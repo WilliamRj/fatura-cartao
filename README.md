@@ -118,6 +118,7 @@ Migration principal:
 
 ```text
 supabase/migrations/20260611_user_data_isolation.sql
+supabase/migrations/20260612_supabase_security_hardening.sql
 ```
 
 > [!WARNING]

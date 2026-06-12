@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS, STORAGE, TABLES } from '@/lib/api/endpoints';
 import type { ApiFatura } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
+import { createPublicDataError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
@@ -25,7 +26,9 @@ export function useFaturas() {
         .eq('user_id', user!.id)
         .order('data_importacao', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível carregar as faturas.');
+      }
       
       return (data as ApiFatura[]).map((apiFatura) => ({
         id: apiFatura.id,
@@ -58,7 +61,7 @@ export function useDeleteFatura() {
         if (error.code === 'P0002') {
           throw new Error('A fatura não existe ou já foi excluída.');
         }
-        throw error;
+        throw createPublicDataError(error, 'Não foi possível excluir a fatura.');
       }
 
       const result = data as DeleteFaturaResult;

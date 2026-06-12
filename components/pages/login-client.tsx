@@ -51,7 +51,8 @@ export function LoginClient() {
       });
 
       if (error) {
-        toast.error(`Erro no login: ${error.message}`);
+        console.error("Erro ao iniciar login com Google:", error);
+        toast.error("Não foi possível iniciar o login. Tente novamente.");
       }
     } catch (error) {
       toast.error("Não foi possível iniciar o login. Tente novamente.");

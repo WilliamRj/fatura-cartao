@@ -123,6 +123,7 @@ Migration:
 
 ```text
 supabase/migrations/20260611_user_data_isolation.sql
+supabase/migrations/20260612_supabase_security_hardening.sql
 ```
 
 Ela:
@@ -132,6 +133,12 @@ Ela:
 - exige `auth.uid() = user_id`;
 - protege relações entre gasto e fatura;
 - limita `authorized_users` ao email da sessão.
+- ativa `FORCE ROW LEVEL SECURITY`;
+- remove privilégios do papel `anon`;
+- limita `authenticated` às operações usadas pelo app;
+- restringe RPCs a usuários autenticados;
+- adiciona integridade composta entre `fatura_id` e `user_id`;
+- valida que o caminho do PDF pertence à pasta do dono.
 
 Exemplo:
 
@@ -171,6 +178,16 @@ Depois da migration:
 - [ ] Usuário A não altera dados de B.
 - [ ] Usuário A não exclui dados de B.
 - [ ] Troca de conta não reaproveita cache.
+
+Teste transacional:
+
+```text
+supabase/tests/user_data_isolation.sql
+```
+
+O teste escolhe duas contas existentes, cria fixtures temporárias, simula o
+papel `authenticated`, verifica SELECT/INSERT/UPDATE/DELETE cruzados e termina
+com `ROLLBACK`.
 
 ## 🔑 OAuth Google
 

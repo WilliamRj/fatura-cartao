@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { ApiResponsavel, CreateResponsavelRequest } from '@/lib/api/types';
 import type { Responsavel } from '@/lib/data';
+import { createPublicDataError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
@@ -19,7 +20,12 @@ export function useResponsaveis() {
         .eq('user_id', user!.id)
         .order('nome', { ascending: true });
         
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(
+          error,
+          'Não foi possível carregar os responsáveis.'
+        );
+      }
       
       return (data as ApiResponsavel[]).map((apiR) => ({
         id: apiR.id,
@@ -50,7 +56,12 @@ export function useCreateResponsavel() {
         .insert([payload])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(
+          error,
+          'Não foi possível adicionar o responsável.'
+        );
+      }
       return data;
     },
     onSuccess: () => {
@@ -72,7 +83,12 @@ export function useDeleteResponsavel() {
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(
+          error,
+          'Não foi possível remover o responsável.'
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });
@@ -94,7 +110,12 @@ export function useSetResponsavelPrincipal() {
         .update({ cor: null })
         .eq('user_id', user.id);
 
-      if (resetError) throw resetError;
+      if (resetError) {
+        throw createPublicDataError(
+          resetError,
+          'Não foi possível alterar o responsável principal.'
+        );
+      }
 
       // Then, set cor to 'pessoal' for the selected one
       const { error: updateError } = await supabase
@@ -103,7 +124,12 @@ export function useSetResponsavelPrincipal() {
         .eq('id', id)
         .eq('user_id', user.id); // Add user_id check for safety
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw createPublicDataError(
+          updateError,
+          'Não foi possível alterar o responsável principal.'
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });

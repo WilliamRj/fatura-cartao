@@ -199,7 +199,7 @@ server-side nao forem projetadas. Migrar apenas as consultas criaria duas fontes
 
 ### 🚧 7. Fortalecer os limites de segurança do Supabase
 
-**Status:** isolamento implementado; validação real entre contas pendente
+**Status:** endurecimento concluído no repositório; aplicação e validação em produção pendentes
 
 O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS presumida. Isso e comum, mas exige politicas bem testadas.
 
@@ -210,13 +210,18 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - `app/api/process-fatura/route.ts` cria cliente Supabase com o token do usuario, o que depende de RLS correta.
 - `components/auth-provider.tsx` consulta `authorized_users` para permitir acesso.
 
-**Próximas ações**
+**Checklist de segurança**
 
-- Documentar no repo as politicas RLS esperadas por tabela.
-- Criar testes manuais/SQL para garantir que usuarios nao acessam dados de outros usuarios.
-- Evitar mensagens de erro que exponham detalhes internos de tabelas.
-- Considerar mover mutacoes sensiveis para route handlers/server actions com validacao centralizada.
-- Como o app esta publico na Vercel, tratar RLS como barreira obrigatoria, nao apenas defesa adicional.
+- [x] Documentar as políticas RLS esperadas por tabela.
+- [x] Criar teste SQL transacional com duas contas.
+- [x] Impedir mensagens cruas do Supabase na interface.
+- [x] Restringir privilégios de `anon` e `authenticated`.
+- [x] Ativar `FORCE ROW LEVEL SECURITY`.
+- [x] Garantir no schema que gasto e fatura possuem o mesmo dono.
+- [x] Restringir RPCs ao papel `authenticated`.
+- [x] Recriar policies do bucket privado de faturas.
+- [ ] Aplicar a migration no Supabase de Preview/Production.
+- [ ] Executar o teste SQL no ambiente real.
 
 **✅ Implementado no código em 11 de junho de 2026**
 
@@ -224,11 +229,16 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Query keys incluem o ID do usuario.
 - Cache do React Query e limpo em logout e troca de sessao.
 - Migration RLS criada em `supabase/migrations/20260611_user_data_isolation.sql`.
+- Migration de endurecimento criada em `supabase/migrations/20260612_supabase_security_hardening.sql`.
+- Teste de isolamento criado em `supabase/tests/user_data_isolation.sql`.
+- Tabelas usam RLS forçada e privilégios mínimos por papel.
+- A chave estrangeira composta impede vínculos entre gastos e faturas de donos diferentes.
+- Erros de dados apresentados pela UI usam mensagens públicas sem detalhes internos.
 
 **🔒 Pendente no ambiente**
 
 - Executar e validar a migration no projeto Supabase de producao.
-- Testar isolamento com duas contas autorizadas diferentes.
+- Executar `supabase/tests/user_data_isolation.sql` com pelo menos duas contas existentes.
 
 ### 📌 8. Unificar modelo de dados e nomes
 

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { TABLES } from '@/lib/api/endpoints';
 import type { Parcelamento } from '@/lib/data';
+import { createPublicDataError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
@@ -26,7 +27,12 @@ export function useParcelamentos(faturaId?: string | null) {
 
       const { data, error } = await query;
         
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(
+          error,
+          'Não foi possível carregar os parcelamentos.'
+        );
+      }
       
       const parcelamentos: Parcelamento[] = [];
 

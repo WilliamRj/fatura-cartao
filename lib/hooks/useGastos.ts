@@ -5,6 +5,7 @@ import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
 import type { CreateGastoRequest, UpdateGastoRequest, ApiGasto } from '@/lib/api/types';
 import { supabase } from '@/lib/supabase/client';
 import { normalizeCategory } from '@/lib/categories';
+import { createPublicDataError } from '@/lib/errors';
 import { useAuth } from '@/components/auth-provider';
 
 // Fetch all expenses, optionally filtered by fatura_id
@@ -30,7 +31,9 @@ export function useGastos(faturaId?: string | null) {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível carregar este gasto.');
+      }
       return ((data as unknown) as ApiGasto[]).map((apiGasto) => ({
         id: apiGasto.id,
         data: apiGasto.data,
@@ -61,7 +64,9 @@ export function useGasto(id: string) {
         .eq('id', id)
         .eq('user_id', user!.id)
         .single();
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível carregar os gastos.');
+      }
       const gasto = (data as unknown) as ApiGasto;
       return {
         ...gasto,
@@ -91,7 +96,9 @@ export function useCreateGasto() {
         .insert([payload])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível adicionar o gasto.');
+      }
       return (data as unknown) as ApiGasto;
     },
     onSuccess: () => {
@@ -119,7 +126,9 @@ export function useUpdateGasto() {
         .eq('user_id', user.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível atualizar o gasto.');
+      }
       return (data as unknown) as ApiGasto;
     },
     onSuccess: (_, variables) => {
@@ -143,7 +152,9 @@ export function useDeleteGasto() {
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-      if (error) throw error;
+      if (error) {
+        throw createPublicDataError(error, 'Não foi possível excluir o gasto.');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gastos'] });

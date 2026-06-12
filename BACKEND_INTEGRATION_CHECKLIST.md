@@ -60,8 +60,9 @@ Estado atual: derivados de `gastos.parcela`.
 ## 4. 🛡️ RLS e isolamento
 
 - [ ] Revisar `20260611_user_data_isolation.sql`.
+- [ ] Revisar `20260612_supabase_security_hardening.sql`.
 - [ ] Confirmar `user_id` dos dados antigos.
-- [ ] Executar a migration no ambiente correto.
+- [ ] Executar as migrations no ambiente correto.
 - [ ] RLS habilitada em `faturas`.
 - [ ] RLS habilitada em `gastos`.
 - [ ] RLS habilitada em `responsaveis`.
@@ -75,6 +76,11 @@ Estado atual: derivados de `gastos.parcela`.
 - [ ] Usuário A não exclui dados de B.
 - [ ] Troca de conta não reaproveita cache.
 - [x] Nenhuma service role key exposta no browser.
+- [x] `FORCE ROW LEVEL SECURITY` configurado na migration.
+- [x] Privilégios do papel `anon` removidos.
+- [x] RPCs restritas a `authenticated`.
+- [x] Integridade composta entre fatura e dono.
+- [ ] Executar `supabase/tests/user_data_isolation.sql`.
 
 ## 5. 🤖 Gemini
 

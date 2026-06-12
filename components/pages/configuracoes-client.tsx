@@ -37,8 +37,7 @@ export function ConfiguracoesClient() {
           toast.success("Responsável adicionado com sucesso!")
         } catch (error: unknown) {
           console.error("Erro ao criar responsável", error)
-          const message = error instanceof Error ? error.message : "Erro desconhecido"
-          toast.error(`Erro ao criar responsável: ${message}`)
+          toast.error("Não foi possível adicionar o responsável.")
         }
       } else {
         toast.warning("Responsável já existe!")
