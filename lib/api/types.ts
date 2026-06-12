@@ -38,6 +38,7 @@ export interface ApiFatura {
   quantidade_lancamentos: number;
   data_importacao: string;
   arquivo_url?: string | null;
+  arquivo_hash?: string | null;
   created_at?: string;
 }
 

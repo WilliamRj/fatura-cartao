@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   formatValidationIssues,
   parsedFaturaSchema,
@@ -66,6 +66,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "O conteúdo do arquivo não corresponde a um PDF válido." },
         { status: 400 },
+      );
+    }
+
+    const pdfHash = createHash("sha256").update(buffer).digest("hex");
+    const { data: existingFatura, error: duplicateCheckError } = await supabase
+      .from("faturas")
+      .select("id, mes_referencia")
+      .eq("user_id", user.id)
+      .eq("arquivo_hash", pdfHash)
+      .maybeSingle();
+
+    if (duplicateCheckError) {
+      console.error("Error checking duplicate invoice PDF:", duplicateCheckError);
+      return NextResponse.json(
+        { error: "Não foi possível verificar se esta fatura já foi importada." },
+        { status: 500 },
+      );
+    }
+
+    if (existingFatura) {
+      return NextResponse.json(
+        {
+          error: `Este PDF já foi importado como a fatura de ${existingFatura.mes_referencia}.`,
+          codigo: "FATURA_DUPLICADA",
+          faturaId: existingFatura.id,
+        },
+        { status: 409 },
       );
     }
     
@@ -199,6 +226,7 @@ export async function POST(req: NextRequest) {
         p_responsavel: responsavelName,
         p_lancamentos: parsedData.lancamentos,
         p_arquivo_url: pdfPath,
+        p_arquivo_hash: pdfHash,
       },
     );
 
@@ -210,6 +238,16 @@ export async function POST(req: NextRequest) {
 
       if (cleanupError) {
         console.error("Error removing orphaned invoice PDF:", cleanupError);
+      }
+
+      if (importError.code === "23505") {
+        return NextResponse.json(
+          {
+            error: "Este PDF já foi importado anteriormente.",
+            codigo: "FATURA_DUPLICADA",
+          },
+          { status: 409 },
+        );
       }
 
       return NextResponse.json(

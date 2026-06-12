@@ -157,15 +157,15 @@ Fluxo em `app/api/process-fatura/route.ts`:
 5. Valida MIME, assinatura `%PDF-` e limite de 20 MB.
 6. Converte PDF para base64.
 7. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
-8. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
-9. Busca o responsavel principal.
-10. Envia o PDF ao bucket privado `faturas`.
-11. Insere fatura, caminho do PDF e gastos pela RPC transacional.
-12. Remove o objeto do Storage se a RPC falhar.
+8. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
+9. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
+10. Busca o responsavel principal.
+11. Envia o PDF ao bucket privado `faturas`.
+12. Insere fatura, caminho, hash do PDF e gastos pela RPC transacional.
+13. Remove o objeto do Storage se a RPC falhar.
 
 Limitacoes atuais:
 
-- Nao ha hash/idempotencia contra duplicacao.
 - O processamento ocorre dentro de uma unica requisicao serverless.
 
 ## Modelo de dados observado
@@ -181,6 +181,7 @@ Campos usados:
 - `quantidade_lancamentos`
 - `data_importacao`
 - `arquivo_url`, contendo o caminho privado do PDF no Supabase Storage
+- `arquivo_hash`, contendo o SHA-256 usado para impedir importacao duplicada por usuario
 
 ### `gastos`
 

@@ -122,7 +122,7 @@ Pontos de atencao em producao:
 - `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
 - PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
 - A visualizacao usa URL assinada e a exclusao da fatura tenta remover o arquivo original.
-- Ainda falta armazenar hash para detectar importacoes duplicadas.
+- Cada PDF recebe um hash SHA-256; uma segunda importacao do mesmo arquivo pelo mesmo usuario e bloqueada antes da chamada a IA.
 - RLS no Supabase e obrigatorio, pois o app fica acessivel remotamente.
 
 ## Documentacao

@@ -64,7 +64,7 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 
 - [x] Apenas PDF e aceito.
 - [x] Existe limite de tamanho no cliente e no servidor.
-- [ ] Arquivos duplicados sao detectados por hash ou regra equivalente.
+- [x] Arquivos duplicados sao detectados por SHA-256 e indice unico por usuario.
 - [x] Falha ao inserir gastos nao deixa fatura orfa.
 - [ ] Usuario recebe progresso por arquivo.
 - [ ] Timeout da IA gera mensagem compreensivel.

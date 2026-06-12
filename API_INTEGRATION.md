@@ -45,6 +45,7 @@ create table if not exists public.faturas (
   quantidade_lancamentos integer not null default 0,
   data_importacao timestamptz not null default now(),
   arquivo_url text,
+  arquivo_hash text,
   created_at timestamptz not null default now()
 );
 
@@ -218,11 +219,12 @@ Fluxo:
 
 1. valida token;
 2. valida MIME, assinatura e limite de 20 MB do PDF;
-3. envia PDF ao Gemini;
-4. interpreta e valida a resposta com Zod;
-5. envia o PDF ao bucket privado `faturas`;
-6. grava `faturas`, `arquivo_url` e `gastos` pela RPC transacional;
-7. remove o objeto enviado se a RPC falhar.
+3. calcula o SHA-256 e verifica se o usuario ja importou o mesmo arquivo;
+4. envia PDF ao Gemini;
+5. interpreta e valida a resposta com Zod;
+6. envia o PDF ao bucket privado `faturas`;
+7. grava `faturas`, `arquivo_url`, `arquivo_hash` e `gastos` pela RPC transacional;
+8. remove o objeto enviado se a RPC falhar.
 
 Resposta de sucesso:
 
@@ -238,6 +240,7 @@ Status tratados:
 - `400`: arquivo ausente;
 - `400`: arquivo invalido ou maior que 20 MB;
 - `401`: token ausente/invalido;
+- `409`: PDF ja importado pelo mesmo usuario;
 - `422`: resposta da IA invalida;
 - `429`: cota da IA;
 - `503`: indisponibilidade da IA;
@@ -245,7 +248,6 @@ Status tratados:
 
 Pendencias importantes:
 
-- idempotencia/hash;
 - observabilidade;
 - avaliar job assincrono por causa dos limites da Vercel.
 
@@ -258,9 +260,10 @@ O PDF original e armazenado no bucket privado `faturas`.
 - A tela gera URL assinada com validade curta para visualizar o arquivo.
 - A exclusao da fatura tenta remover tambem o objeto do Storage.
 - A rota remove o arquivo recem-enviado se a RPC de importacao falhar.
+- O SHA-256 fica em `faturas.arquivo_hash`, com indice unico por usuario.
+- A consulta previa evita consumir cota da IA para arquivos repetidos; o indice unico protege contra requisicoes simultaneas.
 - Bucket, policies, coluna e RPC atualizada estao em `supabase/migrations/20260611_invoice_pdf_storage.sql`.
-
-Ainda falta armazenar hash/metadados para detectar importacoes duplicadas.
+- Hash, constraint, indice e RPC atualizada estao em `supabase/migrations/20260612_invoice_pdf_hash.sql`.
 
 ## Hooks e tabelas
 

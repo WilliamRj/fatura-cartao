@@ -53,7 +53,7 @@ Complemento implementado:
 
 - O PDF original passa a ser salvo no bucket privado `faturas`.
 - O caminho e vinculado a `faturas.arquivo_url`.
-- Continua pendente armazenar hash para detectar importacao duplicada.
+- O SHA-256 e salvo em `faturas.arquivo_hash` e impede importacao duplicada por usuario.
 
 ### 3. Revisar delecoes relacionadas
 
