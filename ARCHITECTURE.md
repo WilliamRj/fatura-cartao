@@ -154,15 +154,16 @@ Fluxo em `app/api/process-fatura/route.ts`:
 2. Cria cliente Supabase usando URL e anon key.
 3. Valida o usuario com `auth.getUser()`.
 4. Recebe um `File` por `FormData`.
-5. Valida MIME, assinatura `%PDF-` e limite de 20 MB.
-6. Converte PDF para base64.
-7. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
-8. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
-9. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
-10. Busca o responsavel principal.
-11. Envia o PDF ao bucket privado `faturas`.
-12. Insere fatura, caminho, hash do PDF e gastos pela RPC transacional.
-13. Remove o objeto do Storage se a RPC falhar.
+5. Registra o instante de inicio da importacao.
+6. Valida MIME, assinatura `%PDF-` e limite de 20 MB.
+7. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
+8. Converte PDF para base64.
+9. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
+10. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
+11. Busca o responsavel principal.
+12. Envia o PDF ao bucket privado `faturas`.
+13. Insere fatura, instante inicial, caminho, hash do PDF e gastos pela RPC transacional.
+14. Remove o objeto do Storage se a RPC falhar.
 
 Limitacoes atuais:
 

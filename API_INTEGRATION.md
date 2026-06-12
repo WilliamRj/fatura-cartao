@@ -53,6 +53,10 @@ create index if not exists idx_faturas_user_data
   on public.faturas(user_id, data_importacao desc);
 ```
 
+`data_importacao` registra o inicio da requisicao de importacao como um instante
+UTC (`timestamptz`). A interface apresenta esse instante no fuso
+`America/Sao_Paulo`.
+
 ### Gastos
 
 ```sql

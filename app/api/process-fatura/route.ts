@@ -12,6 +12,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  const importStartedAt = new Date().toISOString();
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -222,7 +224,7 @@ export async function POST(req: NextRequest) {
       {
         p_mes_referencia: parsedData.mes_referencia,
         p_valor_total: parsedData.valor_total,
-        p_data_importacao: new Date().toISOString(),
+        p_data_importacao: importStartedAt,
         p_responsavel: responsavelName,
         p_lancamentos: parsedData.lancamentos,
         p_arquivo_url: pdfPath,
