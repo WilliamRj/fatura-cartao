@@ -20,8 +20,8 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 11 | Implementado e validado no código |
-| 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
+| ✅ Concluído | 12 | Implementado e validado no código |
+| 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
 | 📌 Planejado | 9 | Priorizado para ciclos futuros |
 
 ### Legenda
@@ -401,20 +401,32 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - O resumo de soma e valor restante é atualizado em uma região `aria-live`.
 - O modal usa submissão de formulário, preservando o envio por teclado e diferenciando ações secundárias.
 
-### 🚧 13. Melhorar o modal de edição e divisão de gastos
+### ✅ 13. Melhorar o modal de edição e divisão de gastos
 
-O `DialogContent` padrao usa `sm:max-w-sm` em `components/ui/dialog.tsx:56`, estreito para o fluxo de divisao.
+**Concluído em:** 12 de junho de 2026
 
-**Próximas ações**
+**Layout e responsividade**
 
-- Permitir largura maior por tela, como `sm:max-w-lg` ou `md:max-w-2xl`.
-- Transformar linhas de divisao em grid responsivo.
-- Sugerir divisao automatica 50/50 ou por responsavel principal/outros.
+- O modal possui largura própria de até `sm:max-w-2xl`, sem alterar o tamanho padrão dos demais dialogs.
+- A altura respeita a viewport e o conteúdo central possui rolagem independente.
+- Estabelecimento e valor ficam visíveis no início do fluxo.
+- Cada divisão usa grid responsivo, com labels visíveis, valor, responsável e ação de remoção.
+- Cabeçalho, conteúdo e rodapé permanecem organizados em celulares e desktop.
 
-**Já entregue**
+**Resumo e automação**
 
-- Resumo com valor original, soma das divisões e diferença restante.
-- Validação por campo e bloqueio da persistência enquanto houver diferença ou responsáveis inválidos.
+- O resumo apresenta valor original, distribuído e restante em áreas estáveis.
+- A diferença muda de estado visual quando a soma ainda não fecha.
+- `Sugerir 50/50` divide entre o responsável principal e outra pessoa disponível.
+- `Igualar valores` redistribui o total entre todas as linhas atuais.
+- Os cálculos são feitos em centavos e atribuem eventual resto sem gerar diferença artificial.
+
+**Segurança do fluxo**
+
+- A persistência continua bloqueada quando soma, valores ou responsáveis são inválidos.
+- Responsáveis duplicados continuam impedidos pela validação por linha.
+- É possível iniciar uma divisão e voltar ao modo simples sem fechar o modal.
+- Divisões existentes continuam podendo ser desfeitas pela ação dedicada.
 
 ### 📌 14. Implementar paginação na lista de gastos
 
@@ -604,7 +616,7 @@ Fluxos sugeridos:
 
 - [x] Reorganizar o header mobile.
 - [x] Tornar filtros, labels e formulários mais acessíveis.
-- [ ] Concluir a reorganização visual do modal de edição e divisão.
+- [x] Concluir a reorganização visual do modal de edição e divisão.
 - [ ] Implementar paginação e contagem na tela de gastos.
 - [ ] Adicionar CTAs úteis aos estados vazios.
 - [x] Substituir confirmações nativas por dialogs do design system.

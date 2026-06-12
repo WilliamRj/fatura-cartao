@@ -28,7 +28,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, X, Search, Filter, ArrowUpDown, Edit2, MessageSquare, SplitSquareHorizontal, Undo2, CornerDownRight } from "lucide-react";
+import {
+  ArrowUpDown,
+  Calculator,
+  CornerDownRight,
+  Edit2,
+  Filter,
+  MessageSquare,
+  Plus,
+  Search,
+  SplitSquareHorizontal,
+  Undo2,
+  Users,
+  X,
+} from "lucide-react";
 import { useGastos, useUpdateGasto } from "@/lib/hooks/useGastos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
@@ -41,6 +54,23 @@ import type { Gasto } from "@/lib/domain/models";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
 import { toast } from "sonner";
+
+type SplitDraft = {
+  id: string;
+  valor: number | "";
+  responsavel: string;
+};
+
+function divideAmount(total: number, parts: number) {
+  const totalInCents = Math.round(total * 100);
+  const baseValue = Math.floor(totalInCents / parts);
+  const remainder = totalInCents % parts;
+
+  return Array.from(
+    { length: parts },
+    (_, index) => (baseValue + (index < remainder ? 1 : 0)) / 100,
+  );
+}
 
 export function GastosClient() {
   const formId = React.useId();
@@ -71,7 +101,7 @@ export function GastosClient() {
   
   const [isSplitMode, setIsSplitMode] = React.useState(false);
   const [originalValor, setOriginalValor] = React.useState<number | null>(null);
-  const [splits, setSplits] = React.useState<{ id?: string; valor: number | ""; responsavel: string }[]>([]);
+  const [splits, setSplits] = React.useState<SplitDraft[]>([]);
   const [validationAttempted, setValidationAttempted] = React.useState(false);
 
   const splitValidation = React.useMemo(() => {
@@ -194,6 +224,85 @@ export function GastosClient() {
       newSplits[index] = { ...newSplits[index], [field]: value };
       return newSplits;
     });
+  };
+
+  const handleEqualSplit = () => {
+    if (!originalValor || splits.length < 2) return;
+
+    const values = divideAmount(originalValor, splits.length);
+    setSplits((currentSplits) =>
+      currentSplits.map((split, index) => ({
+        ...split,
+        valor: values[index],
+      })),
+    );
+    setValidationAttempted(false);
+  };
+
+  const handleSuggestedSplit = () => {
+    if (!originalValor) return;
+
+    const primaryResponsible =
+      responsaveis.find((responsavel) => responsavel.cor === "pessoal")?.nome ||
+      editedResponsavel ||
+      responsaveis[0]?.nome;
+    const otherResponsible = responsaveis.find(
+      (responsavel) => responsavel.nome !== primaryResponsible,
+    )?.nome;
+
+    if (!primaryResponsible || !otherResponsible) {
+      toast.info("Cadastre pelo menos dois responsáveis para usar o 50/50.");
+      return;
+    }
+
+    const values = divideAmount(originalValor, 2);
+    setSplits([
+      {
+        id: `suggested-primary-${Date.now()}`,
+        valor: values[0],
+        responsavel: primaryResponsible,
+      },
+      {
+        id: `suggested-other-${Date.now()}`,
+        valor: values[1],
+        responsavel: otherResponsible,
+      },
+    ]);
+    setValidationAttempted(false);
+  };
+
+  const handleStartSplit = () => {
+    const value = editingGasto?.valor ?? 0;
+    const primaryResponsible =
+      responsaveis.find((responsavel) => responsavel.cor === "pessoal")?.nome ||
+      editedResponsavel;
+    const otherResponsible = responsaveis.find(
+      (responsavel) => responsavel.nome !== primaryResponsible,
+    )?.nome;
+    const values = divideAmount(value, 2);
+
+    setIsSplitMode(true);
+    setOriginalValor(value);
+    setValidationAttempted(false);
+    setSplits([
+      {
+        id: `split-primary-${Date.now()}`,
+        valor: values[0],
+        responsavel: primaryResponsible,
+      },
+      {
+        id: `split-other-${Date.now()}`,
+        valor: values[1],
+        responsavel: otherResponsible ?? "",
+      },
+    ]);
+  };
+
+  const handleCancelSplit = () => {
+    setIsSplitMode(false);
+    setOriginalValor(editingGasto?.valor ?? null);
+    setSplits([]);
+    setValidationAttempted(false);
   };
 
   const handleUndoSplit = async () => {
@@ -571,7 +680,7 @@ export function GastosClient() {
         open={!!editingGasto}
         onOpenChange={(open) => !open && setEditingGasto(null)}
       >
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden border-border bg-card p-0 sm:max-w-2xl">
           <form
             className="contents"
             onSubmit={(event) => {
@@ -579,7 +688,7 @@ export function GastosClient() {
               void handleSaveEdit();
             }}
           >
-            <DialogHeader>
+            <DialogHeader className="px-5 pt-5 pr-12 sm:px-6 sm:pt-6">
               <DialogTitle className="text-foreground">Editar Gasto</DialogTitle>
               <DialogDescription>
                 Atualize a categoria, o responsável, a observação ou a divisão
@@ -587,33 +696,87 @@ export function GastosClient() {
               </DialogDescription>
             </DialogHeader>
             {editingGasto && (
-              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div className="space-y-2">
+              <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
+              <div className="flex flex-col gap-1 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">
                   Estabelecimento
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="truncate text-base font-semibold text-foreground">
                   {editingGasto.estabelecimento}
+                </p>
+                </div>
+                <p className="text-lg font-semibold tabular-nums text-foreground">
+                  {formatCurrency(editingGasto.valor)}
                 </p>
               </div>
               
               {isSplitMode ? (
-                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-foreground">Valor Original</p>
-                    <p className="text-sm font-bold text-foreground">
-                      {originalValor ? formatCurrency(originalValor) : "-"}
-                    </p>
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Divisão do gasto
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Distribua o valor sem repetir responsáveis.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSuggestedSplit}
+                        disabled={responsaveis.length < 2}
+                        title="Dividir entre o responsável principal e outra pessoa"
+                      >
+                        <Users />
+                        Sugerir 50/50
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEqualSplit}
+                        disabled={splits.length < 2}
+                      >
+                        <Calculator />
+                        Igualar valores
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-3">
                     <div
                       id={splitSummaryId}
-                      className="text-sm text-muted-foreground"
+                      className="grid grid-cols-3 divide-x divide-border rounded-lg border border-border bg-muted/30"
                       aria-live="polite"
                     >
-                      Soma: {formatCurrency(splitValidation.total)} · Restante:{" "}
-                      {formatCurrency(splitValidation.difference)}
+                      <div className="min-w-0 px-3 py-3">
+                        <p className="text-xs text-muted-foreground">Original</p>
+                        <p className="truncate font-semibold tabular-nums text-foreground">
+                          {formatCurrency(originalValor ?? 0)}
+                        </p>
+                      </div>
+                      <div className="min-w-0 px-3 py-3">
+                        <p className="text-xs text-muted-foreground">Distribuído</p>
+                        <p className="truncate font-semibold tabular-nums text-foreground">
+                          {formatCurrency(splitValidation.total)}
+                        </p>
+                      </div>
+                      <div className="min-w-0 px-3 py-3">
+                        <p className="text-xs text-muted-foreground">Restante</p>
+                        <p
+                          className={
+                            Math.abs(splitValidation.difference) <= 0.01
+                              ? "truncate font-semibold tabular-nums text-success"
+                              : "truncate font-semibold tabular-nums text-destructive"
+                          }
+                        >
+                          {formatCurrency(splitValidation.difference)}
+                        </p>
+                      </div>
                     </div>
                     {validationAttempted && !splitValidation.isValid && (
                       <p className="text-sm text-destructive" role="alert">
@@ -622,14 +785,20 @@ export function GastosClient() {
                       </p>
                     )}
                     {splits.map((split, index) => (
-                      <div key={split.id} className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <div className="w-32 space-y-1">
+                      <div
+                        key={split.id}
+                        className="space-y-2 rounded-lg border border-border p-3"
+                      >
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Divisão {index + 1}
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-[9rem_minmax(0,1fr)_2rem] sm:items-start">
+                          <div className="space-y-1">
                             <label
-                              className="sr-only"
+                              className="text-xs font-medium text-foreground"
                               htmlFor={`${formId}-split-${index}-value`}
                             >
-                              Valor da divisão {index + 1}
+                              Valor
                             </label>
                             <Input
                               id={`${formId}-split-${index}-value`}
@@ -661,12 +830,12 @@ export function GastosClient() {
                                 </p>
                               )}
                           </div>
-                          <div className="min-w-0 flex-1 space-y-1">
+                          <div className="min-w-0 space-y-1">
                             <label
-                              className="sr-only"
+                              className="text-xs font-medium text-foreground"
                               htmlFor={`${formId}-split-${index}-responsible`}
                             >
-                              Responsável da divisão {index + 1}
+                              Responsável
                             </label>
                             <Select
                               value={split.responsavel}
@@ -706,18 +875,21 @@ export function GastosClient() {
                                 </p>
                               )}
                           </div>
-                          {splits.length > 2 && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              type="button"
-                              className="h-9 w-9 text-destructive"
-                              onClick={() => handleRemoveSplit(index)}
-                              aria-label={`Remover divisão ${index + 1}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            className={
+                              splits.length > 2
+                                ? "sm:mt-5 text-destructive"
+                                : "hidden sm:invisible sm:mt-5 sm:block"
+                            }
+                            onClick={() => handleRemoveSplit(index)}
+                            disabled={splits.length <= 2}
+                            aria-label={`Remover divisão ${index + 1}`}
+                          >
+                            <X />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -725,10 +897,10 @@ export function GastosClient() {
                       variant="ghost"
                       size="sm"
                       type="button"
-                      className="w-full mt-2 border border-dashed"
+                      className="mt-2 w-full border border-dashed"
                       onClick={handleAddSplit}
                     >
-                      <Plus className="h-4 w-4 mr-2" /> Adicionar divisão
+                      <Plus /> Adicionar responsável
                     </Button>
                   </div>
                 </div>
@@ -822,7 +994,7 @@ export function GastosClient() {
               </div>
               </div>
             )}
-            <DialogFooter className="sm:justify-between">
+            <DialogFooter className="mx-0 mb-0 rounded-none px-5 sm:justify-between sm:px-6">
               <div className="flex-1 mr-auto">
                 {editingGasto?.divisoes && editingGasto.divisoes.length > 0 ? (
                   <Button
@@ -835,22 +1007,25 @@ export function GastosClient() {
                   <Undo2 className="h-4 w-4 mr-2" />
                   Desfazer divisão
                 </Button>
-              ) : !isSplitMode && (
+              ) : !isSplitMode ? (
                 <Button
                   variant="outline"
                   size="sm"
                   type="button"
-                  onClick={() => {
-                    setIsSplitMode(true);
-                    setOriginalValor(editingGasto?.valor || 0);
-                    setSplits([
-                      { id: `split-0`, valor: editingGasto?.valor || "", responsavel: editedResponsavel },
-                      { id: `temp-${Date.now()}`, valor: "", responsavel: "" }
-                    ]);
-                  }}
+                  onClick={handleStartSplit}
                 >
-                  <SplitSquareHorizontal className="h-4 w-4 mr-2" />
+                  <SplitSquareHorizontal />
                   Dividir valor
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={handleCancelSplit}
+                >
+                  <Undo2 />
+                  Voltar sem dividir
                 </Button>
               )}
               </div>
