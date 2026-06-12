@@ -37,6 +37,137 @@ Regras:
 - Não versione `.env.local`.
 - Use projetos/chaves deliberadamente escolhidos para cada ambiente.
 
+## 🐳 Supabase local
+
+O Supabase local permite aplicar migrations e executar testes de RLS sem tocar
+primeiro nos dados de Preview ou Production.
+
+### Pré-requisitos
+
+- Docker Desktop para Windows com WSL 2.
+- Docker Desktop aberto durante o uso.
+- Node.js 20 ou superior.
+
+Confirme:
+
+```powershell
+docker version
+node --version
+```
+
+> [!IMPORTANT]
+> O Supabase CLI usa containers Docker. Não exponha as portas locais
+> publicamente e nunca compartilhe senha do banco, access token ou secret key.
+
+### Instalar e inicializar o CLI
+
+Na raiz do projeto:
+
+```powershell
+npm install --save-dev supabase
+npx supabase init
+```
+
+O comando `init` cria `supabase/config.toml`. A instalação global com
+`npm install -g supabase` não é suportada oficialmente.
+
+### Vincular ao projeto remoto
+
+Este passo é opcional e serve para consultar o schema ou enviar migrations:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref SEU_PROJECT_REF
+```
+
+O `project-ref` aparece na URL do painel:
+
+```text
+https://supabase.com/dashboard/project/SEU_PROJECT_REF
+```
+
+Para baixar o schema remoto:
+
+```powershell
+npx supabase db pull
+```
+
+> [!WARNING]
+> Revise os arquivos gerados por `db pull` antes de confirmar alterações. O
+> projeto já possui migrations e um pull sem revisão pode duplicar contratos.
+
+### Subir os serviços locais
+
+```powershell
+npx supabase start
+```
+
+Endereços padrão:
+
+| Serviço | Endereço |
+|---|---|
+| API | `http://127.0.0.1:54321` |
+| PostgreSQL | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Studio | `http://127.0.0.1:54323` |
+| Mailpit | `http://127.0.0.1:54324` |
+
+Consulte URLs e chaves locais:
+
+```powershell
+npx supabase status
+```
+
+### Conectar o app local
+
+Atualize `.env.local` com os valores exibidos pelo status:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=CHAVE_PUBLICAVEL_LOCAL
+GEMINI_API_KEY=SUA_CHAVE_GEMINI
+```
+
+Reinicie `npm run dev` após alterar as variáveis.
+
+### Aplicar migrations do zero
+
+```powershell
+npx supabase db reset
+```
+
+Esse comando recria o banco local e reaplica as migrations. Ele é destrutivo
+somente para os dados da instância local.
+
+### Testar isolamento entre usuários
+
+O teste abaixo exige duas contas em `auth.users`:
+
+```text
+supabase/tests/user_data_isolation.sql
+```
+
+Ele cria fixtures dentro de uma transação e termina com `ROLLBACK`, sem manter
+os dados temporários. Um seed local com duas contas ainda precisa ser criado
+antes de automatizar esse teste.
+
+### Encerrar os serviços
+
+```powershell
+npx supabase stop
+```
+
+### Checklist do setup
+
+- [ ] Docker Desktop instalado e aberto.
+- [ ] `docker version` funciona.
+- [ ] Node.js 20 ou superior.
+- [ ] Supabase CLI instalado no projeto.
+- [ ] `supabase/config.toml` criado.
+- [ ] Stack local iniciada.
+- [ ] `.env.local` aponta para a API local.
+- [ ] Migrations aplicadas com `db reset`.
+- [ ] Duas contas locais disponíveis para testar RLS.
+
 ## 🛠️ Comandos
 
 | Comando | Finalidade |
@@ -47,6 +178,10 @@ Regras:
 | `npm run build` | Build de produção |
 | `npm run check` | Lint + tipos + build |
 | `npm run start` | Executar o build |
+| `npx supabase start` | Iniciar Supabase local |
+| `npx supabase status` | Mostrar URLs e chaves locais |
+| `npx supabase db reset` | Recriar banco local e aplicar migrations |
+| `npx supabase stop` | Encerrar Supabase local |
 
 Ainda não existem scripts `test` e `format`.
 

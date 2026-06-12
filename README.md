@@ -124,6 +124,14 @@ supabase/migrations/20260612_supabase_security_hardening.sql
 > [!WARNING]
 > Antes de atender múltiplas contas em produção, aplique e valide as migrations no Supabase e teste o isolamento com dois usuários autorizados.
 
+## 🐳 Supabase local
+
+Para aplicar migrations e testar RLS em um ambiente descartável, consulte o
+passo a passo em [DEVELOPMENT.md](./DEVELOPMENT.md#-supabase-local).
+
+O setup usa Docker Desktop e o Supabase CLI instalado como dependência de
+desenvolvimento do projeto.
+
 ## ☁️ Deploy na Vercel
 
 Configure as três variáveis em **Development**, **Preview** e **Production**:
