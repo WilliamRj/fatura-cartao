@@ -102,19 +102,23 @@ Validacao operacional pendente:
 
 ## Prioridade 1: arquitetura e dados
 
-### 6. Reduzir o alcance de Client Components
+### 6. Reduzir o alcance de Client Components - concluido em 2026-06-12
 
-Hoje varias paginas inteiras estao marcadas com `"use client"`, como `app/gastos/page.tsx`, `app/faturas/page.tsx`, `app/parcelamentos/page.tsx`, `app/relatorios/page.tsx`, `app/configuracoes/page.tsx` e `components/dashboard-content.tsx`.
+Resultado:
 
-Pelo guia local do Next em `node_modules/next/dist/docs/.../05-server-and-client-components.md`, Server Components devem ser preferidos para buscar dados, proteger segredos e reduzir JavaScript enviado ao navegador. Client Components ficam para estado, eventos e APIs do browser.
+- Todas as rotas `app/**/page.tsx` sao Server Components.
+- Dashboard, faturas, gastos, parcelamentos, relatorios e configuracoes renderizam cabecalho estatico no servidor.
+- Hooks, filtros, dialogs, uploads, tabelas editaveis e graficos ficaram em `components/pages/*-client.tsx`.
+- Cada rota possui metadata propria sem precisar hidratar esse conteudo.
+- O login interativo foi extraido para `components/pages/login-client.tsx`.
+- `AuthProvider` deixou de importar uma pagina de rota, removendo a dependencia circular com o App Router.
+- Providers recebem as paginas server-side pelo slot `children`, conforme o padrao documentado pelo Next.js 16.
 
-Recomendacoes:
+Decisao mantida:
 
-- Separar paginas em camada server/container e componentes interativos menores.
-- Manter filtros, dialogos, tabelas editaveis e uploads como client components.
-- Avaliar buscar dados iniciais no servidor quando a autenticacao/RLS estiver bem modelada.
-- Evitar que providers globais tornem mais partes da arvore client-side do que o necessario.
-- Na Vercel, acompanhar o tamanho do bundle e o tempo de carregamento real, pois usuarios podem acessar em redes mais lentas que o ambiente local.
+- A carga inicial continua via React Query e Supabase no cliente enquanto autenticacao SSR por cookies e RLS
+server-side nao forem projetadas. Migrar apenas as consultas criaria duas fontes de sessao.
+- Bundle e metricas reais de rede devem ser acompanhados nos deploys Preview/Production.
 
 ### 7. Fortalecer limites de seguranca Supabase
 
@@ -183,7 +187,7 @@ Recomendacoes:
 
 ### 10. Tratar importacao de multiplos PDFs como job observavel
 
-`app/faturas/page.tsx:55-80` processa arquivos em loop sequencial e mostra um estado unico `isProcessing`.
+`components/pages/faturas-client.tsx` processa arquivos em loop sequencial e mostra um estado unico `isProcessing`.
 
 Na Vercel, esse ponto e ainda mais importante porque o processamento acontece em uma requisicao serverless. Chamadas longas para Gemini, PDFs grandes ou varios arquivos em sequencia podem atingir limites de execucao, memoria ou payload.
 
@@ -219,9 +223,9 @@ Recomendacoes:
 
 Exemplos:
 
-- Busca de gastos usa placeholder como label visual em `app/gastos/page.tsx:311`.
-- Campo de novo responsavel em `app/configuracoes/page.tsx:115`.
-- Labels do modal de gasto nem sempre tem `htmlFor`, como em `app/gastos/page.tsx:558`.
+- Busca de gastos usa placeholder como label visual em `components/pages/gastos-client.tsx`.
+- Campo de novo responsavel fica em `components/pages/configuracoes-client.tsx`.
+- Labels do modal de gasto em `components/pages/gastos-client.tsx` ainda devem ser auditadas.
 
 Recomendacoes:
 
@@ -244,7 +248,7 @@ Recomendacoes:
 
 ### 14. Implementar paginacao ou remover constante morta
 
-`app/gastos/page.tsx:44` define `ITEMS_PER_PAGE = 10`, mas a tabela mostra todos os itens.
+`components/pages/gastos-client.tsx` define `ITEMS_PER_PAGE = 10`, mas a tabela mostra todos os itens.
 
 Recomendacoes:
 
@@ -272,8 +276,8 @@ Evolucao futura:
 
 Exemplos:
 
-- Gastos vazios em `app/gastos/page.tsx:282`.
-- Parcelamentos vazios em `app/parcelamentos/page.tsx:205`.
+- Gastos vazios em `components/pages/gastos-client.tsx`.
+- Parcelamentos vazios em `components/pages/parcelamentos-client.tsx`.
 
 Recomendacoes:
 
@@ -284,7 +288,7 @@ Recomendacoes:
 
 ### 17. Melhorar graficos para leitura e acessibilidade
 
-Graficos em `components/dashboard-content.tsx` e `app/relatorios/page.tsx` dependem fortemente de cores.
+Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-client.tsx` dependem fortemente de cores.
 
 Recomendacoes:
 
@@ -308,9 +312,9 @@ Recomendacoes:
 
 Pontos observados:
 
-- `app/relatorios/page.tsx:161`: "Por Responsavel" sem acento.
+- `components/pages/relatorios-client.tsx`: "Por Responsavel" sem acento.
 - `app/layout.tsx:13`: "Itau" sem acento.
-- `app/login/page.tsx:61-65`: icones/emojis corrompidos/destoantes do restante da UI.
+- `components/pages/login-client.tsx`: revisar continuamente a consistencia visual do login.
 
 Recomendacoes:
 
@@ -326,9 +330,9 @@ Areas de maior retorno:
 
 - `formatCurrency`, `formatDate` e `formatDateTime` em `lib/data.ts`.
 - Validacao de parcelas `X/Y`.
-- Soma de divisoes com tolerancia de centavos em `app/gastos/page.tsx:181-186`.
+- Soma de divisoes com tolerancia de centavos em `components/pages/gastos-client.tsx`.
 - Calculo de estatisticas por categoria/responsavel em `lib/hooks/useGastos.ts:132-154`.
-- Calculo de parcelamentos restantes em `app/parcelamentos/page.tsx:24-69`.
+- Calculo de parcelamentos restantes em `components/pages/parcelamentos-client.tsx`.
 
 ### 21. Adicionar testes de integracao para fluxos criticos
 

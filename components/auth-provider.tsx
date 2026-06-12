@@ -19,8 +19,11 @@ const AuthContext = React.createContext<AuthContextType>({
   signOut: async () => {},
 });
 
-// Import login page dynamically to avoid circular dependency
-const LoginPage = React.lazy(() => import("@/app/login/page").then(m => ({ default: m.default })));
+const LoginClient = React.lazy(() =>
+  import("@/components/pages/login-client").then((module) => ({
+    default: module.LoginClient,
+  })),
+);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -104,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <React.Suspense fallback={<FullPageLoading />}>
-        <LoginPage />
+        <LoginClient />
       </React.Suspense>
     );
   }

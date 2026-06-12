@@ -181,7 +181,8 @@ Nao confie em filtros `.eq('user_id', ...)` do frontend como mecanismo de segura
 
 ## OAuth Google
 
-O login e iniciado em `app/login/page.tsx`.
+O wrapper server-side fica em `app/login/page.tsx`; o login e iniciado pelo componente
+`components/pages/login-client.tsx`.
 
 Configure:
 

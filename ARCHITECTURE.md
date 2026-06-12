@@ -60,7 +60,7 @@ Por instrucao de `AGENTS.md`, alteracoes relacionadas ao Next.js devem consultar
 Observacoes:
 
 - O botao de logout atual usa `supabase.auth.signOut()` no cliente; a rota `/logout` nao e usada pela UI.
-- O botao de visualizar fatura existe, mas ainda nao tem comportamento.
+- As paginas de rota sao Server Components; a interatividade fica em `components/pages/*-client.tsx`.
 - O antigo `vercel.json` com rewrite global para `/` foi removido; o App Router controla rotas e assets diretamente.
 
 ## Composicao global
@@ -77,13 +77,14 @@ Observacoes:
 6. `AppSidebar`
 7. `Toaster`
 
-Como o wrapper global e Client Component, grande parte da aplicacao depende de hidratacao no cliente. A reducao desse limite esta registrada em `FUTURAS_MELHORIAS.md`.
+As paginas server-side sao passadas ao wrapper pelo slot `children`, portanto nao entram automaticamente no grafo
+de modulos client. Apenas providers, sidebar e componentes interativos declarados com `"use client"` sao hidratados.
 
 ## Autenticacao e autorizacao
 
 ### Login
 
-1. `app/login/page.tsx` chama `supabase.auth.signInWithOAuth`.
+1. `app/login/page.tsx` renderiza `components/pages/login-client.tsx`, que chama `supabase.auth.signInWithOAuth`.
 2. O Google/Supabase redireciona para `/auth/callback`.
 3. `app/auth/callback/route.ts` chama `exchangeCodeForSession`.
 4. O usuario e redirecionado para a origem do app.

@@ -41,12 +41,14 @@ app/
   auth/callback/route.ts           # Callback OAuth do Supabase
   logout/route.ts                  # Logout POST
   page.tsx                         # Dashboard
-  faturas/page.tsx                 # Importacao/lista de faturas
-  gastos/page.tsx                  # Tabela e edicao de gastos
-  parcelamentos/page.tsx           # Parcelamentos derivados de gastos
-  relatorios/page.tsx              # Graficos e exportacao PDF
-  configuracoes/page.tsx           # Responsaveis
+  faturas/page.tsx                 # Container server-side de faturas
+  gastos/page.tsx                  # Container server-side de gastos
+  parcelamentos/page.tsx           # Container server-side de parcelamentos
+  relatorios/page.tsx              # Container server-side de relatorios
+  configuracoes/page.tsx           # Container server-side de configuracoes
 components/
+  pages/                           # Fronteiras client interativas por rota
+  page-heading.tsx                 # Cabecalho renderizado no servidor
   root-layout-client.tsx           # Providers globais
   auth-provider.tsx                # Sessao e autorizacao
   fatura-provider.tsx              # Fatura atual

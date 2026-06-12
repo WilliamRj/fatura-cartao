@@ -115,26 +115,15 @@ export function DashboardContent() {
   const error = errorGastos || errorParcelamentos || errorResponsaveis || errorFaturas;
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral dos seus gastos e faturas</p>
-        </div>
-        <LoadingSkeleton count={3} />
-      </div>
-    );
+    return <LoadingSkeleton count={3} />;
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral dos seus gastos e faturas</p>
-        </div>
-        <ErrorAlert error={error as Error} onRetry={() => window.location.reload()} />
-      </div>
+      <ErrorAlert
+        error={error as Error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -198,13 +187,6 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral dos seus gastos e faturas
-        </p>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Total da Fatura"
