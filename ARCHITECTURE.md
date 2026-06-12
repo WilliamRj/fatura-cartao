@@ -38,6 +38,10 @@ Deploy: Vercel
 | Backend | Processamento, ambiente e logs | `app/api/`, `lib/server/` |
 | Persistência | Auth, PostgreSQL, RLS e Storage | Supabase |
 
+No mobile, `MobileHeader` mantém apenas menu e fatura atual. Navegação, seletor
+completo, tema e logout ficam no sheet lateral. No desktop, esses controles
+permanecem no sidebar fixo.
+
 ## 🗺️ Rotas
 
 | Rota | Tipo | Responsabilidade |

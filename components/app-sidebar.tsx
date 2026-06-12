@@ -11,14 +11,21 @@ import {
   BarChart3,
   Settings,
   Menu,
-  X,
   ChevronLeft,
   LogOut,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogClose,
@@ -97,7 +104,13 @@ function NavLink({
   return linkContent;
 }
 
-function LogoutButton() {
+function LogoutButton({
+  className,
+  showLabel = false,
+}: {
+  className?: string;
+  showLabel?: boolean;
+}) {
   const { signOut } = useAuth();
   const [open, setOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
@@ -116,13 +129,18 @@ function LogoutButton() {
     <Dialog open={open} onOpenChange={setOpen}>
       <Button
         aria-label="Sair"
-        className="h-9 w-9 text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+        className={cn(
+          "text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive",
+          showLabel ? "h-9 w-full justify-start px-3" : "h-9 w-9",
+          className,
+        )}
         onClick={() => setOpen(true)}
-        size="icon"
+        size={showLabel ? "default" : "icon"}
         title="Sair"
         variant="ghost"
       >
         <LogOut className="h-4 w-4" />
+        {showLabel && <span>Sair da conta</span>}
       </Button>
 
       <DialogContent className="gap-5 p-5 sm:max-w-md" showCloseButton={!isSigningOut}>
@@ -168,11 +186,41 @@ function LogoutButton() {
   );
 }
 
-function FaturaSelector({ collapsed, className }: { collapsed?: boolean; className?: string }) {
+function FaturaSelector({
+  collapsed,
+  className,
+  variant = "sidebar",
+  onSelect,
+}: {
+  collapsed?: boolean;
+  className?: string;
+  variant?: "sidebar" | "header";
+  onSelect?: () => void;
+}) {
   const { faturas, faturaAtual, setFaturaAtual, isLoading } = useFaturaContext();
 
   if (isLoading || faturas.length === 0) {
-    return null; // or a skeleton
+    if (variant !== "header") {
+      return null;
+    }
+
+    return (
+      <div
+        className={cn(
+          "flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/40 px-2.5 text-sm text-sidebar-foreground/70",
+          className,
+        )}
+      >
+        {isLoading ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <CalendarDays className="size-4 shrink-0" />
+        )}
+        <span className="truncate">
+          {isLoading ? "Carregando faturas" : "Nenhuma fatura"}
+        </span>
+      </div>
+    );
   }
 
   if (collapsed) {
@@ -190,18 +238,41 @@ function FaturaSelector({ collapsed, className }: { collapsed?: boolean; classNa
     );
   }
 
+  const isHeader = variant === "header";
+
   return (
-    <div className={cn("px-3 mb-2", className)}>
+    <div
+      className={cn(
+        isHeader ? "min-w-0 flex-1" : "mb-2 px-3",
+        className,
+      )}
+    >
       <Select
         value={faturaAtual?.id}
-        onValueChange={(val) => setFaturaAtual(faturas.find((f) => f.id === val) || null)}
+        onValueChange={(val) => {
+          setFaturaAtual(faturas.find((f) => f.id === val) || null);
+          onSelect?.();
+        }}
       >
         <SelectTrigger
-          className="w-full bg-sidebar-accent/50 border-sidebar-border h-9"
+          className={cn(
+            "h-9 w-full min-w-0 border-sidebar-border bg-sidebar-accent/50",
+            isHeader && "px-2.5",
+          )}
           aria-label="Selecionar fatura atual"
         >
-          <SelectValue placeholder="Selecione uma fatura">
-            {faturaAtual ? faturaAtual.mesReferencia : "Selecione uma fatura"}
+          {isHeader && (
+            <CalendarDays className="size-4 shrink-0 text-primary" />
+          )}
+          <SelectValue
+            className="min-w-0 overflow-hidden"
+            placeholder="Selecione uma fatura"
+          >
+            <span className="truncate">
+              {faturaAtual
+                ? faturaAtual.mesReferencia
+                : "Selecione uma fatura"}
+            </span>
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -305,52 +376,55 @@ function MobileHeader() {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between h-14 px-4 bg-sidebar border-b border-sidebar-border">
-      <div className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-          <CreditCard className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <span className="font-semibold text-sidebar-foreground hidden sm:inline-block">
-          Cartão Inteligente
-        </span>
-      </div>
+    <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 lg:hidden">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              className="shrink-0 text-sidebar-foreground"
+              aria-label="Abrir menu de navegação"
+              aria-expanded={open}
+            />
+          }
+        >
+          <Menu className="h-5 w-5" />
+        </SheetTrigger>
 
-      <div className="flex items-center gap-1 shrink-0">
-        <div className="w-36 sm:w-44 mr-1">
-           <FaturaSelector className="px-0 mb-0" />
-        </div>
-        <ThemeToggle />
-        <LogoutButton />
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-sidebar-foreground"
-                aria-label={open ? "Fechar menu de navegação" : "Abrir menu de navegação"}
-                aria-expanded={open}
-              />
-            }
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="w-64 p-0 bg-sidebar border-sidebar-border flex flex-col"
-          >
-            <div className="flex items-center gap-2 h-16 px-4 border-b border-sidebar-border">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-primary-foreground" />
+        <FaturaSelector variant="header" />
+
+        <SheetContent
+          side="left"
+          className="w-[min(22rem,calc(100vw-2rem))] max-w-none gap-0 border-sidebar-border bg-sidebar p-0"
+        >
+            <SheetHeader className="border-b border-sidebar-border p-4 pr-12">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary">
+                  <CreditCard className="size-5 text-primary-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <SheetTitle className="truncate text-sidebar-foreground">
+                    Cartão Inteligente
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    Navegação e preferências
+                  </SheetDescription>
+                </div>
               </div>
-              <span className="font-semibold text-sidebar-foreground">
-                Cartão Inteligente
-              </span>
+            </SheetHeader>
+
+            <div className="border-b border-sidebar-border px-4 py-4">
+              <p className="mb-2 text-xs font-medium text-sidebar-foreground/60">
+                Fatura atual
+              </p>
+              <FaturaSelector
+                className="mb-0 px-0"
+                onSelect={() => setOpen(false)}
+              />
             </div>
-            <div className="pt-4">
-              <FaturaSelector />
-            </div>
-            <nav className="p-3 space-y-1 flex-1">
+
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
@@ -374,9 +448,16 @@ function MobileHeader() {
                 </Link>
               ))}
             </nav>
-          </SheetContent>
-        </Sheet>
-      </div>
+
+            <div className="space-y-1 border-t border-sidebar-border p-3">
+              <ThemeToggle
+                showLabel
+                className="w-full justify-start px-3 text-sidebar-foreground/70"
+              />
+              <LogoutButton showLabel />
+            </div>
+        </SheetContent>
+      </Sheet>
     </header>
   );
 }

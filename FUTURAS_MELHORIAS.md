@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 9 | Implementado e validado no código |
+| ✅ Concluído | 10 | Implementado e validado no código |
 | 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 12 | Priorizado para ciclos futuros |
+| 📌 Planejado | 11 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -350,21 +350,31 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 
 > Melhorias para tornar o uso recorrente mais simples, claro e agradável.
 
-### 📌 11. Reorganizar o header mobile
+### ✅ 11. Reorganizar o header mobile
 
-No mobile, `components/app-sidebar.tsx:284-293` coloca seletor de fatura, tema, logout e menu no mesmo bloco. O seletor tem largura fixa em `components/app-sidebar.tsx:285`.
+**Concluído em:** 12 de junho de 2026
 
-**Problemas atuais**
+**Implementação**
 
-- Quebra em telas estreitas.
-- Dificuldade com zoom de acessibilidade.
-- Meses longos podem truncar mal.
+- O header mobile exibe somente o botão do menu e a fatura atual.
+- O seletor deixou de usar larguras fixas e ocupa o espaço disponível com `min-width: 0` e truncamento seguro.
+- Estados sem fatura e carregamento possuem apresentação compacta e estável.
+- O logo completo, a navegação e o seletor contextual ficam dentro do sheet.
+- Tema e logout foram movidos para o rodapé do menu com ícone e rótulo.
 
-**Próximas ações**
+**Responsividade e acessibilidade**
 
-- Priorizar menu + fatura atual no header.
-- Mover tema e logout para o sheet.
-- Usar seletor compacto ou abrir selecao de fatura dentro do menu.
+- O sheet respeita a largura da viewport e mantém margem lateral em telas estreitas.
+- A seleção de fatura dentro do menu fecha o sheet e devolve o foco ao conteúdo.
+- O menu possui título e descrição acessíveis.
+- Botões de menu, tema, logout e seleção mantêm nomes acessíveis.
+- Meses longos são truncados sem empurrar ou sobrepor o botão do menu.
+
+**Resultado**
+
+- O topo permanece legível com zoom e em celulares estreitos.
+- A ação principal do contexto financeiro, trocar a fatura, continua disponível em um toque.
+- Ações menos frequentes deixaram de competir por espaço no header.
 
 ### 📌 12. Tornar filtros, labels e formulários mais acessíveis
 
@@ -579,7 +589,7 @@ Fluxos sugeridos:
 
 **Objetivo:** melhorar os fluxos mais usados no dia a dia.
 
-- [ ] Reorganizar o header mobile.
+- [x] Reorganizar o header mobile.
 - [ ] Melhorar o modal de edição e divisão.
 - [ ] Implementar paginação e contagem na tela de gastos.
 - [ ] Adicionar CTAs úteis aos estados vazios.

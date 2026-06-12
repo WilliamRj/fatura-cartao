@@ -9,7 +9,13 @@ import { cn } from "@/lib/utils";
 
 const emptySubscribe = () => () => {};
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  showLabel = false,
+}: {
+  className?: string;
+  showLabel?: boolean;
+}) {
   const { resolvedTheme, setTheme } = useTheme();
   const transitionTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = React.useSyncExternalStore(
@@ -51,11 +57,12 @@ export function ThemeToggle({ className }: { className?: string }) {
       className={cn("h-9 w-9", className)}
       disabled={!mounted}
       onClick={handleThemeChange}
-      size="icon"
+      size={showLabel ? "default" : "icon"}
       title={label}
       variant="ghost"
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {showLabel && <span>{isDark ? "Tema claro" : "Tema escuro"}</span>}
     </Button>
   );
 }
