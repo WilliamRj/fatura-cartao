@@ -227,9 +227,11 @@ Ao criar ou alterar um hook:
 - [ ] Use DTOs e mappers de `lib/api`.
 - [ ] Retorne modelos de `lib/domain`.
 - [ ] Trate `{ error }` do Supabase.
-- [ ] Inclua o usuário na query key.
+- [ ] Use uma factory de `lib/api/queryKeys.ts`.
+- [ ] Inclua o usuário e o escopo da fatura na query key.
 - [ ] Filtre explicitamente por `user_id`.
 - [ ] Invalide apenas as queries relacionadas.
+- [ ] Use `useMemo` para projeções síncronas de dados já carregados.
 - [ ] Confirme que a RLS protege a mesma operação.
 
 ### Fatura selecionada

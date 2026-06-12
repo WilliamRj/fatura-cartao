@@ -132,6 +132,15 @@ Configuração global:
 | `staleTime` | 5 minutos |
 | `gcTime` | 10 minutos |
 
+As chaves são construídas exclusivamente pelas factories de
+`lib/api/queryKeys.ts`. A hierarquia separa recurso, tipo de consulta, usuário
+e fatura, permitindo invalidar somente o cache relacionado à mutação.
+
+Estatísticas não possuem uma query própria: `useEstatisticas` usa `useMemo`
+sobre os gastos já armazenados pelo React Query. Parcelamentos possuem cache
+próprio de leitura, mas são invalidados junto com gastos porque são uma visão
+derivada deles.
+
 ### Fatura atual
 
 `FaturaProvider` guarda o ID selecionado e deriva a fatura válida da lista atual. Dashboard, gastos, parcelamentos e relatórios usam esse contexto.

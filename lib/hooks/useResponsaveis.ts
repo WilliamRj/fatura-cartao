@@ -6,7 +6,8 @@ import {
   mapResponsavelCreateInput,
   mapResponsavelRow,
 } from "@/lib/api/mappers";
-import { QUERY_KEYS, TABLES } from "@/lib/api/endpoints";
+import { TABLES } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/queryKeys";
 import type { ResponsavelRow } from "@/lib/api/types";
 import type { ResponsavelCreateInput } from "@/lib/domain/models";
 import { useAuth } from "@/components/auth-provider";
@@ -15,9 +16,10 @@ import { supabase } from "@/lib/supabase/client";
 
 export function useResponsaveis() {
   const { user } = useAuth();
+  const userId = user?.id ?? "";
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.RESPONSAVEIS, user?.id],
+    queryKey: queryKeys.responsaveis.list(userId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLES.RESPONSAVEIS)
@@ -65,7 +67,12 @@ export function useCreateResponsavel() {
       return mapResponsavelRow(data as ResponsavelRow);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });
+      if (user) {
+        return queryClient.invalidateQueries({
+          queryKey: queryKeys.responsaveis.list(user.id),
+          exact: true,
+        });
+      }
     },
   });
 }
@@ -94,7 +101,12 @@ export function useDeleteResponsavel() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });
+      if (user) {
+        return queryClient.invalidateQueries({
+          queryKey: queryKeys.responsaveis.list(user.id),
+          exact: true,
+        });
+      }
     },
   });
 }
@@ -135,7 +147,12 @@ export function useSetResponsavelPrincipal() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESPONSAVEIS });
+      if (user) {
+        return queryClient.invalidateQueries({
+          queryKey: queryKeys.responsaveis.list(user.id),
+          exact: true,
+        });
+      }
     },
   });
 }

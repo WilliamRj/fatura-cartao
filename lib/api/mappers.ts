@@ -31,6 +31,7 @@ export function mapFaturaRow(row: FaturaRow): Fatura {
 export function mapGastoRow(row: GastoRow): Gasto {
   return {
     id: row.id,
+    faturaId: row.fatura_id ?? undefined,
     data: row.data,
     estabelecimento: row.estabelecimento,
     valor: row.valor,

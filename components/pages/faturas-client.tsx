@@ -36,6 +36,8 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { STORAGE, TABLES } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/queryKeys";
+import { useAuth } from "@/components/auth-provider";
 
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
 
@@ -69,6 +71,7 @@ const IMPORT_STATUS_LABELS: Record<ImportStatus, string> = {
 };
 
 export function FaturasClient() {
+  const { user } = useAuth();
   const [importItems, setImportItems] = React.useState<ImportItem[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [viewingFaturaId, setViewingFaturaId] = React.useState<string | null>(
@@ -263,10 +266,22 @@ export function FaturasClient() {
             ? "1 fatura importada com sucesso."
             : `${successCount} faturas importadas com sucesso.`,
         );
-        await refetch();
-        queryClient.invalidateQueries({ queryKey: ["gastos"] });
-        queryClient.invalidateQueries({ queryKey: ["parcelamentos"] });
-        queryClient.invalidateQueries({ queryKey: ["estatisticas"] });
+        if (user) {
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.faturas.list(user.id),
+              exact: true,
+            }),
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.gastos.list(user.id),
+              exact: true,
+            }),
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.parcelamentos.list(user.id),
+              exact: true,
+            }),
+          ]);
+        }
       }
 
       if (errorCount > 0) {

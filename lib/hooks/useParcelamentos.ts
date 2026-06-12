@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { mapGastoRowToParcelamento } from "@/lib/api/mappers";
-import { QUERY_KEYS, TABLES } from "@/lib/api/endpoints";
+import { TABLES } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/queryKeys";
 import type { GastoRow } from "@/lib/api/types";
 import { useAuth } from "@/components/auth-provider";
 import { createPublicDataError } from "@/lib/errors";
@@ -11,9 +12,10 @@ import { supabase } from "@/lib/supabase/client";
 
 export function useParcelamentos(faturaId?: string | null) {
   const { user } = useAuth();
+  const userId = user?.id ?? "";
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.PARCELAMENTOS, user?.id, faturaId],
+    queryKey: queryKeys.parcelamentos.list(userId, faturaId ?? undefined),
     queryFn: async () => {
       let query = supabase
         .from(TABLES.GASTOS)

@@ -17,6 +17,7 @@ export interface Categoria {
 
 export interface Gasto {
   id: string;
+  faturaId?: string;
   data: string;
   estabelecimento: string;
   valor: number;

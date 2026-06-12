@@ -158,7 +158,6 @@ export function GastosClient() {
       });
       toast.success("Divisão desfeita com sucesso!");
       setEditingGasto(null);
-      refetch();
     } catch (error) {
       toast.error("Erro ao desfazer divisão");
       console.error(error);
@@ -215,7 +214,6 @@ export function GastosClient() {
 
       toast.success("Gasto atualizado com sucesso!");
       setEditingGasto(null);
-      refetch();
     } catch (error) {
       toast.error("Erro ao atualizar gasto");
       console.error(error);

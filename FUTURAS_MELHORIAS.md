@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 7 | Implementado e validado no código |
+| ✅ Concluído | 8 | Implementado e validado no código |
 | 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 13 | Priorizado para ciclos futuros |
+| 📌 Planejado | 12 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -268,22 +268,38 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Componentes e regras de negócio devem importar modelos de `lib/domain`.
 - Testes unitários dos mappers entram junto ao item 20, quando a suíte for criada.
 
-### 📌 9. Melhorar cache e invalidações do React Query
+### ✅ 9. Melhorar cache e invalidações do React Query
 
-Ha mistura de query keys constantes e arrays literais.
+**Concluído em:** 12 de junho de 2026
 
-Exemplos:
+**Implementação**
 
-- `QUERY_KEYS.GASTOS` em `lib/api/endpoints.ts`.
-- `['gastos', faturaId]` em `lib/hooks/useGastos.ts:8`.
-- `['parcelamentos', faturaId]` em `lib/hooks/useParcelamentos.ts:8`.
-- `['estatisticas', gastos]` em `lib/hooks/useGastos.ts:126`.
+- `lib/api/queryKeys.ts` centraliza factories hierárquicas para faturas, gastos, detalhes, parcelamentos e responsáveis.
+- Todas as chaves remotas incluem o ID do usuário antes do escopo específico.
+- Listas de gastos e parcelamentos distinguem o conjunto completo da lista de uma fatura.
+- Arrays literais e o objeto legado `QUERY_KEYS` foram removidos.
+- Chaves sem query real, como dashboard e relatórios, também foram removidas.
 
-**Próximas ações**
+**Invalidações**
 
-- Centralizar factories de query keys: `gastos.list(faturaId)`, `estatisticas.byFatura(faturaId)`.
-- Evitar usar o array inteiro de gastos como parte da query key de estatisticas; calcular com `useMemo` ou query key por `faturaId`.
-- Fazer invalidacoes especificas apos mutacoes para reduzir refetch desnecessario.
+- Criação e atualização de gasto invalidam apenas as listas agregadas e da fatura afetada.
+- Alterações em gastos também invalidam parcelamentos, pois eles são derivados de `gastos.parcela`, responsável e divisões.
+- Atualizações sincronizam o cache de detalhe com `setQueryData`.
+- Exclusão de fatura remove imediatamente os caches específicos da fatura e somente os detalhes de gastos vinculados a ela.
+- Importação invalida a lista de faturas e apenas as coleções agregadas do usuário autenticado, preservando caches de meses antigos.
+- Mutações de responsáveis invalidam apenas a lista daquele usuário.
+
+**Estatísticas**
+
+- `useEstatisticas` deixou de criar uma query com o array inteiro de gastos na chave.
+- Categorias e responsáveis são calculados com `useMemo` a partir da lista de gastos já mantida pelo React Query.
+- Dashboard e relatórios passam a refletir o mesmo cache-base, sem uma segunda camada de estado remoto.
+
+**Manutenção**
+
+- Novos hooks devem usar exclusivamente as factories de `queryKeys`.
+- Projeções síncronas de dados já carregados devem preferir `useMemo`.
+- Invalidações globais só devem ser usadas quando a mutação não permitir identificar a fatura afetada.
 
 ### 🚧 10. Tratar importação de múltiplos PDFs como job observável
 
@@ -566,7 +582,7 @@ Fluxos sugeridos:
 
 - [x] Separar Server e Client Components.
 - [x] Centralizar DTOs e mappers.
-- [ ] Centralizar query keys.
+- [x] Centralizar query keys.
 - [ ] Documentar as políticas RLS por tabela.
 - [ ] Executar as migrations pendentes no Supabase de produção.
 - [ ] Testar isolamento completo com duas contas autorizadas.

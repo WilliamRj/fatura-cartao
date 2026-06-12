@@ -3,17 +3,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { mapFaturaRow } from "@/lib/api/mappers";
-import { QUERY_KEYS, STORAGE, TABLES } from "@/lib/api/endpoints";
+import { STORAGE, TABLES } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/queryKeys";
 import type { DeleteFaturaResultRow, FaturaRow } from "@/lib/api/types";
+import type { Gasto } from "@/lib/domain/models";
 import { useAuth } from "@/components/auth-provider";
 import { createPublicDataError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase/client";
 
 export function useFaturas() {
   const { user } = useAuth();
+  const userId = user?.id ?? "";
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.FATURAS, user?.id],
+    queryKey: queryKeys.faturas.list(userId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLES.FATURAS)
@@ -83,16 +86,40 @@ export function useDeleteFatura() {
         storageCleanupFailed,
       };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FATURAS });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GASTOS });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PARCELAMENTOS });
-      queryClient.invalidateQueries({ queryKey: ["estatisticas"] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DASHBOARD });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RELATORIOS });
+    onSuccess: async (_, deletedFaturaId) => {
+      if (!user) {
+        return;
+      }
 
-      queryClient.resetQueries({ queryKey: QUERY_KEYS.GASTOS });
-      queryClient.resetQueries({ queryKey: ["estatisticas"] });
+      queryClient.removeQueries({
+        queryKey: queryKeys.gastos.list(user.id, deletedFaturaId),
+        exact: true,
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.parcelamentos.list(user.id, deletedFaturaId),
+        exact: true,
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.gastos.details(user.id),
+        predicate: (query) =>
+          (query.state.data as Gasto | undefined)?.faturaId ===
+          deletedFaturaId,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.faturas.list(user.id),
+          exact: true,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gastos.list(user.id),
+          exact: true,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.parcelamentos.list(user.id),
+          exact: true,
+        }),
+      ]);
     },
   });
 }
