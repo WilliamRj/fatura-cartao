@@ -257,10 +257,12 @@ export async function POST(req: NextRequest) {
       3. 'lancamentos': A list of all purchases/expenses in the invoice. 
          IMPORTANT: Include all items listed under "Lançamentos", specifically including items under "produtos e serviços" and items containing "PARCELAMEN FATURA".
          CRITICAL: You must completely IGNORE and DISCARD any entry that contains "crédito parcelamento" in its description. Do NOT ignore "PARCELAMEN FATURA".
-         Ignore payments of the previous invoice and fees/taxes if possible, focus on purchases. For each, extract:
+         Include ONLY actual expense lines. Completely discard payments, credits, refunds, reversals, subtotals, totals, limits and summary rows.
+         If a line has a zero, negative or unreadable value, discard that line instead of guessing or converting it into an expense.
+         Ignore payments of the previous invoice and fees/taxes, focus on purchases. For each, extract:
          - 'data': The date of the purchase in YYYY-MM-DD format. Use the invoice year if not specified.
          - 'estabelecimento': The name of the place/store.
-         - 'valor': The value of the purchase as a float number.
+         - 'valor': A JSON number strictly greater than zero, using a decimal point and no currency symbol, sign or text. Example: 1234.56.
          - 'parcela': If it's an installment, like '01/10', put it here as a string. Otherwise, use null.
          - 'categoria': Infer a general category based on the establishment name. Use EXACTLY one of these PT-BR values: 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Compras', 'Assinaturas', 'Entretenimento', 'Pagamentos', 'Condomínio', 'Dívida', 'Outros'.
            IMPORTANT CATEGORIZATION RULES:
@@ -312,6 +314,9 @@ export async function POST(req: NextRequest) {
         issueCount: validationIssues.length,
         issueFields: validationIssues
           .map((issue) => issue.campo)
+          .join(","),
+        issueReasons: validationIssues
+          .map((issue) => issue.mensagem)
           .join(","),
       });
       return respond(

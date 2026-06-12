@@ -47,16 +47,55 @@ function parseMoney(value: unknown) {
     return value;
   }
 
-  let normalized = value
-    .trim()
+  let normalized = value.trim();
+  const isParenthesized =
+    normalized.startsWith("(") && normalized.endsWith(")");
+  const hasTrailingMinus = normalized.endsWith("-");
+
+  normalized = normalized
     .replace(/^R\$\s*/i, "")
+    .replace(/[()]/g, "")
+    .replace(/[−–—]/g, "-")
+    .replace(/-$/, "")
     .replace(/\s/g, "");
 
-  if (normalized.includes(",")) {
-    normalized = normalized.replace(/\./g, "").replace(",", ".");
+  if (!normalized) {
+    return value;
   }
 
-  return Number(normalized);
+  const lastComma = normalized.lastIndexOf(",");
+  const lastDot = normalized.lastIndexOf(".");
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized =
+      lastComma > lastDot
+        ? normalized.replace(/\./g, "").replace(",", ".")
+        : normalized.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    normalized = normalized.replace(",", ".");
+  }
+
+  const parsed = Number(normalized);
+  return isParenthesized || hasTrailingMinus ? -Math.abs(parsed) : parsed;
+}
+
+function discardNonPositiveEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.filter((entry) => {
+    if (typeof entry !== "object" || entry === null || !("valor" in entry)) {
+      return true;
+    }
+
+    const parsedValue = parseMoney(entry.valor);
+    return (
+      typeof parsedValue !== "number" ||
+      !Number.isFinite(parsedValue) ||
+      parsedValue > 0
+    );
+  });
 }
 
 function normalizeMonthReference(value: string) {
@@ -185,13 +224,16 @@ export const parsedFaturaSchema = z
         );
       }, "deve identificar mês e ano entre 2000 e 2100, por exemplo: Maio 2026"),
     valor_total: moneySchema,
-    lancamentos: z
-      .array(lancamentoSchema)
-      .min(1, "deve conter ao menos um lançamento")
-      .max(
-        MAX_LANCAMENTOS,
-        `deve conter no máximo ${MAX_LANCAMENTOS} lançamentos`,
-      ),
+    lancamentos: z.preprocess(
+      discardNonPositiveEntries,
+      z
+        .array(lancamentoSchema)
+        .min(1, "deve conter ao menos um lançamento")
+        .max(
+          MAX_LANCAMENTOS,
+          `deve conter no máximo ${MAX_LANCAMENTOS} lançamentos`,
+        ),
+    ),
   })
   .strict();
 

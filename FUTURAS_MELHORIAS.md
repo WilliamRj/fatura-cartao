@@ -209,6 +209,7 @@ Complementos implementados:
 - O `requestId` aparece durante o processamento e pode ser correlacionado com os logs da Vercel.
 - A saida do Gemini usa modo JSON e mantém Zod como validacao final.
 - O schema nativo fica pendente da migracao do SDK legado `@google/generative-ai` para `@google/genai`, exigido pela API atual do Gemini 3.5 para `responseFormat`.
+- Valores monetarios brasileiros e internacionais comuns sao normalizados; linhas numericamente nao positivas sao descartadas sem transforma-las em despesas.
 
 ## Prioridade 2: UI, UX e produto
 
