@@ -419,7 +419,23 @@ export function GastosClient() {
                         {gasto.estabelecimento}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-foreground">
-                        {formatCurrency(gasto.valor)}
+                        <span
+                          className={
+                            gasto.valor < 0
+                              ? "font-medium text-success"
+                              : undefined
+                          }
+                        >
+                          {formatCurrency(gasto.valor)}
+                        </span>
+                        {gasto.valor < 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 border-success/30 text-success"
+                          >
+                            Crédito/Ajuste
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge

@@ -79,25 +79,6 @@ function parseMoney(value: unknown) {
   return isParenthesized || hasTrailingMinus ? -Math.abs(parsed) : parsed;
 }
 
-function discardNonPositiveEntries(value: unknown) {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value.filter((entry) => {
-    if (typeof entry !== "object" || entry === null || !("valor" in entry)) {
-      return true;
-    }
-
-    const parsedValue = parseMoney(entry.valor);
-    return (
-      typeof parsedValue !== "number" ||
-      !Number.isFinite(parsedValue) ||
-      parsedValue > 0
-    );
-  });
-}
-
 function normalizeMonthReference(value: string) {
   const normalized = value.trim().replace(/\s+/g, " ");
   const numericMatch = normalized.match(/^(0?[1-9]|1[0-2])\/(\d{4})$/);
@@ -146,6 +127,19 @@ const moneySchema = z.preprocess(
     .finite("deve ser um valor finito")
     .positive("deve ser maior que zero")
     .max(MAX_MONEY_VALUE, "excede o valor máximo permitido")
+    .transform((value) => Math.round(value * 100) / 100),
+);
+
+const entryMoneySchema = z.preprocess(
+  parseMoney,
+  z
+    .number({
+      invalid_type_error: "deve ser um valor numérico",
+    })
+    .finite("deve ser um valor finito")
+    .min(-MAX_MONEY_VALUE, "excede o valor mínimo permitido")
+    .max(MAX_MONEY_VALUE, "excede o valor máximo permitido")
+    .refine((value) => value !== 0, "deve ser diferente de zero")
     .transform((value) => Math.round(value * 100) / 100),
 );
 
@@ -199,7 +193,7 @@ const lancamentoSchema = z
       .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), {
         message: "contém caracteres de controle inválidos",
       }),
-    valor: moneySchema,
+    valor: entryMoneySchema,
     parcela: installmentSchema,
     categoria: categorySchema,
   })
@@ -224,18 +218,34 @@ export const parsedFaturaSchema = z
         );
       }, "deve identificar mês e ano entre 2000 e 2100, por exemplo: Maio 2026"),
     valor_total: moneySchema,
-    lancamentos: z.preprocess(
-      discardNonPositiveEntries,
-      z
-        .array(lancamentoSchema)
-        .min(1, "deve conter ao menos um lançamento")
-        .max(
-          MAX_LANCAMENTOS,
-          `deve conter no máximo ${MAX_LANCAMENTOS} lançamentos`,
-        ),
-    ),
+    lancamentos: z
+      .array(lancamentoSchema)
+      .min(1, "deve conter ao menos um lançamento")
+      .max(
+        MAX_LANCAMENTOS,
+        `deve conter no máximo ${MAX_LANCAMENTOS} lançamentos`,
+      ),
   })
-  .strict();
+  .strict()
+  .superRefine((fatura, context) => {
+    const totalInCents = Math.round(fatura.valor_total * 100);
+    const entriesInCents = fatura.lancamentos.reduce(
+      (total, entry) => total + Math.round(entry.valor * 100),
+      0,
+    );
+    const differenceInCents = entriesInCents - totalInCents;
+
+    if (Math.abs(differenceInCents) > 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lancamentos"],
+        message: `a soma dos lançamentos diverge do total da fatura em ${(differenceInCents / 100).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}`,
+      });
+    }
+  });
 
 export type ParsedFatura = z.infer<typeof parsedFaturaSchema>;
 

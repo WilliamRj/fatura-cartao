@@ -257,18 +257,21 @@ export async function POST(req: NextRequest) {
       3. 'lancamentos': A list of all purchases/expenses in the invoice. 
          IMPORTANT: Include all items listed under "Lançamentos", specifically including items under "produtos e serviços" and items containing "PARCELAMEN FATURA".
          CRITICAL: You must completely IGNORE and DISCARD any entry that contains "crédito parcelamento" in its description. Do NOT ignore "PARCELAMEN FATURA".
-         Include ONLY actual expense lines. Completely discard payments, credits, refunds, reversals, subtotals, totals, limits and summary rows.
-         If a line has a zero, negative or unreadable value, discard that line instead of guessing or converting it into an expense.
-         Ignore payments of the previous invoice and fees/taxes, focus on purchases. For each, extract:
+         Include every line that composes the current invoice total, including purchases, fees, taxes, credits, refunds, reversals and balance adjustments.
+         Credits, refunds, reversals and other deductions MUST keep their negative sign. Never convert a negative amount into a positive expense.
+         Completely discard payments of the previous invoice, subtotals, totals, limits and summary rows because they do not compose the current invoice total as individual entries.
+         The sum of every returned 'valor', including negative entries, MUST match 'valor_total' exactly to the cent.
+         If a value is zero or unreadable, do not guess. For each included entry, extract:
          - 'data': The date of the purchase in YYYY-MM-DD format. Use the invoice year if not specified.
          - 'estabelecimento': The name of the place/store.
-         - 'valor': A JSON number strictly greater than zero, using a decimal point and no currency symbol, sign or text. Example: 1234.56.
+         - 'valor': A non-zero JSON number using a decimal point and no currency symbol or text. Use a negative number for credits/deductions. Examples: 1234.56 or -0.15.
          - 'parcela': If it's an installment, like '01/10', put it here as a string. Otherwise, use null.
          - 'categoria': Infer a general category based on the establishment name. Use EXACTLY one of these PT-BR values: 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Compras', 'Assinaturas', 'Entretenimento', 'Pagamentos', 'Condomínio', 'Dívida', 'Outros'.
            IMPORTANT CATEGORIZATION RULES:
            - If the establishment name contains "PICPAY", the category MUST be "Pagamentos".
            - If the establishment name contains "PGCONTA ATLANTIDA", the category MUST be "Condomínio".
            - If the establishment name contains "PARCELAMEN FATURA", the category MUST be "Dívida".
+           - Credits, refunds, reversals, fees, taxes and balance adjustments that do not fit another category MUST use "Outros".
 
       Return EXACTLY a JSON object (and nothing else, no markdown formatting) with this structure:
       {
