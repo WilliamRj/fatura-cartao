@@ -50,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BrandLogo } from "@/components/brand-logo";
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -307,19 +308,13 @@ function DesktopSidebar({
     >
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border mb-2">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <CreditCard className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-sidebar-foreground">
-              Cartão Inteligente
-            </span>
-          </div>
+          <BrandLogo
+            className="text-sidebar-foreground"
+            markClassName="size-9"
+          />
         )}
         {collapsed && (
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mx-auto">
-            <CreditCard className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <BrandLogo className="mx-auto" markOnly />
         )}
       </div>
 
@@ -399,19 +394,11 @@ function MobileHeader() {
           className="w-[min(22rem,calc(100vw-2rem))] max-w-none gap-0 border-sidebar-border bg-sidebar p-0"
         >
             <SheetHeader className="border-b border-sidebar-border p-4 pr-12">
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-                  <CreditCard className="size-5 text-primary-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <SheetTitle className="truncate text-sidebar-foreground">
-                    Cartão Inteligente
-                  </SheetTitle>
-                  <SheetDescription className="text-xs">
-                    Navegação e preferências
-                  </SheetDescription>
-                </div>
-              </div>
+              <SheetTitle className="sr-only">Menu principal</SheetTitle>
+              <BrandLogo className="text-sidebar-foreground" />
+              <SheetDescription className="sr-only">
+                Navegação e preferências
+              </SheetDescription>
             </SheetHeader>
 
             <div className="border-b border-sidebar-border px-4 py-4">

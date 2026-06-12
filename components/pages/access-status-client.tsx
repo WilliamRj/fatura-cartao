@@ -5,7 +5,6 @@ import {
   Ban,
   CheckCircle2,
   Clock3,
-  CreditCard,
   Loader2,
   LogOut,
   RefreshCw,
@@ -15,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import type { AccessProfile } from "@/lib/access-control";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -103,15 +103,7 @@ export function AccessStatusClient({
     <main className="flex min-h-screen flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center border-b border-border/80 px-5 sm:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-              <CreditCard className="size-5 text-primary-foreground" />
-            </div>
-            <div className="leading-tight">
-              <p className="font-semibold text-foreground">Cartão Inteligente</p>
-              <p className="text-xs text-muted-foreground">Controle de acesso</p>
-            </div>
-          </div>
+          <BrandLogo className="text-foreground" />
           <ThemeToggle className="border border-border/70 bg-background shadow-sm hover:bg-muted" />
         </div>
       </header>
