@@ -7,6 +7,12 @@ import type { Fatura } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
+interface DeleteFaturaResult {
+  arquivo_url: string | null;
+  gastos_removidos: number;
+  parcelamentos_removidos: number;
+}
+
 export function useFaturas() {
   const { user } = useAuth();
 
@@ -43,37 +49,36 @@ export function useDeleteFatura() {
     mutationFn: async (id: string) => {
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { data: fatura, error: lookupError } = await supabase
-        .from(TABLES.FATURAS)
-        .select('arquivo_url')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (lookupError) throw lookupError;
+      const { data, error } = await supabase.rpc(
+        'delete_fatura_atomically',
+        { p_fatura_id: id },
+      );
 
-      const { error: gastosError } = await supabase
-        .from(TABLES.GASTOS)
-        .delete()
-        .eq('fatura_id', id)
-        .eq('user_id', user.id);
-      if (gastosError) throw gastosError;
+      if (error) {
+        if (error.code === 'P0002') {
+          throw new Error('A fatura não existe ou já foi excluída.');
+        }
+        throw error;
+      }
 
-      const { error: faturaError } = await supabase
-        .from(TABLES.FATURAS)
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      if (faturaError) throw faturaError;
+      const result = data as DeleteFaturaResult;
+      let storageCleanupFailed = false;
 
-      if (fatura?.arquivo_url) {
+      if (result.arquivo_url) {
         const { error: storageError } = await supabase.storage
           .from(STORAGE.FATURAS)
-          .remove([fatura.arquivo_url]);
+          .remove([result.arquivo_url]);
 
         if (storageError) {
           console.error('Não foi possível remover o PDF da fatura:', storageError);
+          storageCleanupFailed = true;
         }
       }
+
+      return {
+        ...result,
+        storageCleanupFailed,
+      };
     },
     onSuccess: () => {
       // Invalidate everything explicitly to ensure no stale cache remains

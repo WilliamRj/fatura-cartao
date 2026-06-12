@@ -86,8 +86,8 @@ Status atual: implementado com Supabase Storage pela migration `20260611_invoice
 ## 8. Integridade de dados
 
 - [x] `faturas` e `gastos` sao inseridos atomicamente por RPC/transacao, com compensacao do upload.
-- [ ] Exclusao de fatura usa cascade ou operacao transacional.
-- [ ] Erros de deletes relacionados sao checados.
+- [x] Exclusao de fatura usa cascade e RPC transacional.
+- [x] Erros de exclusao relacionados sao tratados como uma unica operacao.
 - [ ] Valores monetarios usam precisao adequada.
 - [ ] Soma de `divisoes` e igual ao valor original.
 - [ ] Responsaveis repetidos em uma divisao sao rejeitados.

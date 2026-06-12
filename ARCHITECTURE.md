@@ -131,7 +131,7 @@ Apesar de existir `TABLES.PARCELAMENTOS`, a tela atual nao consulta essa tabela.
 - valor total estimado;
 - parte de cada responsavel.
 
-A tabela `parcelamentos` e usada apenas na exclusao de fatura e deve ser considerada legado/pendencia ate o modelo ser decidido.
+A tabela `parcelamentos` nao e lida pelo app e deve ser considerada legado/pendencia ate o modelo ser decidido. Se existir, a migration de exclusao configura cascade por `fatura_id`.
 
 ### Divisao de gastos
 
@@ -258,6 +258,19 @@ A protecao usa duas camadas:
 2. Banco: RLS impede acesso cruzado mesmo em chamadas Supabase manipuladas manualmente.
 
 Migration: `supabase/migrations/20260611_user_data_isolation.sql`.
+
+## Exclusao de faturas
+
+`useDeleteFatura` chama a RPC `delete_fatura_atomically`.
+
+- A RPC bloqueia e valida a fatura pelo usuario autenticado.
+- A exclusao da fatura e dos gastos ocorre na mesma transacao.
+- `gastos.fatura_id` usa `ON DELETE CASCADE`.
+- Uma tabela legada `parcelamentos`, se existir, tambem recebe cascade.
+- A RPC retorna o caminho do PDF e as quantidades removidas.
+- Depois do commit, o cliente remove o objeto do Supabase Storage e avisa se essa limpeza externa falhar.
+
+Migration: `supabase/migrations/20260612_atomic_invoice_deletion.sql`.
 
 ## Qualidade atual
 

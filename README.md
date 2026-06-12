@@ -24,7 +24,7 @@ Aplicacao web para gerenciar faturas de cartao de credito, importar PDFs de fatu
 - Dashboard com total da fatura, gastos pessoais, terceiros, compras e parcelamentos.
 - Seletor global de fatura no sidebar/header.
 - Importacao de faturas PDF em `app/faturas/page.tsx`, processadas por `/api/process-fatura`.
-- Listagem de faturas e exclusao de fatura.
+- Listagem de faturas e exclusao transacional com cascade dos lancamentos relacionados.
 - Tabela de gastos com busca, filtros, ordenacao, edicao de categoria/responsavel/observacao e divisao de valor.
 - Parcelamentos derivados dos gastos com campo `parcela`.
 - Relatorios por mes, categoria e responsavel.
@@ -121,7 +121,7 @@ Pontos de atencao em producao:
 
 - `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
 - PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
-- A visualizacao usa URL assinada e a exclusao da fatura tenta remover o arquivo original.
+- A visualizacao usa URL assinada; a exclusao transacional remove os dados relacionados e depois limpa o arquivo original.
 - Cada PDF recebe um hash SHA-256; uma segunda importacao do mesmo arquivo pelo mesmo usuario e bloqueada antes da chamada a IA.
 - RLS no Supabase e obrigatorio, pois o app fica acessivel remotamente.
 

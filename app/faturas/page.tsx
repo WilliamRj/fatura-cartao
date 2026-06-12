@@ -32,9 +32,15 @@ import { ErrorAlert } from "@/components/error";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { STORAGE } from "@/lib/api/endpoints";
+import { STORAGE, TABLES } from "@/lib/api/endpoints";
 
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
+
+interface DeleteImpact {
+  gastos: number;
+  parcelamentos: number | null;
+  isLoading: boolean;
+}
 
 export default function FaturasPage() {
   const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
@@ -43,6 +49,9 @@ export default function FaturasPage() {
     null,
   );
   const [faturaToDelete, setFaturaToDelete] = React.useState<Fatura | null>(
+    null,
+  );
+  const [deleteImpact, setDeleteImpact] = React.useState<DeleteImpact | null>(
     null,
   );
   const { data: faturas, isLoading, error, refetch } = useFaturas();
@@ -169,9 +178,20 @@ export default function FaturasPage() {
 
     const deletedMonth = faturaToDelete.mesReferencia;
     deleteFatura.mutate(faturaToDelete.id, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         setFaturaToDelete(null);
-        toast.success(`Fatura de ${deletedMonth} excluída com sucesso.`);
+        setDeleteImpact(null);
+
+        if (result.storageCleanupFailed) {
+          toast.warning(
+            `Fatura de ${deletedMonth} excluída, mas o PDF não pôde ser removido do armazenamento.`,
+          );
+          return;
+        }
+
+        toast.success(
+          `Fatura de ${deletedMonth} e ${result.gastos_removidos} lançamentos excluídos.`,
+        );
       },
       onError: (deleteError: Error) => {
         console.error(deleteError);
@@ -179,6 +199,53 @@ export default function FaturasPage() {
       },
     });
   };
+
+  const handleRequestDelete = async (fatura: Fatura) => {
+    setFaturaToDelete(fatura);
+    setDeleteImpact({
+      gastos: fatura.quantidadeLançamentos,
+      parcelamentos: null,
+      isLoading: true,
+    });
+
+    const { data, error: impactError } = await supabase
+      .from(TABLES.GASTOS)
+      .select("parcela")
+      .eq("fatura_id", fatura.id);
+
+    if (impactError) {
+      console.error("Não foi possível calcular o impacto da exclusão:", impactError);
+      setDeleteImpact({
+        gastos: fatura.quantidadeLançamentos,
+        parcelamentos: null,
+        isLoading: false,
+      });
+      return;
+    }
+
+    const parcelamentos = data.filter(({ parcela }) => {
+      if (!parcela) {
+        return false;
+      }
+
+      const [atual, total, ...extraParts] = parcela.split("/").map(Number);
+      return (
+        extraParts.length === 0 &&
+        Number.isInteger(atual) &&
+        Number.isInteger(total)
+      );
+    }).length;
+
+    setDeleteImpact({
+      gastos: data.length,
+      parcelamentos,
+      isLoading: false,
+    });
+  };
+
+  const displayedDeleteExpenses =
+    deleteImpact?.gastos ?? faturaToDelete?.quantidadeLançamentos ?? 0;
+  const displayedDeleteInstallments = deleteImpact?.parcelamentos;
 
   if (isLoading) {
     return (
@@ -359,7 +426,7 @@ export default function FaturasPage() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setFaturaToDelete(fatura)}
+                      onClick={() => void handleRequestDelete(fatura)}
                       aria-label={`Excluir fatura ${fatura.mesReferencia}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -411,6 +478,7 @@ export default function FaturasPage() {
         onOpenChange={(open) => {
           if (!open && !deleteFatura.isPending) {
             setFaturaToDelete(null);
+            setDeleteImpact(null);
           }
         }}
       >
@@ -438,13 +506,32 @@ export default function FaturasPage() {
                 <div>
                   <p className="font-medium text-foreground">
                     {faturaToDelete.mesReferencia}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {faturaToDelete.quantidadeLançamentos}{" "}
-                    {faturaToDelete.quantidadeLançamentos === 1
-                      ? "lançamento"
-                      : "lançamentos"}
-                  </p>
+                    </p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      {displayedDeleteExpenses}{" "}
+                      {displayedDeleteExpenses === 1
+                        ? "lançamento"
+                        : "lançamentos"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      {deleteImpact?.isLoading ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Calculando parcelamentos...
+                        </>
+                      ) : displayedDeleteInstallments == null ? (
+                        "Parcelamentos vinculados"
+                      ) : (
+                        <>
+                          {displayedDeleteInstallments}{" "}
+                          {displayedDeleteInstallments === 1
+                            ? "parcelamento"
+                            : "parcelamentos"}
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
                 <p className="font-semibold text-foreground">
                   {formatCurrency(faturaToDelete.valorTotal)}
@@ -472,7 +559,7 @@ export default function FaturasPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteFatura}
-              disabled={deleteFatura.isPending}
+              disabled={deleteFatura.isPending || deleteImpact?.isLoading}
             >
               {deleteFatura.isPending ? (
                 <>

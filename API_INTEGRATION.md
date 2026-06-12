@@ -123,7 +123,7 @@ Defina cuidadosamente quem pode consultar essa tabela. O usuario autenticado pre
 
 O codigo atual deriva parcelamentos de `gastos.parcela`; nao le a tabela `parcelamentos`.
 
-`TABLES.PARCELAMENTOS` ainda existe e `useDeleteFatura` tenta apagar registros por `fatura_id`. Existem duas opcoes:
+`TABLES.PARCELAMENTOS` ainda existe, mas `useDeleteFatura` nao acessa essa tabela diretamente. Existem duas opcoes:
 
 1. Remover a tabela/constante/delete se ela for legado.
 2. Tornar `parcelamentos` uma entidade real e atualizar leitura/escrita.
@@ -264,6 +264,21 @@ O PDF original e armazenado no bucket privado `faturas`.
 - A consulta previa evita consumir cota da IA para arquivos repetidos; o indice unico protege contra requisicoes simultaneas.
 - Bucket, policies, coluna e RPC atualizada estao em `supabase/migrations/20260611_invoice_pdf_storage.sql`.
 - Hash, constraint, indice e RPC atualizada estao em `supabase/migrations/20260612_invoice_pdf_hash.sql`.
+
+## Exclusao de faturas
+
+A exclusao usa a RPC `delete_fatura_atomically`:
+
+1. valida `auth.uid()` e a propriedade da fatura;
+2. bloqueia a linha da fatura durante a operacao;
+3. conta os registros relacionados;
+4. exclui a fatura, com cascade para `gastos` e para `parcelamentos` quando essa tabela legada existir;
+5. retorna `arquivo_url`, `gastos_removidos` e `parcelamentos_removidos`;
+6. o cliente remove o PDF do Storage depois do commit.
+
+O banco permanece atomico. Como Supabase Storage e externo a transacao PostgreSQL, uma falha ao remover o PDF gera aviso especifico e pode deixar apenas um arquivo orfao, nunca uma fatura parcialmente excluida.
+
+Migration: `supabase/migrations/20260612_atomic_invoice_deletion.sql`.
 
 ## Hooks e tabelas
 

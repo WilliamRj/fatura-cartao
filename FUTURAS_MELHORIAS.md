@@ -55,21 +55,18 @@ Complemento implementado:
 - O caminho e vinculado a `faturas.arquivo_url`.
 - O SHA-256 e salvo em `faturas.arquivo_hash` e impede importacao duplicada por usuario.
 
-### 3. Revisar delecoes relacionadas
+### 3. Revisar delecoes relacionadas - concluido em 2026-06-12
 
-`useDeleteFatura` apaga gastos e parcelamentos antes de apagar a fatura, mas ignora erros intermediarios.
+Resultado:
 
-Trecho relevante:
-
-- `lib/hooks/useFaturas.ts:38-39`: deletes relacionados sem checar `{ error }`.
-- `lib/hooks/useFaturas.ts:44`: delete final da fatura.
-
-Recomendacoes:
-
-- Checar erro em cada delete.
-- Preferir `ON DELETE CASCADE` no banco, quando o modelo permitir.
-- Se precisar deletar manualmente, mover para funcao server-side/RPC com transacao.
-- Exibir confirmacao mais rica com impacto: quantidade de gastos e parcelamentos que serao removidos.
+- `gastos.fatura_id` usa `ON DELETE CASCADE`.
+- A tabela legada `parcelamentos`, quando existir com `fatura_id`, tambem recebe cascade.
+- `useDeleteFatura` executa apenas a RPC `delete_fatura_atomically`, eliminando deletes client-side parciais.
+- A RPC valida o usuario com `auth.uid()`, bloqueia a fatura durante a operacao e remove os dados relacionados em uma unica transacao.
+- A confirmacao mostra a quantidade real de lancamentos e parcelamentos derivados que serao removidos.
+- A RPC retorna o caminho do PDF e as contagens removidas para feedback ao usuario.
+- A limpeza do PDF ocorre depois do commit e exibe aviso especifico se o Storage falhar.
+- Migration criada em `supabase/migrations/20260612_atomic_invoice_deletion.sql`.
 
 ### 4. Corrigir acessibilidade dos controles principais
 
@@ -414,7 +411,7 @@ Recomendacoes:
 - [x] Fazer `npm run lint` passar.
 - [x] Tipar e validar resposta da IA com `zod`.
 - Validar variaveis de ambiente na Vercel para Production e Preview.
-- Corrigir deletes relacionados e estados parciais.
+- [x] Corrigir deletes relacionados e estados parciais.
 - Adicionar `aria-label` em botoes de icone.
 - Implementar ou remover botao de visualizar fatura.
 
