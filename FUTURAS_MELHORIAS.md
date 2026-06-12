@@ -187,21 +187,27 @@ Recomendacoes:
 - Evitar usar o array inteiro de gastos como parte da query key de estatisticas; calcular com `useMemo` ou query key por `faturaId`.
 - Fazer invalidacoes especificas apos mutacoes para reduzir refetch desnecessario.
 
-### 10. Tratar importacao de multiplos PDFs como job observavel
+### 10. Tratar importacao de multiplos PDFs como job observavel - parcialmente implementado em 2026-06-12
 
-`components/pages/faturas-client.tsx` processa arquivos em loop sequencial e mostra um estado unico `isProcessing`.
+`components/pages/faturas-client.tsx` processa arquivos em loop sequencial com estado individual por arquivo.
 
 Na Vercel, esse ponto e ainda mais importante porque o processamento acontece em uma requisicao serverless. Chamadas longas para Gemini, PDFs grandes ou varios arquivos em sequencia podem atingir limites de execucao, memoria ou payload.
 
 Recomendacoes:
 
-- Mostrar progresso por arquivo: aguardando, processando, salvo, erro.
-- Permitir remover/reprocessar arquivo que falhou sem repetir todos.
+- [x] Mostrar progresso por arquivo: aguardando, enviando, processando, salvo, erro.
+- [x] Permitir remover/reprocessar arquivo que falhou sem repetir todos.
 - Validar tamanho maximo e tipo real do arquivo, nao apenas extensao/dropzone.
 - Evitar importacao duplicada por hash, mes ou combinacao de `mes_referencia` + usuario.
 - Considerar fila server-side se os PDFs forem grandes ou a IA demorar.
 - Considerar arquitetura assincrona: upload do PDF para storage, registro de job no banco, processamento posterior e polling/status na UI.
 - [x] Definir timeout e mensagem de erro especifica para limite/indisponibilidade da IA.
+
+Complementos implementados:
+
+- Falhas 422 ficam associadas ao arquivo e informam explicitamente que nenhum dado foi salvo.
+- O `requestId` aparece durante o processamento e pode ser correlacionado com os logs da Vercel.
+- A saida do Gemini usa JSON estruturado por schema, mantendo Zod como validacao final.
 
 ## Prioridade 2: UI, UX e produto
 

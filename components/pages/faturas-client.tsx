@@ -24,6 +24,8 @@ import {
   Loader2,
   Eye,
   TriangleAlert,
+  CircleCheck,
+  CircleX,
 } from "lucide-react";
 import { formatCurrency, formatDateTime, type Fatura } from "@/lib/data";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
@@ -42,8 +44,31 @@ interface DeleteImpact {
   isLoading: boolean;
 }
 
+type ImportStatus =
+  | "queued"
+  | "uploading"
+  | "processing"
+  | "success"
+  | "error";
+
+interface ImportItem {
+  id: string;
+  file: File;
+  status: ImportStatus;
+  error?: string;
+  requestId?: string;
+}
+
+const IMPORT_STATUS_LABELS: Record<ImportStatus, string> = {
+  queued: "Aguardando",
+  uploading: "Enviando PDF",
+  processing: "Processando pela IA",
+  success: "Importada",
+  error: "Falhou",
+};
+
 export function FaturasClient() {
-  const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
+  const [importItems, setImportItems] = React.useState<ImportItem[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [viewingFaturaId, setViewingFaturaId] = React.useState<string | null>(
     null,
@@ -59,8 +84,24 @@ export function FaturasClient() {
   const queryClient = useQueryClient();
 
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
-    setUploadedFiles((prev) => [...prev, ...acceptedFiles]);
+    setImportItems((previousItems) => [
+      ...previousItems,
+      ...acceptedFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        status: "queued" as const,
+      })),
+    ]);
   }, []);
+
+  const updateImportItem = React.useCallback(
+    (id: string, updates: Partial<Omit<ImportItem, "id" | "file">>) => {
+      setImportItems((items) =>
+        items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+      );
+    },
+    [],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -113,7 +154,10 @@ export function FaturasClient() {
   };
 
   const handleProcess = async () => {
-    if (uploadedFiles.length === 0) return;
+    const pendingItems = importItems.filter(
+      (item) => item.status === "queued" || item.status === "error",
+    );
+    if (pendingItems.length === 0) return;
     setIsProcessing(true);
 
     try {
@@ -124,11 +168,22 @@ export function FaturasClient() {
         return;
       }
 
-      for (const file of uploadedFiles) {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const item of pendingItems) {
+        const { file } = item;
         const pdfPath = `${session.user.id}/${crypto.randomUUID()}.pdf`;
         let importCompleted = false;
+        const requestId = crypto.randomUUID();
 
         try {
+          updateImportItem(item.id, {
+            status: "uploading",
+            error: undefined,
+            requestId: undefined,
+          });
+
           const { error: uploadError } = await supabase.storage
             .from(STORAGE.FATURAS)
             .upload(pdfPath, file, {
@@ -141,11 +196,14 @@ export function FaturasClient() {
             throw new Error("Não foi possível enviar o PDF para processamento.");
           }
 
+          updateImportItem(item.id, { status: "processing", requestId });
+
           const response = await fetch("/api/process-fatura", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
               "Content-Type": "application/json",
+              "X-Request-Id": requestId,
             },
             body: JSON.stringify({
               pdfPath,
@@ -155,7 +213,10 @@ export function FaturasClient() {
           });
 
           if (!response.ok) {
-            const errData = await response.json();
+            const errData = await response.json().catch(() => ({
+              error:
+                "A importação foi interrompida antes de receber uma resposta válida.",
+            }));
             const details = Array.isArray(errData.detalhes)
               ? errData.detalhes
                   .map(
@@ -172,6 +233,22 @@ export function FaturasClient() {
           }
 
           importCompleted = true;
+          successCount += 1;
+          updateImportItem(item.id, {
+            status: "success",
+            requestId,
+          });
+        } catch (error: unknown) {
+          errorCount += 1;
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Ocorreu um erro inesperado.";
+          updateImportItem(item.id, {
+            status: "error",
+            error: message,
+            requestId,
+          });
         } finally {
           if (!importCompleted) {
             await supabase.storage.from(STORAGE.FATURAS).remove([pdfPath]);
@@ -179,18 +256,30 @@ export function FaturasClient() {
         }
       }
 
-      toast.success("Faturas processadas com sucesso!");
-      setUploadedFiles([]);
-      refetch();
-      // Invalidate other queries like gastos to update dashboard
-      queryClient.invalidateQueries({ queryKey: ['gastos'] });
-      queryClient.invalidateQueries({ queryKey: ['parcelamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['estatisticas'] });
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1
+            ? "1 fatura importada com sucesso."
+            : `${successCount} faturas importadas com sucesso.`,
+        );
+        await refetch();
+        queryClient.invalidateQueries({ queryKey: ["gastos"] });
+        queryClient.invalidateQueries({ queryKey: ["parcelamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["estatisticas"] });
+      }
 
+      if (errorCount > 0) {
+        toast.error(
+          errorCount === 1
+            ? "1 arquivo não foi importado. Confira o motivo abaixo."
+            : `${errorCount} arquivos não foram importados. Confira os motivos abaixo.`,
+        );
+      }
     } catch (error: unknown) {
       console.error(error);
-      const message = error instanceof Error ? error.message : "Ocorreu um erro inesperado";
-      toast.error(message);
+      toast.error(
+        "Não foi possível iniciar a importação. Verifique sua conexão e tente novamente.",
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -330,39 +419,85 @@ export function FaturasClient() {
             </div>
           </div>
 
-          {uploadedFiles.length > 0 && (
+          {importItems.length > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-sm font-medium text-foreground">
                 Arquivos selecionados:
               </p>
-              {uploadedFiles.map((file, index) => (
+              {importItems.map((item) => (
                 <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  key={item.id}
+                  className="rounded-lg bg-muted p-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <span className="text-sm text-foreground">{file.name}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      {item.status === "success" ? (
+                        <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                      ) : item.status === "error" ? (
+                        <CircleX className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+                      ) : item.status === "uploading" ||
+                        item.status === "processing" ? (
+                        <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-primary" />
+                      ) : (
+                        <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.file.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {IMPORT_STATUS_LABELS[item.status]}
+                        </p>
+                        {item.status === "processing" && item.requestId && (
+                          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                            ID: {item.requestId}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setImportItems((items) =>
+                          items.filter((current) => current.id !== item.id),
+                        )
+                      }
+                      disabled={
+                        item.status === "uploading" ||
+                        item.status === "processing"
+                      }
+                      aria-label={`Remover arquivo ${item.file.name} da seleção`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setUploadedFiles((prev) =>
-                        prev.filter((_, i) => i !== index)
-                      )
-                    }
-                    disabled={isProcessing}
-                    aria-label={`Remover arquivo ${file.name} da seleção`}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {item.error && (
+                    <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+                      <p className="text-sm text-destructive">{item.error}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Nenhum dado deste arquivo foi salvo. Você pode tentar
+                        novamente.
+                      </p>
+                      {item.requestId && (
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                          ID da requisição: {item.requestId}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               <Button 
                 className="w-full mt-4" 
                 onClick={handleProcess}
-                disabled={isProcessing}
+                disabled={
+                  isProcessing ||
+                  !importItems.some(
+                    (item) =>
+                      item.status === "queued" || item.status === "error",
+                  )
+                }
               >
                 {isProcessing ? (
                   <>
@@ -370,11 +505,14 @@ export function FaturasClient() {
                     Processando...
                   </>
                 ) : (
-                  "Processar Faturas"
+                  importItems.some((item) => item.status === "error")
+                    ? "Tentar novamente"
+                    : "Processar faturas"
                 )}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                O processamento com IA pode levar alguns minutos.
+                O processamento com IA pode levar alguns minutos. Mantenha esta
+                página aberta até cada arquivo exibir o resultado.
               </p>
             </div>
           )}
