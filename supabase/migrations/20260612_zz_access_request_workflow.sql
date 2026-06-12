@@ -195,7 +195,7 @@ begin
     initial_status,
     now()
   )
-  on conflict (user_id) do update
+  on conflict on constraint app_users_pkey do update
   set
     email = excluded.email,
     display_name = coalesce(excluded.display_name, public.app_users.display_name),

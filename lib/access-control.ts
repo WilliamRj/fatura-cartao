@@ -56,6 +56,25 @@ interface AdminAccessUserRow extends AccessStateRow {
   last_login_at: string | null;
 }
 
+interface SupabaseErrorDetails {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+}
+
+function accessErrorMessage(error: SupabaseErrorDetails) {
+  if (error.code === "PGRST202" || error.code === "42883") {
+    return "O controle de acesso ainda não foi instalado no Supabase. Aplique as migrations de acesso e tente novamente.";
+  }
+
+  if (error.code === "42501") {
+    return "O Supabase bloqueou a verificação de acesso por falta de permissão. Reaplique os grants da migration.";
+  }
+
+  return "Não foi possível verificar sua autorização de acesso.";
+}
+
 function firstRow<T>(data: T[] | T | null): T | null {
   if (Array.isArray(data)) {
     return data[0] ?? null;
@@ -84,9 +103,15 @@ export async function getMyAccessProfile(user: User) {
   const { data, error } = await supabase.rpc("get_my_access_state");
 
   if (error) {
+    console.error("Falha na RPC get_my_access_state", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     throw createPublicDataError(
       error,
-      "Não foi possível verificar sua autorização de acesso.",
+      accessErrorMessage(error),
     );
   }
 

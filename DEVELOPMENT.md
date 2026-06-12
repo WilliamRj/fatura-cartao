@@ -95,6 +95,10 @@ npx supabase link --project-ref SEU_PROJECT_REF
 > SQL, confirme que existe outro administrador ativo para evitar perda do
 > painel de acesso.
 
+Se o app informar que não conseguiu verificar a autorização, execute
+`supabase/scripts/diagnose_access_workflow.sql`. A query verifica tabelas,
+funções e grants e solicita a atualização do cache de schema do PostgREST.
+
 O `project-ref` aparece na URL do painel:
 
 ```text
