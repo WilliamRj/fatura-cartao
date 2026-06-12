@@ -85,7 +85,8 @@ components/
   fatura-provider.tsx         # Fatura selecionada
   app-sidebar.tsx             # Navegação global
 lib/
-  api/                        # Contratos e query keys
+  api/                        # DTOs, mappers e query keys
+  domain/                     # Modelos usados pela aplicação
   hooks/                      # React Query + Supabase
   env/                        # Validação de ambiente
   server/                     # Logger server-side

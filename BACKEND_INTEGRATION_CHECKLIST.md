@@ -51,9 +51,9 @@
 Estado atual: derivados de `gastos.parcela`.
 
 - [ ] Confirmar se a tabela legada `parcelamentos` existe.
-- [ ] Decidir se será removida ou adotada.
-- [ ] Se removida, retirar contratos legados.
-- [ ] Se mantida, implementar leitura e escrita.
+- [x] Aplicação decidiu usar uma visão derivada de gastos.
+- [x] Contrato `TABLES.PARCELAMENTOS` removido do código.
+- [ ] Auditar e remover a tabela física legada, se ela existir.
 - [x] Tela respeita divisões por responsável.
 - [x] Cards mostram valor original e parte dividida.
 

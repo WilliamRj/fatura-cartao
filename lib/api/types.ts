@@ -1,62 +1,43 @@
-// API Types - Mirror of lib/data.ts interfaces, extended for database responses
+import type { DivisaoGasto } from "@/lib/domain/models";
 
-export interface ApiResponsavel {
+export interface ResponsavelRow {
   id: string;
   user_id: string;
   nome: string;
-  cor?: string;
+  cor: string | null;
   created_at?: string;
 }
 
-export interface ApiCategoria {
+export interface GastoRow {
   id: string;
-  nome: string;
-  icone?: string;
-}
-
-export interface ApiGasto {
-  id: string;
-  user_id?: string;
-  fatura_id?: string;
+  user_id: string;
+  fatura_id: string | null;
   data: string;
   estabelecimento: string;
   valor: number;
   categoria: string;
   responsavel: string;
-  parcela?: string;
-  observacao?: string;
-  divisoes?: { valor: number; responsavel: string }[] | null;
+  parcela: string | null;
+  observacao: string | null;
+  divisoes: DivisaoGasto[] | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface ApiFatura {
+export interface FaturaRow {
   id: string;
-  user_id?: string;
+  user_id: string;
   mes_referencia: string;
   valor_total: number;
   quantidade_lancamentos: number;
   data_importacao: string;
-  arquivo_url?: string | null;
-  arquivo_hash?: string | null;
+  arquivo_url: string | null;
+  arquivo_hash: string | null;
   created_at?: string;
 }
 
-export interface ApiParcelamento {
-  id: string;
-  user_id?: string;
-  fatura_id?: string;
-  nome: string;
-  parcela_atual: number;
-  total_parcelas: number;
-  valor_parcela: number;
-  valor_total: number;
-  categoria?: string;
-  created_at?: string;
-}
-
-// Request/Response types for mutations
-export interface CreateGastoRequest {
+export interface GastoInsert {
+  user_id: string;
   fatura_id?: string;
   data: string;
   estabelecimento: string;
@@ -65,27 +46,19 @@ export interface CreateGastoRequest {
   responsavel: string;
   parcela?: string;
   observacao?: string;
-  divisoes?: { valor: number; responsavel: string }[] | null;
+  divisoes?: DivisaoGasto[] | null;
 }
 
-export interface UpdateGastoRequest {
-  fatura_id?: string;
-  data?: string;
-  estabelecimento?: string;
-  valor?: number;
-  categoria?: string;
-  responsavel?: string;
-  parcela?: string;
-  observacao?: string;
-  divisoes?: { valor: number; responsavel: string }[] | null;
-}
+export type GastoUpdate = Partial<Omit<GastoInsert, "user_id">>;
 
-export interface CreateResponsavelRequest {
+export interface ResponsavelInsert {
+  user_id: string;
   nome: string;
   cor?: string;
 }
 
-export interface FileUploadResponse {
-  path: string;
-  fullPath: string;
+export interface DeleteFaturaResultRow {
+  arquivo_url: string | null;
+  gastos_removidos: number;
+  parcelamentos_removidos: number;
 }

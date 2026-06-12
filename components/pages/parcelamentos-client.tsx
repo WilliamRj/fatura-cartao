@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency, type Parcelamento } from "@/lib/data";
+import { formatCurrency } from "@/lib/data";
+import type { Parcelamento } from "@/lib/domain/models";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 

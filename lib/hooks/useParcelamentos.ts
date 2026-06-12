@@ -1,69 +1,46 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { TABLES } from '@/lib/api/endpoints';
-import type { Parcelamento } from '@/lib/data';
-import { createPublicDataError } from '@/lib/errors';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/components/auth-provider';
+import { useQuery } from "@tanstack/react-query";
+
+import { mapGastoRowToParcelamento } from "@/lib/api/mappers";
+import { QUERY_KEYS, TABLES } from "@/lib/api/endpoints";
+import type { GastoRow } from "@/lib/api/types";
+import { useAuth } from "@/components/auth-provider";
+import { createPublicDataError } from "@/lib/errors";
+import { supabase } from "@/lib/supabase/client";
 
 export function useParcelamentos(faturaId?: string | null) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['parcelamentos', user?.id, faturaId],
+    queryKey: [...QUERY_KEYS.PARCELAMENTOS, user?.id, faturaId],
     queryFn: async () => {
       let query = supabase
         .from(TABLES.GASTOS)
-        .select('*')
-        .eq('user_id', user!.id)
-        .not('parcela', 'is', null);
-        
+        .select("*")
+        .eq("user_id", user!.id)
+        .not("parcela", "is", null);
+
       if (faturaId) {
-        query = query.eq('fatura_id', faturaId);
+        query = query.eq("fatura_id", faturaId);
       } else if (faturaId === null) {
         return [];
       }
 
       const { data, error } = await query;
-        
+
       if (error) {
         throw createPublicDataError(
           error,
-          'Não foi possível carregar os parcelamentos.'
+          "Não foi possível carregar os parcelamentos."
         );
       }
-      
-      const parcelamentos: Parcelamento[] = [];
 
-      for (const gasto of data) {
-        if (!gasto.parcela) continue;
-        
-        // Extrai o formato X/Y, ex: "04/10"
-        const parts = gasto.parcela.split('/');
-        if (parts.length === 2) {
-          const atual = parseInt(parts[0], 10);
-          const total = parseInt(parts[1], 10);
-          
-          if (!isNaN(atual) && !isNaN(total)) {
-             parcelamentos.push({
-               id: gasto.id,
-               nome: gasto.estabelecimento,
-               parcelaAtual: atual,
-               totalParcelas: total,
-               valorParcela: gasto.valor,
-               valorTotal: gasto.valor * total,
-               responsavel: gasto.responsavel,
-               divisoes: gasto.divisoes,
-             });
-          }
-        }
-      }
-      
-      return parcelamentos;
+      return (data as GastoRow[])
+        .map(mapGastoRowToParcelamento)
+        .filter((parcelamento) => parcelamento !== null);
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!user && faturaId !== null,
   });
 }
-

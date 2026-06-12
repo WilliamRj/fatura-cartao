@@ -35,8 +35,8 @@ import {
   categorias,
   formatCurrency,
   formatDate,
-  type Gasto,
 } from "@/lib/data";
+import type { Gasto } from "@/lib/domain/models";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert, EmptyState } from "@/components/error";
 import { toast } from "sonner";

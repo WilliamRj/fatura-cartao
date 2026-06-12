@@ -2,7 +2,7 @@
 
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import type { Fatura, Gasto } from "@/lib/data";
+import type { Fatura, Gasto } from "@/lib/domain/models";
 
 type ReportScope = "todos" | string;
 

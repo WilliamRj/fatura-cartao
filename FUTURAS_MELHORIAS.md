@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 6 | Implementado e validado no código |
+| ✅ Concluído | 7 | Implementado e validado no código |
 | 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 14 | Priorizado para ciclos futuros |
+| 📌 Planejado | 13 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -240,22 +240,33 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Executar e validar a migration no projeto Supabase de producao.
 - Executar `supabase/tests/user_data_isolation.sql` com pelo menos duas contas existentes.
 
-### 📌 8. Unificar modelo de dados e nomes
+### ✅ 8. Unificar modelo de dados e nomes
 
-Ha tipos em `lib/data.ts`, tipos de API em `lib/api/types.ts` e mapeamentos nos hooks. Isso funciona, mas tende a divergir.
+**Concluído em:** 12 de junho de 2026
 
-Exemplos:
+**Decisão de arquitetura**
 
-- `ApiGasto` e `Gasto` duplicam varios campos.
-- `ApiFatura.quantidade_lancamentos` vira `Fatura.quantidadeLancamentos`.
-- `Parcelamento` e derivado de gastos em `lib/hooks/useParcelamentos.ts`, apesar de existir constante `TABLES.PARCELAMENTOS`.
+- `lib/domain/models.ts` contém os modelos camelCase usados pela aplicação.
+- `lib/api/types.ts` contém somente linhas e payloads snake_case do Supabase.
+- `lib/api/mappers.ts` é a fronteira única entre banco e domínio.
+- `lib/data.ts` ficou responsável apenas por catálogo e formatação.
+- Parcelamentos são oficialmente uma visão derivada de `gastos.parcela`.
 
-**Próximas ações**
+**Resultado**
 
-- Criar uma camada clara de DTOs e mappers em `lib/api/mappers.ts`.
-- Definir categorias/responsaveis com tipos literais quando possivel.
-- Decidir se `parcelamentos` sera entidade propria ou visao derivada de `gastos`.
-- Adicionar fixtures de teste para garantir que mappers continuam corretos.
+- Interfaces duplicadas `Api*` foram substituídas por DTOs com sufixo `Row`.
+- Hooks deixaram de montar objetos manualmente e usam mappers compartilhados.
+- Lista, detalhe, criação e atualização de gastos retornam o mesmo formato.
+- `quantidadeLançamentos` foi normalizado para `quantidadeLancamentos`.
+- `DivisaoGasto` passou a ser compartilhado por gasto, DTO e parcelamento.
+- Contratos não utilizados de tabela/detalhe de parcelamentos foram removidos.
+- `lib/mock-data.ts` e os mocks antigos de `lib/data.ts` foram removidos.
+
+**Manutenção**
+
+- Snake_case deve permanecer restrito a `lib/api` e chamadas Supabase.
+- Componentes e regras de negócio devem importar modelos de `lib/domain`.
+- Testes unitários dos mappers entram junto ao item 20, quando a suíte for criada.
 
 ### 📌 9. Melhorar cache e invalidações do React Query
 
@@ -503,7 +514,8 @@ Fluxos sugeridos:
 
 - `.env.example` já lista apenas as variáveis utilizadas, incluindo `GEMINI_API_KEY`.
 - O rewrite global legado de `vercel.json` foi removido em 2026-06-11 para evitar conflito com App Router, chunks e APIs.
-- `lib/api/endpoints.ts` ainda declara Storage e tabela `parcelamentos`, embora esses contratos nao estejam plenamente implementados.
+- Contratos não utilizados de Storage e da tabela `parcelamentos` foram removidos de `lib/api/endpoints.ts`.
+- A aplicação mantém apenas a query key da visão derivada de parcelamentos.
 
 **Próximas ações**
 
@@ -553,11 +565,12 @@ Fluxos sugeridos:
 **Objetivo:** reduzir divergências de dados e comprovar o isolamento entre contas.
 
 - [x] Separar Server e Client Components.
-- [ ] Centralizar DTOs, mappers e query keys.
+- [x] Centralizar DTOs e mappers.
+- [ ] Centralizar query keys.
 - [ ] Documentar as políticas RLS por tabela.
 - [ ] Executar as migrations pendentes no Supabase de produção.
 - [ ] Testar isolamento completo com duas contas autorizadas.
-- [ ] Definir oficialmente parcelamentos como entidade ou visão derivada.
+- [x] Definir parcelamentos como visão derivada de gastos.
 
 **Critério de conclusão:** duas contas não conseguem consultar, alterar ou excluir dados uma da outra, inclusive por chamadas diretas ao Supabase.
 
@@ -615,7 +628,8 @@ Fluxos sugeridos:
 - [ ] Decidir o destino de `test-jspdf.js`.
 - [ ] Decidir se `CLAUDE.md` permanece.
 - [ ] Adicionar scripts de teste e formatação.
-- [ ] Revisar constantes e contratos legados de parcelamentos.
+- [x] Revisar constantes e contratos legados de parcelamentos.
+- [ ] Auditar e remover a tabela física legada `parcelamentos`, se ela existir no Supabase.
 
 ---
 

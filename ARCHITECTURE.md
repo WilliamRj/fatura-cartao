@@ -33,7 +33,8 @@ Deploy: Vercel
 | UI | Primitivos reutilizáveis | `components/ui/` |
 | Estado global | Sessão, fatura atual e tema | `components/*provider.tsx` |
 | Dados | Queries, mutações e cache | `lib/hooks/` |
-| Contratos | Tipos, tabelas e query keys | `lib/api/` |
+| Domínio | Modelos camelCase usados pela UI | `lib/domain/` |
+| Contratos | DTOs snake_case, mappers, tabelas e query keys | `lib/api/` |
 | Backend | Processamento, ambiente e logs | `app/api/`, `lib/server/` |
 | Persistência | Auth, PostgreSQL, RLS e Storage | Supabase |
 
@@ -145,7 +146,10 @@ Parcelamentos não são lidos de uma tabela própria. `useParcelamentos` selecio
 - responsável;
 - divisões por pessoa.
 
-`TABLES.PARCELAMENTOS` permanece como contrato legado até uma decisão definitiva.
+Parcelamentos são oficialmente uma visão derivada. O contrato
+`TABLES.PARCELAMENTOS` foi removido da aplicação. Se uma tabela física antiga
+ainda existir no Supabase, ela é considerada legado de banco e pode ser
+removida após auditoria dos dados.
 
 ### Divisões
 
@@ -185,6 +189,19 @@ Detalhes:
 
 ## 🗃️ Modelo de dados
 
+### Fronteira de nomes
+
+```text
+Supabase Row (snake_case)
+  → lib/api/mappers.ts
+  → Domain Model (camelCase)
+  → componentes e regras de negócio
+```
+
+- `lib/api/types.ts`: `FaturaRow`, `GastoRow`, `ResponsavelRow`.
+- `lib/domain/models.ts`: `Fatura`, `Gasto`, `Responsavel`, `Parcelamento`.
+- `lib/data.ts`: formatadores e catálogo de categorias.
+
 ### `faturas`
 
 `id`, `user_id`, `mes_referencia`, `valor_total`, `quantidade_lancamentos`, `data_importacao`, `arquivo_url`, `arquivo_hash`.
@@ -205,7 +222,9 @@ Detalhes:
 
 ### `parcelamentos`
 
-A aplicação atual não lê essa tabela. Confirmar se será removida ou transformada em entidade real.
+A aplicação não lê essa tabela e adotou oficialmente a visão derivada de
+`gastos.parcela`. Se a tabela física legada ainda existir no Supabase, sua
+auditoria e remoção permanecem como tarefa operacional do banco.
 
 ## 🗑️ Exclusão de fatura
 

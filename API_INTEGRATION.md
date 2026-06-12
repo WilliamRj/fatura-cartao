@@ -110,12 +110,14 @@ O usuário autenticado deve conseguir verificar apenas o próprio email, sem enu
 
 ### Parcelamentos
 
-A tela deriva parcelamentos de `gastos.parcela`. Não crie uma tabela nova apenas por existir uma constante legada.
+A tela deriva parcelamentos de `gastos.parcela`. Essa é a decisão oficial do
+modelo atual.
 
-Decisão pendente:
-
-- remover o contrato legado; ou
-- transformar parcelamentos em entidade real com leitura e escrita próprias.
+- Não existe DTO `ParcelamentoRow`.
+- Não existe `TABLES.PARCELAMENTOS` no contrato da aplicação.
+- `mapGastoRowToParcelamento` transforma gastos parcelados na visão exibida.
+- Uma tabela física antiga, se existir no Supabase, é apenas legado até sua
+  remoção ser auditada.
 
 ## 🛡️ RLS
 
@@ -311,6 +313,17 @@ supabase/migrations/20260612_atomic_invoice_deletion.sql
 | `useParcelamentos` | `gastos` com `parcela` |
 | `useResponsaveis` | `responsaveis` |
 
+## 🔄 DTOs e mappers
+
+| Camada | Convenção | Exemplo |
+|---|---|---|
+| Supabase | snake_case + sufixo `Row` | `FaturaRow.valor_total` |
+| Mapper | conversão explícita | `mapFaturaRow` |
+| Domínio | camelCase | `Fatura.valorTotal` |
+
+Modelos da aplicação ficam em `lib/domain/models.ts`. Componentes não devem
+consumir diretamente linhas do Supabase.
+
 ## ✅ Verificação manual
 
 - [ ] Login autorizado.
@@ -326,6 +339,6 @@ supabase/migrations/20260612_atomic_invoice_deletion.sql
 ## 🧹 Decisões pendentes
 
 - [ ] Remover ou adotar a rota `/logout`.
-- [ ] Definir o destino do contrato `TABLES.PARCELAMENTOS`.
+- [x] Remover o contrato `TABLES.PARCELAMENTOS` e manter visão derivada.
 - [ ] Criar testes de integração para RLS.
 - [ ] Avaliar job assíncrono para importações longas.

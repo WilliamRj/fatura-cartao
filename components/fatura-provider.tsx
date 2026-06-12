@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useFaturas } from "@/lib/hooks/useFaturas";
-import type { Fatura } from "@/lib/data";
+import type { Fatura } from "@/lib/domain/models";
 
 interface FaturaContextType {
   faturaAtual: Fatura | null;

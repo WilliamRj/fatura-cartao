@@ -204,7 +204,8 @@ Antes de alterar código relacionado ao framework:
 | `components/pages/` | Interatividade específica de cada rota |
 | `components/ui/` | Primitivos reutilizáveis |
 | `lib/hooks/` | Queries e mutações |
-| `lib/api/` | Tipos, tabelas e query keys |
+| `lib/api/` | DTOs snake_case, mappers, tabelas e query keys |
+| `lib/domain/` | Modelos camelCase da aplicação |
 | `lib/env/` | Validação de ambiente |
 | `lib/server/` | Infraestrutura server-side |
 | `lib/supabase/` | Cliente Supabase |
@@ -223,7 +224,8 @@ Antes de alterar código relacionado ao framework:
 Ao criar ou alterar um hook:
 
 - [ ] Use React Query.
-- [ ] Use contratos de `lib/api`.
+- [ ] Use DTOs e mappers de `lib/api`.
+- [ ] Retorne modelos de `lib/domain`.
 - [ ] Trate `{ error }` do Supabase.
 - [ ] Inclua o usuário na query key.
 - [ ] Filtre explicitamente por `user_id`.
@@ -281,8 +283,8 @@ Considere toda resposta do Gemini como entrada não confiável:
 
 1. Crie uma migration versionada.
 2. Defina RLS e índices.
-3. Atualize os tipos.
-4. Atualize hooks e mappers.
+3. Atualize o DTO `*Row` em `lib/api/types.ts`.
+4. Atualize o mapper e o modelo de domínio quando necessário.
 5. Teste com dois usuários.
 6. Atualize `API_INTEGRATION.md`.
 

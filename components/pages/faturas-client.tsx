@@ -27,7 +27,8 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react";
-import { formatCurrency, formatDateTime, type Fatura } from "@/lib/data";
+import { formatCurrency, formatDateTime } from "@/lib/data";
+import type { Fatura } from "@/lib/domain/models";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
@@ -317,7 +318,7 @@ export function FaturasClient() {
   const handleRequestDelete = async (fatura: Fatura) => {
     setFaturaToDelete(fatura);
     setDeleteImpact({
-      gastos: fatura.quantidadeLançamentos,
+      gastos: fatura.quantidadeLancamentos,
       parcelamentos: null,
       isLoading: true,
     });
@@ -330,7 +331,7 @@ export function FaturasClient() {
     if (impactError) {
       console.error("Não foi possível calcular o impacto da exclusão:", impactError);
       setDeleteImpact({
-        gastos: fatura.quantidadeLançamentos,
+        gastos: fatura.quantidadeLancamentos,
         parcelamentos: null,
         isLoading: false,
       });
@@ -358,7 +359,7 @@ export function FaturasClient() {
   };
 
   const displayedDeleteExpenses =
-    deleteImpact?.gastos ?? faturaToDelete?.quantidadeLançamentos ?? 0;
+    deleteImpact?.gastos ?? faturaToDelete?.quantidadeLancamentos ?? 0;
   const displayedDeleteInstallments = deleteImpact?.parcelamentos;
 
   if (isLoading) {
@@ -594,7 +595,7 @@ export function FaturasClient() {
                       Lançamentos
                     </span>
                     <Badge variant="secondary">
-                      {fatura.quantidadeLançamentos}
+                      {fatura.quantidadeLancamentos}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
