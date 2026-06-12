@@ -49,10 +49,11 @@ Resultado:
 - Fatura e gastos sao inseridos pela RPC transacional `import_fatura_atomically`, impedindo estado parcialmente salvo.
 - Migration criada em `supabase/migrations/20260611_atomic_invoice_import.sql`.
 
-Pendente de ambiente:
+Complemento implementado:
 
-- Executar a nova migration no projeto Supabase de producao antes de publicar a rota atualizada.
-- Persistir o arquivo PDF ou hash do arquivo para evitar importacao duplicada.
+- O PDF original passa a ser salvo no bucket privado `faturas`.
+- O caminho e vinculado a `faturas.arquivo_url`.
+- Continua pendente armazenar hash para detectar importacao duplicada.
 
 ### 3. Revisar delecoes relacionadas
 
@@ -266,15 +267,18 @@ Recomendacoes:
 - Manter contadores: total filtrado, pagina atual e itens por pagina.
 - Exibir botoes Proximo/Anterior com estado desabilitado acessivel.
 
-### 15. Finalizar a acao de visualizar fatura
+### 15. Finalizar a acao de visualizar fatura - concluido em 2026-06-11
 
-Ha botao com icone `Eye` em `app/faturas/page.tsx:246-248`, mas sem `onClick`.
+Resultado:
 
-Recomendacoes:
+- PDFs novos sao armazenados no bucket privado `faturas`, em caminho isolado por usuario.
+- O botao com icone `Eye` gera URL assinada curta e abre o PDF original em nova aba.
+- Faturas antigas sem `arquivo_url` exibem o botao desabilitado.
+- A exclusao da fatura tenta remover tambem o arquivo do Storage.
+
+Evolucao futura:
 
 - Implementar detalhe da fatura com resumo, gastos, parcelamentos e auditoria da importacao.
-- Se o PDF for armazenado em Supabase Storage, Vercel Blob ou outro storage persistente, permitir abrir/download do arquivo original.
-- Se ainda nao houver detalhe, remover temporariamente o botao para nao criar falsa expectativa.
 
 ### 16. Melhorar estados vazios e acoes contextuais
 

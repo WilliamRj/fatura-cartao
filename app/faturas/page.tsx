@@ -22,10 +22,16 @@ import { ErrorAlert } from "@/components/error";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { STORAGE } from "@/lib/api/endpoints";
+
+const MAX_PDF_SIZE = 20 * 1024 * 1024;
 
 export default function FaturasPage() {
   const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [viewingFaturaId, setViewingFaturaId] = React.useState<string | null>(
+    null,
+  );
   const { data: faturas, isLoading, error, refetch } = useFaturas();
   const deleteFatura = useDeleteFatura();
   const queryClient = useQueryClient();
@@ -36,11 +42,53 @@ export default function FaturasPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected: () => {
+      toast.error("Selecione apenas arquivos PDF de até 20 MB.");
+    },
     accept: {
       "application/pdf": [".pdf"],
     },
+    maxSize: MAX_PDF_SIZE,
     multiple: true,
   });
+
+  const handleViewFatura = async (
+    faturaId: string,
+    arquivoUrl?: string,
+  ) => {
+    if (!arquivoUrl) {
+      toast.error("Esta fatura não possui um PDF armazenado.");
+      return;
+    }
+
+    const pdfWindow = window.open("about:blank", "_blank");
+    if (!pdfWindow) {
+      toast.error("Permita pop-ups para visualizar o PDF da fatura.");
+      return;
+    }
+
+    pdfWindow.opener = null;
+    pdfWindow.document.title = "Carregando fatura...";
+    setViewingFaturaId(faturaId);
+
+    try {
+      const { data, error: signedUrlError } = await supabase.storage
+        .from(STORAGE.FATURAS)
+        .createSignedUrl(arquivoUrl, 60);
+
+      if (signedUrlError) {
+        throw signedUrlError;
+      }
+
+      pdfWindow.location.replace(data.signedUrl);
+    } catch (error: unknown) {
+      pdfWindow.close();
+      console.error(error);
+      toast.error("Não foi possível abrir o PDF da fatura.");
+    } finally {
+      setViewingFaturaId(null);
+    }
+  };
 
   const handleProcess = async () => {
     if (uploadedFiles.length === 0) return;
@@ -249,8 +297,32 @@ export default function FaturasPage() {
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                      <Eye className="h-4 w-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        void handleViewFatura(fatura.id, fatura.arquivoUrl)
+                      }
+                      disabled={
+                        !fatura.arquivoUrl || viewingFaturaId === fatura.id
+                      }
+                      aria-label={
+                        fatura.arquivoUrl
+                          ? `Visualizar PDF da fatura ${fatura.mesReferencia}`
+                          : `PDF indisponível para ${fatura.mesReferencia}`
+                      }
+                      title={
+                        fatura.arquivoUrl
+                          ? "Visualizar PDF"
+                          : "PDF não armazenado"
+                      }
+                    >
+                      {viewingFaturaId === fatura.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -261,6 +333,7 @@ export default function FaturasPage() {
                           deleteFatura.mutate(fatura.id);
                         }
                       }}
+                      aria-label={`Excluir fatura ${fatura.mesReferencia}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

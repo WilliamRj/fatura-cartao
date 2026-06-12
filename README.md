@@ -120,8 +120,9 @@ supabase/migrations/20260611_user_data_isolation.sql
 Pontos de atencao em producao:
 
 - `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
-- PDFs enviados para a function nao ficam persistidos automaticamente.
-- Para auditoria ou reprocessamento, salve PDF/hash em Supabase Storage, Vercel Blob ou outro storage.
+- PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
+- A visualizacao usa URL assinada e a exclusao da fatura tenta remover o arquivo original.
+- Ainda falta armazenar hash para detectar importacoes duplicadas.
 - RLS no Supabase e obrigatorio, pois o app fica acessivel remotamente.
 
 ## Documentacao

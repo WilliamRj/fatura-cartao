@@ -28,6 +28,7 @@ export interface Fatura {
   valorTotal: number;
   quantidadeLançamentos: number;
   dataImportacao: string;
+  arquivoUrl?: string;
 }
 
 export interface Parcelamento {

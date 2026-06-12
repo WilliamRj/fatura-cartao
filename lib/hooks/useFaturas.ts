@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QUERY_KEYS, TABLES } from '@/lib/api/endpoints';
+import { QUERY_KEYS, STORAGE, TABLES } from '@/lib/api/endpoints';
 import type { ApiFatura } from '@/lib/api/types';
 import type { Fatura } from '@/lib/data';
 import { supabase } from '@/lib/supabase/client';
@@ -27,6 +27,7 @@ export function useFaturas() {
         valorTotal: apiFatura.valor_total,
         quantidadeLançamentos: apiFatura.quantidade_lancamentos,
         dataImportacao: apiFatura.data_importacao,
+        arquivoUrl: apiFatura.arquivo_url ?? undefined,
       })) as Fatura[];
     },
     staleTime: 1000 * 60 * 5,
@@ -42,6 +43,14 @@ export function useDeleteFatura() {
     mutationFn: async (id: string) => {
       if (!user) throw new Error('Usuário não autenticado');
 
+      const { data: fatura, error: lookupError } = await supabase
+        .from(TABLES.FATURAS)
+        .select('arquivo_url')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+
       const { error: gastosError } = await supabase
         .from(TABLES.GASTOS)
         .delete()
@@ -55,6 +64,16 @@ export function useDeleteFatura() {
         .eq('id', id)
         .eq('user_id', user.id);
       if (faturaError) throw faturaError;
+
+      if (fatura?.arquivo_url) {
+        const { error: storageError } = await supabase.storage
+          .from(STORAGE.FATURAS)
+          .remove([fatura.arquivo_url]);
+
+        if (storageError) {
+          console.error('Não foi possível remover o PDF da fatura:', storageError);
+        }
+      }
     },
     onSuccess: () => {
       // Invalidate everything explicitly to ensure no stale cache remains

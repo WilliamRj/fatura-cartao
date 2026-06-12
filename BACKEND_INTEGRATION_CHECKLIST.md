@@ -57,37 +57,35 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 - [ ] A chave nao possui prefixo `NEXT_PUBLIC_`.
 - [ ] Cotas e billing foram verificados.
 - [ ] Erros 429 e 503 sao testados.
-- [ ] Resposta da IA e validada antes de salvar.
+- [x] Resposta da IA e validada antes de salvar.
 - [ ] Prompt/modelo configurado em `app/api/process-fatura/route.ts` foi confirmado como disponivel para a conta.
 
 ## 6. Importacao de PDFs
 
-- [ ] Apenas PDF e aceito.
-- [ ] Existe limite de tamanho no cliente e no servidor.
+- [x] Apenas PDF e aceito.
+- [x] Existe limite de tamanho no cliente e no servidor.
 - [ ] Arquivos duplicados sao detectados por hash ou regra equivalente.
-- [ ] Falha ao inserir gastos nao deixa fatura orfa.
+- [x] Falha ao inserir gastos nao deixa fatura orfa.
 - [ ] Usuario recebe progresso por arquivo.
 - [ ] Timeout da IA gera mensagem compreensivel.
 - [ ] Logs registram request, usuario, duracao e etapa da falha.
-- [ ] Foi decidido se PDF original precisa ser armazenado.
+- [x] Foi decidido que o PDF original deve ser armazenado.
 
 ## 7. Storage
 
-Status atual: nao implementado no codigo.
+Status atual: implementado com Supabase Storage pela migration `20260611_invoice_pdf_storage.sql`.
 
-Se storage for necessario:
-
-- [ ] Provedor escolhido: Supabase Storage, Vercel Blob ou outro.
-- [ ] Bucket/container e privado.
-- [ ] Caminho inclui `user_id`.
-- [ ] Policies impedem acesso cruzado.
-- [ ] Download usa URL assinada.
-- [ ] Exclusao da fatura remove/agenda exclusao do arquivo.
-- [ ] `arquivo_url`/path e salvo na fatura.
+- [x] Provedor escolhido: Supabase Storage.
+- [x] Bucket/container e privado.
+- [x] Caminho inclui `user_id`.
+- [x] Policies impedem acesso cruzado.
+- [x] Visualizacao usa URL assinada.
+- [x] Exclusao da fatura tenta remover o arquivo.
+- [x] `arquivo_url`/path e salvo na fatura.
 
 ## 8. Integridade de dados
 
-- [ ] `faturas` e `gastos` sao inseridos atomicamente por RPC/transacao, ou ha compensacao.
+- [x] `faturas` e `gastos` sao inseridos atomicamente por RPC/transacao, com compensacao do upload.
 - [ ] Exclusao de fatura usa cascade ou operacao transacional.
 - [ ] Erros de deletes relacionados sao checados.
 - [ ] Valores monetarios usam precisao adequada.

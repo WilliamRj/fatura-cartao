@@ -37,7 +37,7 @@ export interface ApiFatura {
   valor_total: number;
   quantidade_lancamentos: number;
   data_importacao: string;
-  arquivo_url?: string;
+  arquivo_url?: string | null;
   created_at?: string;
 }
 

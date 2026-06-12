@@ -217,11 +217,12 @@ Requisicao:
 Fluxo:
 
 1. valida token;
-2. envia PDF ao Gemini;
-3. interpreta JSON;
-4. insere `faturas`;
-5. define responsavel inicial;
-6. insere `gastos`.
+2. valida MIME, assinatura e limite de 20 MB do PDF;
+3. envia PDF ao Gemini;
+4. interpreta e valida a resposta com Zod;
+5. envia o PDF ao bucket privado `faturas`;
+6. grava `faturas`, `arquivo_url` e `gastos` pela RPC transacional;
+7. remove o objeto enviado se a RPC falhar.
 
 Resposta de sucesso:
 
@@ -235,33 +236,31 @@ Resposta de sucesso:
 Status tratados:
 
 - `400`: arquivo ausente;
+- `400`: arquivo invalido ou maior que 20 MB;
 - `401`: token ausente/invalido;
+- `422`: resposta da IA invalida;
 - `429`: cota da IA;
 - `503`: indisponibilidade da IA;
-- `500`: configuracao, parse ou persistencia.
+- `500`: configuracao, storage ou persistencia.
 
 Pendencias importantes:
 
-- validar resposta Gemini com Zod;
-- validar MIME/tamanho;
-- transacao para fatura + gastos;
 - idempotencia/hash;
-- storage persistente;
 - observabilidade;
 - avaliar job assincrono por causa dos limites da Vercel.
 
 ## Storage
 
-O codigo atual nao faz upload para Supabase Storage e nao preenche `arquivo_url`.
+O PDF original e armazenado no bucket privado `faturas`.
 
-Storage e uma evolucao, nao uma funcionalidade concluida. Ao implementar:
+- O caminho segue `<user_id>/<uuid>.pdf` e e salvo em `faturas.arquivo_url`.
+- Policies de `storage.objects` restringem leitura, upload e exclusao ao proprio usuario.
+- A tela gera URL assinada com validade curta para visualizar o arquivo.
+- A exclusao da fatura tenta remover tambem o objeto do Storage.
+- A rota remove o arquivo recem-enviado se a RPC de importacao falhar.
+- Bucket, policies, coluna e RPC atualizada estao em `supabase/migrations/20260611_invoice_pdf_storage.sql`.
 
-- prefira bucket privado;
-- use caminho por `user_id`;
-- aplique policies;
-- gere signed URLs;
-- armazene hash e metadados;
-- defina retencao/exclusao junto da fatura.
+Ainda falta armazenar hash/metadados para detectar importacoes duplicadas.
 
 ## Hooks e tabelas
 
@@ -289,5 +288,5 @@ Storage e uma evolucao, nao uma funcionalidade concluida. Ao implementar:
 
 - `SUPABASE_SERVICE_ROLE_KEY` em `.env.example`, enquanto nao houver uso real.
 - tabela/constantes de `parcelamentos`, se confirmadas como legado.
-- constantes `STORAGE` em `lib/api/endpoints.ts`, enquanto storage nao estiver implementado.
+- constantes `STORAGE` em `lib/api/endpoints.ts`, usadas pelo upload, visualizacao e exclusao dos PDFs.
 - rota `/logout`, se o logout continuar exclusivamente client-side.

@@ -154,18 +154,17 @@ Fluxo em `app/api/process-fatura/route.ts`:
 2. Cria cliente Supabase usando URL e anon key.
 3. Valida o usuario com `auth.getUser()`.
 4. Recebe um `File` por `FormData`.
-5. Converte PDF para base64.
-6. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
-7. Faz `JSON.parse` da resposta.
-8. Insere a fatura.
+5. Valida MIME, assinatura `%PDF-` e limite de 20 MB.
+6. Converte PDF para base64.
+7. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
+8. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
 9. Busca o responsavel principal.
-10. Insere os gastos.
+10. Envia o PDF ao bucket privado `faturas`.
+11. Insere fatura, caminho do PDF e gastos pela RPC transacional.
+12. Remove o objeto do Storage se a RPC falhar.
 
 Limitacoes atuais:
 
-- A resposta da IA ainda nao e validada com Zod.
-- A insercao de fatura e gastos nao e transacional.
-- O PDF original nao e salvo.
 - Nao ha hash/idempotencia contra duplicacao.
 - O processamento ocorre dentro de uma unica requisicao serverless.
 
@@ -181,7 +180,7 @@ Campos usados:
 - `valor_total`
 - `quantidade_lancamentos`
 - `data_importacao`
-- `arquivo_url` apenas nos tipos, sem uso atual
+- `arquivo_url`, contendo o caminho privado do PDF no Supabase Storage
 
 ### `gastos`
 

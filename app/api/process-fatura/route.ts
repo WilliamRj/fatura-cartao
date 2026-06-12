@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { randomUUID } from "node:crypto";
 import {
   formatValidationIssues,
   parsedFaturaSchema,
 } from "@/lib/ai/fatura-schema";
+import { STORAGE } from "@/lib/api/endpoints";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const MAX_PDF_SIZE = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,11 +42,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    if (file.size === 0 || file.size > MAX_PDF_SIZE) {
+      return NextResponse.json(
+        { error: "O PDF deve ter entre 1 byte e 20 MB." },
+        { status: 400 },
+      );
+    }
+
+    if (file.type !== "application/pdf") {
+      return NextResponse.json(
+        { error: "O arquivo enviado deve ser um PDF." },
+        { status: 400 },
+      );
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: "Gemini API key is missing. Add GEMINI_API_KEY to .env.local" }, { status: 500 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
+      return NextResponse.json(
+        { error: "O conteúdo do arquivo não corresponde a um PDF válido." },
+        { status: 400 },
+      );
+    }
     
     const pdfPart = {
       inlineData: {
@@ -149,6 +173,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const pdfPath = `${user.id}/${randomUUID()}.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE.FATURAS)
+      .upload(pdfPath, buffer, {
+        cacheControl: "3600",
+        contentType: "application/pdf",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Error uploading invoice PDF:", uploadError);
+      return NextResponse.json(
+        { error: "Não foi possível armazenar o PDF da fatura." },
+        { status: 500 },
+      );
+    }
+
     const { data: fatura, error: importError } = await supabase.rpc(
       "import_fatura_atomically",
       {
@@ -157,11 +198,20 @@ export async function POST(req: NextRequest) {
         p_data_importacao: new Date().toISOString(),
         p_responsavel: responsavelName,
         p_lancamentos: parsedData.lancamentos,
+        p_arquivo_url: pdfPath,
       },
     );
 
     if (importError) {
       console.error("Error importing fatura atomically:", importError);
+      const { error: cleanupError } = await supabase.storage
+        .from(STORAGE.FATURAS)
+        .remove([pdfPath]);
+
+      if (cleanupError) {
+        console.error("Error removing orphaned invoice PDF:", cleanupError);
+      }
+
       return NextResponse.json(
         {
           error:
