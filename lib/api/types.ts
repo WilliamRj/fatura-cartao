@@ -62,3 +62,23 @@ export interface DeleteFaturaResultRow {
   gastos_removidos: number;
   parcelamentos_removidos: number;
 }
+
+export interface ImportJobRow {
+  id: string;
+  user_id: string;
+  request_id: string;
+  file_name: string;
+  file_size: number;
+  file_hash: string;
+  pdf_path: string;
+  status: "queued" | "processing" | "success" | "duplicate" | "error";
+  stage: string;
+  progress: number;
+  error_message: string | null;
+  fatura_id: string | null;
+  duration_ms: number | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}

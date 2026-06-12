@@ -330,9 +330,11 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 
 **Decisão sobre fila assíncrona**
 
-- Uma fila persistente não foi adicionada nesta fase porque ainda não existe um worker independente para consumir jobs; polling sem worker não tornaria o processamento assíncrono.
-- O fluxo atual exige que a página permaneça aberta e atende ao volume atual com execução sequencial.
-- Migrar para tabela de jobs + worker quando houver lotes frequentes, duração próxima ao limite da Vercel, necessidade de continuar após fechar a página ou monitoramento operacional persistente.
+- A tabela `import_jobs` persiste fila, progresso, erro, duração e vínculo com a fatura.
+- `/api/import-jobs` responde com `202` após registrar o job e usa `after()` do Next.js, apoiado por `waitUntil` na Vercel, para continuar depois da resposta.
+- A tela consulta os jobs por RLS e retoma o acompanhamento após navegação, troca de aba ou reabertura.
+- O upload inicial ainda precisa terminar antes de fechar a janela; depois da confirmação de enfileiramento, o processamento pertence ao servidor.
+- Um worker independente continua sendo a evolução recomendada quando o volume ou a duração ultrapassarem os limites de uma única função Vercel.
 
 **Validações financeiras mantidas**
 
@@ -642,7 +644,8 @@ Fluxos sugeridos:
 - [x] Definir timeout e limite de upload.
 - [ ] Executar smoke test no domínio final.
 - [ ] Adicionar monitoramento de falhas.
-- [x] Definir critérios para migrar a importação para job assíncrono.
+- [x] Persistir jobs e continuar o processamento após navegação ou fechamento.
+- [ ] Migrar de `after()` para worker independente quando o volume exigir.
 - [ ] Correlacionar logs de browser, Vercel e Supabase.
 
 ### Sprint 7 · Organização do repositório

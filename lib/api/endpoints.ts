@@ -5,6 +5,7 @@ export const TABLES = {
   GASTOS: 'gastos',
   FATURAS: 'faturas',
   RESPONSAVEIS: 'responsaveis',
+  IMPORT_JOBS: 'import_jobs',
 } as const;
 
 // Storage buckets

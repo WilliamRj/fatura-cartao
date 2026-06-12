@@ -3,6 +3,7 @@ import type {
   Gasto,
   GastoCreateInput,
   GastoUpdateInput,
+  ImportJob,
   Parcelamento,
   Responsavel,
   ResponsavelCreateInput,
@@ -12,6 +13,7 @@ import type {
   GastoInsert,
   GastoRow,
   GastoUpdate,
+  ImportJobRow,
   ResponsavelInsert,
   ResponsavelRow,
 } from "@/lib/api/types";
@@ -132,5 +134,24 @@ export function mapGastoRowToParcelamento(
     valorTotal: row.valor * totalParcelas,
     responsavel: row.responsavel,
     divisoes: row.divisoes,
+  };
+}
+
+export function mapImportJobRow(row: ImportJobRow): ImportJob {
+  return {
+    id: row.id,
+    requestId: row.request_id,
+    fileName: row.file_name,
+    fileSize: row.file_size,
+    fileHash: row.file_hash,
+    status: row.status,
+    stage: row.stage,
+    progress: row.progress,
+    error: row.error_message ?? undefined,
+    faturaId: row.fatura_id ?? undefined,
+    durationMs: row.duration_ms ?? undefined,
+    createdAt: row.created_at,
+    startedAt: row.started_at ?? undefined,
+    completedAt: row.completed_at ?? undefined,
   };
 }

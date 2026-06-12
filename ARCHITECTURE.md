@@ -198,13 +198,17 @@ Detalhes:
 6. Falhas removem o objeto recém-enviado.
 7. Logs incluem `requestId`, etapa, status e duração.
 
-O navegador executa lotes sequencialmente e mantém um job observável por
-arquivo, com estado, progresso, duração, erro e `requestId`. A API devolve o
-estágio final e a duração para correlação com os logs.
+O navegador valida e envia cada arquivo sequencialmente. `/api/import-jobs`
+persiste o job no Supabase e responde com `202`; depois disso, `after()` mantém
+o processamento ativo na Vercel por meio de `waitUntil`.
 
-O modelo ainda não é uma fila persistente: fechar a página interrompe a
-orquestração do lote. A migração para tabela de jobs e worker independente deve
-ocorrer quando o volume ou a duração se aproximarem dos limites da Vercel.
+`useImportJobs` consulta `import_jobs` por usuário e faz polling enquanto houver
+trabalho ativo. Assim, navegação, troca de aba e fechamento da janela não
+interrompem jobs já confirmados pelo servidor. O upload inicial ainda precisa
+terminar antes de fechar a página.
+
+Um worker independente deve substituir `after()` quando o volume ou a duração
+deixarem de caber com folga no limite de uma função Vercel.
 
 ## 🗃️ Modelo de dados
 

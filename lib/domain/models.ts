@@ -66,3 +66,20 @@ export interface ResponsavelCreateInput {
   nome: string;
   cor?: string;
 }
+
+export interface ImportJob {
+  id: string;
+  requestId: string;
+  fileName: string;
+  fileSize: number;
+  fileHash: string;
+  status: "queued" | "processing" | "success" | "duplicate" | "error";
+  stage: string;
+  progress: number;
+  error?: string;
+  faturaId?: string;
+  durationMs?: number;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}

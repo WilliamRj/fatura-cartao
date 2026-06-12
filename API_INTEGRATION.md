@@ -284,6 +284,16 @@ sob RLS. A API recebe `fileHash`, recalcula o digest do conteúdo armazenado e
 rejeita divergências. Todas as respostas incluem `requestId`, `stage` e
 `durationMs` para observabilidade do lote.
 
+### `import_jobs`
+
+Fila persistente por usuário com `request_id`, metadados do PDF, status,
+progresso, estágio, erro, duração e `fatura_id`. O endpoint
+`POST /api/import-jobs` registra o job e responde `202`; o processamento segue
+em `after()`. A interface faz polling enquanto houver jobs `queued` ou
+`processing`.
+
+Migration: `20260612_persistent_invoice_import_jobs.sql`.
+
 Migrations:
 
 ```text
@@ -346,4 +356,5 @@ consumir diretamente linhas do Supabase.
 - [ ] Remover ou adotar a rota `/logout`.
 - [x] Remover o contrato `TABLES.PARCELAMENTOS` e manter visão derivada.
 - [ ] Criar testes de integração para RLS.
-- [x] Avaliar job assíncrono e definir critérios para adotar worker persistente.
+- [x] Persistir jobs e processá-los após a resposta com `after()`.
+- [ ] Adotar worker independente quando uma função Vercel deixar de ser suficiente.

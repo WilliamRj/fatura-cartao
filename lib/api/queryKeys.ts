@@ -39,4 +39,10 @@ export const queryKeys = {
     list: (userId: string) =>
       [...queryKeys.responsaveis.lists(), userId] as const,
   },
+  importJobs: {
+    all: ["import-jobs"] as const,
+    lists: () => [...queryKeys.importJobs.all, "list"] as const,
+    list: (userId: string) =>
+      [...queryKeys.importJobs.lists(), userId] as const,
+  },
 } as const;

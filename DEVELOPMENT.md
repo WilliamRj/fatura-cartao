@@ -290,6 +290,11 @@ Considere toda resposta do Gemini como entrada não confiável:
 5. Teste com dois usuários.
 6. Atualize `API_INTEGRATION.md`.
 
+Jobs de importação dependem da migration
+`20260612_persistent_invoice_import_jobs.sql`. Em desenvolvimento local, o
+runtime precisa oferecer suporte a `after()`; na Vercel, o Next.js usa
+`waitUntil` automaticamente.
+
 ## 🧪 Antes de concluir
 
 ```bash

@@ -33,6 +33,7 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/data";
 import type { Fatura } from "@/lib/domain/models";
 import { useFaturas, useDeleteFatura } from "@/lib/hooks/useFaturas";
+import { useImportJobs } from "@/lib/hooks/useImportJobs";
 import { LoadingSkeleton } from "@/components/loading";
 import { ErrorAlert } from "@/components/error";
 import { supabase } from "@/lib/supabase/client";
@@ -70,6 +71,7 @@ interface ImportItem {
   completedAt?: number;
   durationMs?: number;
   serverStage?: string;
+  progress?: number;
 }
 
 const IMPORT_STATUS_LABELS: Record<ImportStatus, string> = {
@@ -77,7 +79,7 @@ const IMPORT_STATUS_LABELS: Record<ImportStatus, string> = {
   validating: "Validando PDF",
   checking: "Verificando duplicidade",
   uploading: "Enviando PDF",
-  processing: "Processando pela IA",
+  processing: "Processando em segundo plano",
   success: "Importada",
   duplicate: "Já importada",
   error: "Falhou",
@@ -93,6 +95,14 @@ const IMPORT_STATUS_PROGRESS: Record<ImportStatus, number> = {
   duplicate: 100,
   error: 100,
 };
+
+const PERSISTED_JOB_STATUS_LABELS = {
+  queued: "Na fila",
+  processing: "Processando",
+  success: "Importada",
+  duplicate: "Duplicada",
+  error: "Falhou",
+} as const;
 
 function formatDuration(durationMs?: number) {
   if (durationMs === undefined) {
@@ -130,29 +140,87 @@ export function FaturasClient() {
     null,
   );
   const { data: faturas, isLoading, error, refetch } = useFaturas();
+  const { data: persistedJobs = [] } = useImportJobs();
   const deleteFatura = useDeleteFatura();
   const queryClient = useQueryClient();
+  const reconciledJobIds = React.useRef(new Set<string>());
+  const displayedImportItems = React.useMemo(
+    () =>
+      importItems.map((item) => {
+        const job = persistedJobs.find(
+          (persistedJob) => persistedJob.requestId === item.requestId,
+        );
+        if (!job) {
+          return item;
+        }
+
+        return {
+          ...item,
+          status:
+            job.status === "queued"
+              ? ("processing" as const)
+              : job.status,
+          progress: job.progress,
+          error: job.error,
+          durationMs: job.durationMs,
+          serverStage: job.stage,
+          completedAt: job.completedAt
+            ? new Date(job.completedAt).getTime()
+            : item.completedAt,
+        };
+      }),
+    [importItems, persistedJobs],
+  );
   const importSummary = React.useMemo(() => {
-    const completed = importItems.filter((item) =>
+    const completed = displayedImportItems.filter((item) =>
       ["success", "duplicate", "error"].includes(item.status),
     ).length;
-    const success = importItems.filter(
+    const success = displayedImportItems.filter(
       (item) => item.status === "success",
     ).length;
-    const failed = importItems.filter((item) => item.status === "error").length;
-    const duplicates = importItems.filter(
+    const failed = displayedImportItems.filter(
+      (item) => item.status === "error",
+    ).length;
+    const duplicates = displayedImportItems.filter(
       (item) => item.status === "duplicate",
     ).length;
     const progress =
-      importItems.length === 0
+      displayedImportItems.length === 0
         ? 0
-        : importItems.reduce(
-            (total, item) => total + IMPORT_STATUS_PROGRESS[item.status],
+        : displayedImportItems.reduce(
+            (total, item) =>
+              total + (item.progress ?? IMPORT_STATUS_PROGRESS[item.status]),
             0,
-          ) / importItems.length;
+          ) / displayedImportItems.length;
 
     return { completed, success, failed, duplicates, progress };
-  }, [importItems]);
+  }, [displayedImportItems]);
+
+  React.useEffect(() => {
+    const newlyCompleted = persistedJobs.filter(
+      (job) =>
+        job.status === "success" && !reconciledJobIds.current.has(job.id),
+    );
+    if (newlyCompleted.length === 0 || !user) {
+      return;
+    }
+
+    newlyCompleted.forEach((job) => reconciledJobIds.current.add(job.id));
+    void Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.faturas.list(user.id),
+        exact: true,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gastos.list(user.id),
+        exact: true,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.parcelamentos.list(user.id),
+        exact: true,
+      }),
+    ]);
+  }, [persistedJobs, queryClient, user]);
 
   React.useEffect(() => {
     if (!isProcessing) {
@@ -243,11 +311,18 @@ export function FaturasClient() {
       return;
     }
 
-    const pendingItems = importItems.filter(
-      (item) =>
-        (item.status === "queued" || item.status === "error") &&
-        (!selectedItemIds || selectedItemIds.includes(item.id)),
-    );
+    const pendingItems = importItems.filter((item) => {
+      if (selectedItemIds) {
+        return selectedItemIds.includes(item.id);
+      }
+
+      const displayedItem = displayedImportItems.find(
+        (candidate) => candidate.id === item.id,
+      );
+      return (
+        displayedItem?.status === "queued" || displayedItem?.status === "error"
+      );
+    });
     if (pendingItems.length === 0) return;
     processingRef.current = true;
     setIsProcessing(true);
@@ -261,7 +336,7 @@ export function FaturasClient() {
         return;
       }
 
-      let successCount = 0;
+      let queuedCount = 0;
       let errorCount = 0;
       let duplicateCount = 0;
       const seenHashes = new Map(
@@ -281,9 +356,6 @@ export function FaturasClient() {
         let importCompleted = false;
         const requestId = crypto.randomUUID();
         const startedAt = getCurrentTimestamp();
-        let serverStage: string | undefined;
-        let serverDurationMs: number | undefined;
-
         try {
           updateImportItem(item.id, {
             status: "validating",
@@ -352,7 +424,7 @@ export function FaturasClient() {
 
           updateImportItem(item.id, { status: "processing", requestId });
 
-          const response = await fetch("/api/process-fatura", {
+          const response = await fetch("/api/import-jobs", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -364,51 +436,40 @@ export function FaturasClient() {
               fileName: file.name,
               fileSize: file.size,
               fileHash: hash,
+              requestId,
             }),
           });
 
           const responseData = (await response.json().catch(() => ({
             error:
-              "A importação foi interrompida antes de receber uma resposta válida.",
+              "A importação não pôde ser registrada pelo servidor.",
           }))) as {
             error?: string;
-            detalhes?: Array<{ campo?: string; mensagem?: string }>;
-            requestId?: string;
-            stage?: string;
-            durationMs?: number;
+            job?: {
+              id: string;
+              request_id: string;
+              progress: number;
+            };
           };
-          serverStage = responseData.stage;
-          serverDurationMs = responseData.durationMs;
-          const responseRequestId =
-            responseData.requestId ??
-            response.headers.get("X-Request-Id") ??
-            requestId;
 
           if (!response.ok) {
-            const details = Array.isArray(responseData.detalhes)
-              ? responseData.detalhes
-                  .map(
-                    (detail) =>
-                      `${detail.campo ?? "resposta"}: ${detail.mensagem ?? "inválida"}`,
-                  )
-                  .join("; ")
-              : "";
             throw new Error(
-              [responseData.error || "Erro ao processar fatura", details]
-                .filter(Boolean)
-                .join(" "),
+              responseData.error || "Não foi possível enfileirar a fatura.",
             );
           }
 
           importCompleted = true;
-          successCount += 1;
+          queuedCount += 1;
           seenHashes.set(hash, item.id);
           updateImportItem(item.id, {
-            status: "success",
-            requestId: responseRequestId,
-            completedAt: getCurrentTimestamp(),
-            durationMs: getCurrentTimestamp() - startedAt,
-            serverStage,
+            status: "processing",
+            requestId,
+            progress: responseData.job?.progress ?? 5,
+            serverStage: "queued",
+          });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.importJobs.list(session.user.id),
+            exact: true,
           });
         } catch (error: unknown) {
           errorCount += 1;
@@ -420,9 +481,7 @@ export function FaturasClient() {
                 : "Ocorreu um erro inesperado.",
             requestId,
             completedAt: getCurrentTimestamp(),
-            durationMs:
-              serverDurationMs ?? getCurrentTimestamp() - startedAt,
-            serverStage,
+            durationMs: getCurrentTimestamp() - startedAt,
           });
         } finally {
           if (!importCompleted && pdfPath) {
@@ -431,28 +490,12 @@ export function FaturasClient() {
         }
       }
 
-      if (successCount > 0) {
+      if (queuedCount > 0) {
         toast.success(
-          successCount === 1
-            ? "1 fatura importada com sucesso."
-            : `${successCount} faturas importadas com sucesso.`,
+          queuedCount === 1
+            ? "1 fatura enviada para processamento."
+            : `${queuedCount} faturas enviadas para processamento.`,
         );
-        if (user) {
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.faturas.list(user.id),
-              exact: true,
-            }),
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.gastos.list(user.id),
-              exact: true,
-            }),
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.parcelamentos.list(user.id),
-              exact: true,
-            }),
-          ]);
-        }
       }
 
       if (errorCount > 0) {
@@ -649,7 +692,7 @@ export function FaturasClient() {
                   className="h-2"
                 />
               </div>
-              {importItems.map((item) => (
+              {displayedImportItems.map((item) => (
                 <div
                   key={item.id}
                   className="rounded-md border border-border bg-muted/35 p-3"
@@ -678,7 +721,9 @@ export function FaturasClient() {
                             : ""}
                         </p>
                         <Progress
-                          value={IMPORT_STATUS_PROGRESS[item.status]}
+                          value={
+                            item.progress ?? IMPORT_STATUS_PROGRESS[item.status]
+                          }
                           aria-label={`Progresso de ${item.file.name}`}
                           className="mt-2 h-1.5 w-full max-w-xs"
                         />
@@ -756,7 +801,7 @@ export function FaturasClient() {
                 onClick={() => void handleProcess()}
                 disabled={
                   isProcessing ||
-                  !importItems.some(
+                  !displayedImportItems.some(
                     (item) =>
                       item.status === "queued" || item.status === "error",
                   )
@@ -768,15 +813,86 @@ export function FaturasClient() {
                     Processando...
                   </>
                 ) : (
-                  importItems.some((item) => item.status === "error")
+                  displayedImportItems.some((item) => item.status === "error")
                     ? "Processar pendentes e falhas"
                     : "Processar faturas"
                 )}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                O processamento com IA pode levar alguns minutos. Mantenha esta
-                página aberta até cada arquivo exibir o resultado.
+                Após o envio para a fila, você pode navegar pelo app ou fechar
+                esta janela. O resultado ficará salvo nesta lista.
               </p>
+            </div>
+          )}
+
+          {persistedJobs.length > 0 && (
+            <div className="mt-6 border-t border-border pt-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Importações recentes
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Acompanhamento persistente do servidor
+                  </p>
+                </div>
+                {persistedJobs.some(
+                  (job) =>
+                    job.status === "queued" || job.status === "processing",
+                ) && (
+                  <Badge variant="secondary">
+                    <Loader2 className="animate-spin" />
+                    Em andamento
+                  </Badge>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {persistedJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-md border border-border bg-muted/25 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {job.fileName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {PERSISTED_JOB_STATUS_LABELS[job.status]}
+                          {formatDuration(job.durationMs)
+                            ? ` · ${formatDuration(job.durationMs)}`
+                            : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          job.status === "error"
+                            ? "destructive"
+                            : job.status === "success"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {PERSISTED_JOB_STATUS_LABELS[job.status]}
+                      </Badge>
+                    </div>
+                    <Progress
+                      value={job.progress}
+                      aria-label={`Progresso persistido de ${job.fileName}`}
+                      className="mt-2 h-1.5"
+                    />
+                    {job.error && (
+                      <p className="mt-2 text-xs text-destructive">
+                        {job.error}
+                      </p>
+                    )}
+                    <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                      ID: {job.requestId}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

@@ -105,8 +105,10 @@ supabase/migrations/          # Evolução versionada do banco
 6. Uma RPC salva fatura e gastos de forma transacional.
 7. Falhas removem o PDF temporário e retornam estágio, duração e `requestId`.
 
-Lotes são processados sequencialmente e exibem progresso e resultado por
-arquivo. A página deve permanecer aberta até o término.
+Lotes são enviados sequencialmente para `import_jobs`. Após a confirmação do
+servidor, o processamento continua com `after()` mesmo ao navegar pelo app ou
+fechar a janela. Ao retornar, a tela recupera progresso e resultado do
+Supabase.
 
 ## 🔒 Segurança por usuário
 
