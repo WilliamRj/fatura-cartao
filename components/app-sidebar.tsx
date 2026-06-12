@@ -69,6 +69,8 @@ function NavLink({
   const linkContent = (
     <Link
       href={href}
+      aria-current={isActive ? "page" : undefined}
+      aria-label={collapsed ? label : undefined}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
         isActive
@@ -194,7 +196,10 @@ function FaturaSelector({ collapsed, className }: { collapsed?: boolean; classNa
         value={faturaAtual?.id}
         onValueChange={(val) => setFaturaAtual(faturas.find((f) => f.id === val) || null)}
       >
-        <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border h-9">
+        <SelectTrigger
+          className="w-full bg-sidebar-accent/50 border-sidebar-border h-9"
+          aria-label="Selecionar fatura atual"
+        >
           <SelectValue placeholder="Selecione uma fatura">
             {faturaAtual ? faturaAtual.mesReferencia : "Selecione uma fatura"}
           </SelectValue>
@@ -223,6 +228,7 @@ function DesktopSidebar({
 
   return (
     <aside
+      id="desktop-sidebar"
       className={cn(
         "hidden lg:flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 sticky top-0",
         collapsed ? "w-[72px]" : "w-64"
@@ -276,6 +282,10 @@ function DesktopSidebar({
             size="icon"
             className={cn("h-9 w-9 text-sidebar-foreground/70", collapsed && "mt-2")}
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            aria-expanded={!collapsed}
+            aria-controls="desktop-sidebar"
+            title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
           >
             <ChevronLeft
               className={cn(
@@ -318,6 +328,8 @@ function MobileHeader() {
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 text-sidebar-foreground"
+                aria-label={open ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+                aria-expanded={open}
               />
             }
           >
@@ -343,6 +355,7 @@ function MobileHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={pathname === item.href ? "page" : undefined}
                   onClick={() => setOpen(false)}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",

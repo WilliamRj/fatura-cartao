@@ -317,7 +317,10 @@ export default function GastosPage() {
               value={categoriaFilter} 
               onValueChange={(val) => setCategoriaFilter(val ?? "all")}
             >
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger
+                className="w-full md:w-[180px]"
+                aria-label="Filtrar por categoria"
+              >
                 <SelectValue placeholder="Categoria">
                   {categoriaFilter === "all" ? "Todas Categorias" : categoriaFilter}
                 </SelectValue>
@@ -335,7 +338,10 @@ export default function GastosPage() {
               value={responsavelFilter}
               onValueChange={(val) => setResponsavelFilter(val ?? "all")}
             >
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger
+                className="w-full md:w-[180px]"
+                aria-label="Filtrar por responsável"
+              >
                 <SelectValue placeholder="Responsável">
                   {responsavelFilter === "all" ? "Todos Responsáveis" : responsavelFilter}
                 </SelectValue>
@@ -360,31 +366,74 @@ export default function GastosPage() {
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead
-                    className="cursor-pointer"
-                    onClick={() => handleSort("data")}
+                    aria-sort={
+                      sortField === "data"
+                        ? sortDirection === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
                   >
-                    <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1 rounded-sm py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => handleSort("data")}
+                    >
                       Data
-                      <ArrowUpDown className="h-4 w-4" />
-                    </div>
+                      <ArrowUpDown className="h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only">
+                        {sortField === "data"
+                          ? `Ordenado de forma ${sortDirection === "asc" ? "crescente" : "decrescente"}`
+                          : "Ordenar por data"}
+                      </span>
+                    </button>
                   </TableHead>
                   <TableHead
-                    className="cursor-pointer"
-                    onClick={() => handleSort("estabelecimento")}
+                    aria-sort={
+                      sortField === "estabelecimento"
+                        ? sortDirection === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
                   >
-                    <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1 rounded-sm py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => handleSort("estabelecimento")}
+                    >
                       Estabelecimento
-                      <ArrowUpDown className="h-4 w-4" />
-                    </div>
+                      <ArrowUpDown className="h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only">
+                        {sortField === "estabelecimento"
+                          ? `Ordenado de forma ${sortDirection === "asc" ? "crescente" : "decrescente"}`
+                          : "Ordenar por estabelecimento"}
+                      </span>
+                    </button>
                   </TableHead>
                   <TableHead
-                    className="cursor-pointer text-right"
-                    onClick={() => handleSort("valor")}
+                    className="text-right"
+                    aria-sort={
+                      sortField === "valor"
+                        ? sortDirection === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
                   >
-                    <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-end gap-1 rounded-sm py-2 text-right outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => handleSort("valor")}
+                    >
                       Valor
-                      <ArrowUpDown className="h-4 w-4" />
-                    </div>
+                      <ArrowUpDown className="h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only">
+                        {sortField === "valor"
+                          ? `Ordenado de forma ${sortDirection === "asc" ? "crescente" : "decrescente"}`
+                          : "Ordenar por valor"}
+                      </span>
+                    </button>
                   </TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Responsável</TableHead>
@@ -396,8 +445,7 @@ export default function GastosPage() {
                 {filteredGastos.map((gasto) => (
                   <React.Fragment key={gasto.id}>
                     <TableRow
-                      className="border-border cursor-pointer hover:bg-muted/50"
-                      onClick={() => openEditModal(gasto)}
+                      className="border-border hover:bg-muted/50"
                     >
                       <TableCell className="text-muted-foreground">
                         {formatDate(gasto.data)}
@@ -427,21 +475,23 @@ export default function GastosPage() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 items-center">
                           {gasto.observacao && (
-                            <div 
+                            <div
                               className="flex items-center justify-center text-muted-foreground mr-1" 
                               title={gasto.observacao}
                             >
-                              <MessageSquare className="h-4 w-4" />
+                              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                              <span className="sr-only">
+                                Observação: {gasto.observacao}
+                              </span>
                             </div>
                           )}
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditModal(gasto);
-                            }}
+                            onClick={() => openEditModal(gasto)}
+                            aria-label={`Editar gasto de ${gasto.estabelecimento}`}
+                            title={`Editar ${gasto.estabelecimento}`}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -451,8 +501,7 @@ export default function GastosPage() {
                     {gasto.divisoes && gasto.divisoes.length > 0 && gasto.divisoes.map((divisao, idx) => (
                       <TableRow
                         key={`${gasto.id}-div-${idx}`}
-                        className="border-border/50 bg-muted/20 hover:bg-muted/30 cursor-pointer"
-                        onClick={() => openEditModal(gasto)}
+                        className="border-border/50 bg-muted/20 hover:bg-muted/30"
                       >
                         <TableCell></TableCell>
                         <TableCell className="text-muted-foreground flex items-center gap-2 py-3">
@@ -527,7 +576,10 @@ export default function GastosPage() {
                           value={split.responsavel}
                           onValueChange={(val) => handleSplitChange(index, 'responsavel', val ?? "")}
                         >
-                          <SelectTrigger className="flex-1">
+                          <SelectTrigger
+                            className="flex-1"
+                            aria-label={`Responsável da divisão ${index + 1}`}
+                          >
                             <SelectValue placeholder="Responsável" />
                           </SelectTrigger>
                           <SelectContent>
@@ -539,7 +591,13 @@ export default function GastosPage() {
                           </SelectContent>
                         </Select>
                         {splits.length > 2 && (
-                          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => handleRemoveSplit(index)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive"
+                            onClick={() => handleRemoveSplit(index)}
+                            aria-label={`Remover divisão ${index + 1}`}
+                          >
                             <X className="h-4 w-4" />
                           </Button>
                         )}

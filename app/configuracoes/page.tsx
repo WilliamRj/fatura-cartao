@@ -151,6 +151,11 @@ export default function ConfiguracoesPage() {
                     className="h-8 w-8 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
                     onClick={() => handleSetPrincipal(responsavel.id)}
                     disabled={setResponsavelPrincipal.isPending || responsavel.cor === 'pessoal'}
+                    aria-label={
+                      responsavel.cor === 'pessoal'
+                        ? `${responsavel.nome} já é o responsável principal`
+                        : `Definir ${responsavel.nome} como responsável principal`
+                    }
                     title="Definir como principal"
                   >
                     <Star className={cn("h-4 w-4", responsavel.cor === 'pessoal' ? "fill-yellow-500 text-yellow-500" : "")} />
@@ -161,6 +166,7 @@ export default function ConfiguracoesPage() {
                     className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => handleRemoveResponsavel(responsavel.id)}
                     disabled={deleteResponsavel.isPending}
+                    aria-label={`Remover responsável ${responsavel.nome}`}
                     title="Remover responsável"
                   >
                     <Trash2 className="h-4 w-4" />

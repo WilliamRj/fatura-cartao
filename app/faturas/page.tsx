@@ -355,6 +355,7 @@ export default function FaturasPage() {
                       )
                     }
                     disabled={isProcessing}
+                    aria-label={`Remover arquivo ${file.name} da seleção`}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

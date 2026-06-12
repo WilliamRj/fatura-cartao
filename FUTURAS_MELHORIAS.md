@@ -68,27 +68,18 @@ Resultado:
 - A limpeza do PDF ocorre depois do commit e exibe aviso especifico se o Storage falhar.
 - Migration criada em `supabase/migrations/20260612_atomic_invoice_deletion.sql`.
 
-### 4. Corrigir acessibilidade dos controles principais
+### 4. Corrigir acessibilidade dos controles principais - concluido em 2026-06-12
 
-Varios botoes de icone nao tem nome acessivel, e algumas interacoes usam elementos nao semanticos.
+Resultado:
 
-Exemplos:
-
-- Toggle de tema: `components/app-sidebar.tsx:108`.
-- Logout: `components/app-sidebar.tsx:133`.
-- Colapsar sidebar: `components/app-sidebar.tsx:250`.
-- Visualizar/excluir fatura: `app/faturas/page.tsx:246-254`.
-- Editar gasto: `app/gastos/page.tsx:440`.
-- Acoes de responsavel: `app/configuracoes/page.tsx:147-157`.
-- Ordenacao em `<TableHead onClick>`: `app/gastos/page.tsx:365`.
-- Linhas clicaveis com `<TableRow onClick>`: `app/gastos/page.tsx:401`.
-
-Recomendacoes:
-
-- Adicionar `aria-label` em todos os botoes icon-only.
-- Trocar ordenacao por `<button>` dentro do cabecalho, com `aria-sort`.
-- Evitar linha inteira como unico alvo interativo; manter botao "Editar" explicito e acessivel.
-- Substituir `window.confirm`/`confirm` por `Dialog` acessivel e consistente com o design system.
+- Botoes de icone de tema, logout, sidebar, menu mobile, faturas, gastos, arquivos e responsaveis possuem nome acessivel.
+- Links de navegacao informam a pagina atual com `aria-current`.
+- Controles de expandir/recolher informam `aria-expanded` e o elemento controlado.
+- Seletores principais sem label visivel possuem `aria-label`.
+- Ordenacao de gastos usa `<button>` dentro do cabecalho e atualiza `aria-sort`.
+- Linhas da tabela deixaram de simular botoes; a edicao usa uma acao explicita e acessivel.
+- Confirmacoes nativas foram substituidas por dialogs do design system.
+- O botao padrao de fechar dialogs anuncia "Fechar" em portugues.
 
 ### 5. Validar ambiente de producao na Vercel
 
@@ -412,7 +403,7 @@ Recomendacoes:
 - [x] Tipar e validar resposta da IA com `zod`.
 - Validar variaveis de ambiente na Vercel para Production e Preview.
 - [x] Corrigir deletes relacionados e estados parciais.
-- Adicionar `aria-label` em botoes de icone.
+- [x] Adicionar `aria-label` em botoes de icone.
 - Implementar ou remover botao de visualizar fatura.
 
 ### Sprint 2: experiencia principal
