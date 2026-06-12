@@ -57,6 +57,10 @@ create index if not exists idx_faturas_user_data
 UTC (`timestamptz`). A interface apresenta esse instante no fuso
 `America/Sao_Paulo`.
 
+A migration `20260612_invoice_import_timestamp.sql` tambem converte schemas
+legados onde a coluna era `date`. Nesses registros antigos, apenas o dia pode
+ser preservado, pois a hora original nunca foi armazenada.
+
 ### Gastos
 
 ```sql

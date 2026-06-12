@@ -15,7 +15,17 @@ begin
     raise exception 'Required column public.faturas.data_importacao does not exist';
   end if;
 
-  if import_timestamp_type = 'timestamp without time zone' then
+  alter table public.faturas
+    alter column data_importacao drop default;
+
+  if import_timestamp_type = 'date' then
+    alter table public.faturas
+      alter column data_importacao type timestamptz
+      using (
+        data_importacao::timestamp
+        at time zone 'America/Sao_Paulo'
+      );
+  elsif import_timestamp_type = 'timestamp without time zone' then
     alter table public.faturas
       alter column data_importacao type timestamptz
       using data_importacao at time zone 'UTC';
