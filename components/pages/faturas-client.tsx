@@ -125,32 +125,57 @@ export function FaturasClient() {
       }
 
       for (const file of uploadedFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
+        const pdfPath = `${session.user.id}/${crypto.randomUUID()}.pdf`;
+        let importCompleted = false;
 
-        const response = await fetch("/api/process-fatura", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        });
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from(STORAGE.FATURAS)
+            .upload(pdfPath, file, {
+              cacheControl: "3600",
+              contentType: "application/pdf",
+              upsert: false,
+            });
 
-        if (!response.ok) {
-          const errData = await response.json();
-          const details = Array.isArray(errData.detalhes)
-            ? errData.detalhes
-                .map(
-                  (detail: { campo?: string; mensagem?: string }) =>
-                    `${detail.campo}: ${detail.mensagem}`,
-                )
-                .join("; ")
-            : "";
-          throw new Error(
-            [errData.error || "Erro ao processar fatura", details]
-              .filter(Boolean)
-              .join(" "),
-          );
+          if (uploadError) {
+            throw new Error("Não foi possível enviar o PDF para processamento.");
+          }
+
+          const response = await fetch("/api/process-fatura", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              pdfPath,
+              fileName: file.name,
+              fileSize: file.size,
+            }),
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            const details = Array.isArray(errData.detalhes)
+              ? errData.detalhes
+                  .map(
+                    (detail: { campo?: string; mensagem?: string }) =>
+                      `${detail.campo}: ${detail.mensagem}`,
+                  )
+                  .join("; ")
+              : "";
+            throw new Error(
+              [errData.error || "Erro ao processar fatura", details]
+                .filter(Boolean)
+                .join(" "),
+            );
+          }
+
+          importCompleted = true;
+        } finally {
+          if (!importCompleted) {
+            await supabase.storage.from(STORAGE.FATURAS).remove([pdfPath]);
+          }
         }
       }
 
@@ -348,6 +373,9 @@ export function FaturasClient() {
                   "Processar Faturas"
                 )}
               </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                O processamento com IA pode levar alguns minutos.
+              </p>
             </div>
           )}
         </CardContent>

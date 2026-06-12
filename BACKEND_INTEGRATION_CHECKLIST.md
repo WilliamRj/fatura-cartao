@@ -67,7 +67,7 @@ Hoje a tela deriva parcelamentos de `gastos.parcela`.
 - [x] Arquivos duplicados sao detectados por SHA-256 e indice unico por usuario.
 - [x] Falha ao inserir gastos nao deixa fatura orfa.
 - [ ] Usuario recebe progresso por arquivo.
-- [ ] Timeout da IA gera mensagem compreensivel.
+- [x] Timeout da IA gera mensagem compreensivel.
 - [x] Logs registram request, usuario, duracao e etapa da falha.
 - [x] Foi decidido que o PDF original deve ser armazenado.
 
@@ -100,13 +100,15 @@ Status atual: implementado com Supabase Storage pela migration `20260611_invoice
 - [ ] Build de producao passa.
 - [ ] Preview Deploy foi testado.
 - [ ] Logs de `/api/process-fatura` estao acessiveis.
-- [ ] Limites de timeout, memoria e request body foram revisados para o plano atual.
+- [x] Limites de timeout e request body foram revisados para a Vercel.
 - [ ] Dominio customizado e HTTPS funcionam.
 - [ ] Callback OAuth funciona no dominio final.
 - [x] Rewrite global legado de `vercel.json` removido; rotas e assets ficam sob controle do Next.js.
 - [x] Variaveis obrigatorias estao documentadas e validadas no boot.
 - [x] `/api/health` valida a configuracao sem expor segredos.
-- [x] `/api/process-fatura` declara runtime Node.js e `maxDuration` de 60 segundos.
+- [x] `/api/process-fatura` declara runtime Node.js e `maxDuration` de 300 segundos.
+- [x] Gemini possui timeout de 240 segundos, deixando margem para persistencia e resposta.
+- [x] O PDF vai direto ao Storage e nao atravessa o limite de 4,5 MB da Function.
 - [x] Limite de upload de 20 MB e validado no cliente e no servidor.
 - [x] Logs estruturados podem ser correlacionados pelo header `X-Request-Id`.
 

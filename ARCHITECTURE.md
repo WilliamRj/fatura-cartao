@@ -154,21 +154,21 @@ Fluxo em `app/api/process-fatura/route.ts`:
 1. Recebe `Authorization: Bearer <token>`.
 2. Cria cliente Supabase usando URL e anon key.
 3. Valida o usuario com `auth.getUser()`.
-4. Recebe um `File` por `FormData`.
-5. Registra o instante de inicio da importacao.
-6. Valida MIME, assinatura `%PDF-` e limite de 20 MB.
-7. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
-8. Converte PDF para base64.
-9. Envia prompt + PDF ao modelo Gemini configurado no arquivo.
-10. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
-11. Busca o responsavel principal.
-12. Envia o PDF ao bucket privado `faturas`.
+4. O cliente envia o PDF diretamente ao bucket privado `faturas`.
+5. A rota recebe JSON com caminho, nome e tamanho, evitando o limite de payload da Vercel.
+6. Baixa o objeto com a sessao do usuario e valida caminho, tamanho e assinatura `%PDF-`.
+7. Registra o instante de inicio da importacao.
+8. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
+9. Converte PDF para base64.
+10. Envia prompt + PDF ao Gemini, com timeout de 240 segundos.
+11. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
+12. Busca o responsavel principal.
 13. Insere fatura, instante inicial, caminho, hash do PDF e gastos pela RPC transacional.
-14. Remove o objeto do Storage se a RPC falhar.
+14. Remove o objeto do Storage se qualquer etapa falhar.
 
 Limitacoes atuais:
 
-- O processamento ocorre dentro de uma unica requisicao serverless.
+- O processamento ocorre dentro de uma unica requisicao serverless com `maxDuration` de 300 segundos.
 
 ## Modelo de dados observado
 

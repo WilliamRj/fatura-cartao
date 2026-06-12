@@ -221,19 +221,18 @@ A UI atual nao usa essa rota; chama logout pelo cliente. Avaliar remocao ou adoc
 Requisicao:
 
 - header `Authorization: Bearer <access_token>`;
-- body `multipart/form-data`;
-- campo `file` com PDF.
+- body JSON com `pdfPath`, `fileName` e `fileSize`;
+- o PDF ja deve estar no bucket privado `faturas`, enviado diretamente pelo cliente.
 
 Fluxo:
 
 1. valida token;
-2. valida MIME, assinatura e limite de 20 MB do PDF;
+2. valida caminho, tamanho, assinatura e limite de 20 MB do PDF;
 3. calcula o SHA-256 e verifica se o usuario ja importou o mesmo arquivo;
-4. envia PDF ao Gemini;
+4. envia PDF ao Gemini com timeout de 240 segundos;
 5. interpreta e valida a resposta com Zod;
-6. envia o PDF ao bucket privado `faturas`;
-7. grava `faturas`, `arquivo_url`, `arquivo_hash` e `gastos` pela RPC transacional;
-8. remove o objeto enviado se a RPC falhar.
+6. grava `faturas`, `arquivo_url`, `arquivo_hash` e `gastos` pela RPC transacional;
+7. remove o objeto enviado se qualquer etapa falhar.
 
 Resposta de sucesso:
 
@@ -253,12 +252,13 @@ Status tratados:
 - `422`: resposta da IA invalida;
 - `429`: cota da IA;
 - `503`: indisponibilidade da IA;
+- `504`: processamento da IA excedeu 240 segundos;
 - `500`: configuracao, storage ou persistencia.
 
 Pendencias importantes:
 
 - observabilidade;
-- avaliar job assincrono por causa dos limites da Vercel.
+- avaliar job assincrono se faturas reais continuarem excedendo quatro minutos.
 
 ## Storage
 

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  GoogleGenerativeAIAbortError,
+} from "@google/generative-ai";
 import { createHash, randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   formatValidationIssues,
   parsedFaturaSchema,
@@ -11,22 +15,34 @@ import { getServerEnvironment } from "@/lib/env/server";
 import { logServerEvent } from "@/lib/server/logger";
 
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
+const GEMINI_TIMEOUT_MS = 240_000;
+const stagedPdfSchema = z.object({
+  pdfPath: z.string().min(1),
+  fileName: z.string().min(1).max(255),
+  fileSize: z.number().int().positive().max(MAX_PDF_SIZE),
+});
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const importStartedAt = new Date().toISOString();
   const requestStartedAt = Date.now();
   const requestId = randomUUID();
   let userId: string | undefined;
+  let cleanupStagedPdf: (() => Promise<void>) | undefined;
 
-  const respond = (
+  const respond = async (
     body: Record<string, unknown>,
     status: number,
     stage: string,
     error?: unknown,
   ) => {
+    if (status >= 400 && cleanupStagedPdf) {
+      await cleanupStagedPdf();
+      cleanupStagedPdf = undefined;
+    }
+
     logServerEvent(
       status >= 500 ? "error" : status >= 400 ? "warn" : "info",
       status >= 400 ? "invoice_import.failed" : "invoice_import.completed",
@@ -81,30 +97,97 @@ export async function POST(req: NextRequest) {
     }
     userId = user.id;
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const contentType = req.headers.get("content-type") ?? "";
+    let buffer: Buffer;
+    let storedPdfPath: string | undefined;
 
-    if (!file) {
-      return respond({ error: "No file provided" }, 400, "file_validation");
-    }
+    if (contentType.includes("application/json")) {
+      const stagedPdfResult = stagedPdfSchema.safeParse(await req.json());
+      if (!stagedPdfResult.success) {
+        return respond(
+          { error: "Os dados do PDF enviado são inválidos." },
+          400,
+          "file_validation",
+        );
+      }
 
-    if (file.size === 0 || file.size > MAX_PDF_SIZE) {
-      return respond(
-        { error: "O PDF deve ter entre 1 byte e 20 MB." },
-        400,
-        "file_validation",
+      const { pdfPath, fileSize } = stagedPdfResult.data;
+      const expectedPath = new RegExp(
+        `^${user.id}/[0-9a-f-]{36}\\.pdf$`,
+        "i",
       );
-    }
+      if (!expectedPath.test(pdfPath)) {
+        return respond(
+          { error: "O caminho do PDF enviado é inválido." },
+          400,
+          "file_validation",
+        );
+      }
 
-    if (file.type !== "application/pdf") {
-      return respond(
-        { error: "O arquivo enviado deve ser um PDF." },
-        400,
-        "file_validation",
-      );
-    }
+      cleanupStagedPdf = async () => {
+        const { error: cleanupError } = await supabase.storage
+          .from(STORAGE.FATURAS)
+          .remove([pdfPath]);
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+        if (cleanupError) {
+          logServerEvent(
+            "error",
+            "invoice_import.staged_pdf_cleanup_failed",
+            { requestId, userId, stage: "pdf_cleanup" },
+            cleanupError,
+          );
+        }
+      };
+
+      const { data: pdfBlob, error: downloadError } = await supabase.storage
+        .from(STORAGE.FATURAS)
+        .download(pdfPath);
+
+      if (downloadError) {
+        return respond(
+          { error: "Não foi possível acessar o PDF enviado." },
+          500,
+          "pdf_download",
+          downloadError,
+        );
+      }
+
+      if (pdfBlob.size !== fileSize || pdfBlob.size > MAX_PDF_SIZE) {
+        return respond(
+          { error: "O tamanho do PDF armazenado não corresponde ao envio." },
+          400,
+          "file_validation",
+        );
+      }
+
+      buffer = Buffer.from(await pdfBlob.arrayBuffer());
+      storedPdfPath = pdfPath;
+    } else {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+
+      if (!file) {
+        return respond({ error: "No file provided" }, 400, "file_validation");
+      }
+
+      if (file.size === 0 || file.size > MAX_PDF_SIZE) {
+        return respond(
+          { error: "O PDF deve ter entre 1 byte e 20 MB." },
+          400,
+          "file_validation",
+        );
+      }
+
+      if (file.type !== "application/pdf") {
+        return respond(
+          { error: "O arquivo enviado deve ser um PDF." },
+          400,
+          "file_validation",
+        );
+      }
+
+      buffer = Buffer.from(await file.arrayBuffer());
+    }
 
     if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
       return respond(
@@ -150,7 +233,10 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-3.5-flash" },
+      { timeout: GEMINI_TIMEOUT_MS },
+    );
     const prompt = `
       You are a helpful assistant that processes credit card invoices from Banco Itaú in Brazil.
       I have attached the PDF invoice.
@@ -253,22 +339,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const pdfPath = `${user.id}/${randomUUID()}.pdf`;
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE.FATURAS)
-      .upload(pdfPath, buffer, {
-        cacheControl: "3600",
-        contentType: "application/pdf",
-        upsert: false,
-      });
+    const pdfPath = storedPdfPath ?? `${user.id}/${randomUUID()}.pdf`;
+    if (!storedPdfPath) {
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE.FATURAS)
+        .upload(pdfPath, buffer, {
+          cacheControl: "3600",
+          contentType: "application/pdf",
+          upsert: false,
+        });
 
-    if (uploadError) {
-      return respond(
-        { error: "Não foi possível armazenar o PDF da fatura." },
-        500,
-        "pdf_upload",
-        uploadError,
-      );
+      if (uploadError) {
+        return respond(
+          { error: "Não foi possível armazenar o PDF da fatura." },
+          500,
+          "pdf_upload",
+          uploadError,
+        );
+      }
     }
 
     const { data: fatura, error: importError } = await supabase.rpc(
@@ -298,6 +386,7 @@ export async function POST(req: NextRequest) {
       const { error: cleanupError } = await supabase.storage
         .from(STORAGE.FATURAS)
         .remove([pdfPath]);
+      cleanupStagedPdf = undefined;
 
       if (cleanupError) {
         logServerEvent(
@@ -335,10 +424,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    cleanupStagedPdf = undefined;
     return respond({ success: true, fatura }, 200, "completed");
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "";
+
+    if (
+      error instanceof GoogleGenerativeAIAbortError ||
+      errorMessage.includes("aborted")
+    ) {
+      return respond(
+        {
+          error:
+            "O processamento da IA excedeu 4 minutos. Nenhum dado foi salvo. Tente novamente.",
+        },
+        504,
+        "ai_timeout",
+        error,
+      );
+    }
     
     if (errorMessage.includes("503 Service Unavailable") || errorMessage.includes("high demand")) {
       return respond(

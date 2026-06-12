@@ -134,8 +134,9 @@ supabase/migrations/20260611_user_data_isolation.sql
 
 Pontos de atencao em producao:
 
-- `/api/process-fatura` roda como funcao serverless; PDFs grandes ou IA lenta podem atingir timeout/payload.
-- A funcao usa runtime Node.js, limite declarado de 60 segundos e upload maximo de 20 MB.
+- O navegador envia o PDF diretamente ao Supabase Storage; a Function recebe apenas o caminho, evitando o limite de 4,5 MB do payload da Vercel.
+- `/api/process-fatura` usa runtime Node.js, `maxDuration` de 300 segundos e timeout controlado de 240 segundos para o Gemini.
+- O upload maximo permanece em 20 MB, validado no cliente, no bucket e no servidor.
 - Os logs JSON incluem `requestId`, usuario, etapa, status e duracao; o mesmo `requestId` volta no header `X-Request-Id`.
 - PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
 - A visualizacao usa URL assinada; a exclusao transacional remove os dados relacionados e depois limpa o arquivo original.

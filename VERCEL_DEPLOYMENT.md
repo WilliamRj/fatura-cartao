@@ -44,16 +44,18 @@ responder HTTP 503. Rotas que dependem dessas credenciais continuam bloqueadas.
 
 - Rota: `/api/process-fatura`
 - Runtime: Node.js
-- Duracao maxima declarada: 60 segundos
-- PDF maximo: 20 MB, validado no cliente e servidor
+- Duracao maxima declarada: 300 segundos
+- Timeout da chamada Gemini: 240 segundos
+- PDF maximo: 20 MB, enviado diretamente ao Supabase Storage
+- Payload da Function: apenas JSON com caminho e metadados do PDF
 - Arquivo original: bucket privado `faturas` no Supabase
 - Duplicidade: SHA-256 por usuario
 - Logs: JSON com `requestId`, `userId`, `stage`, `status` e `durationMs`
 - Correlacao: o header de resposta `X-Request-Id` corresponde ao log
 
-Confirme no plano atual da Vercel que duracao, memoria e tamanho de request
-aceitos atendem esses valores. A plataforma pode aplicar um teto menor que o
-declarado pela aplicacao.
+O limite de 300 segundos atende o teto atual do plano Hobby com Fluid Compute.
+Nos planos Pro e Enterprise, a plataforma permite configuracao superior, mas a
+aplicacao mantém 300 segundos para evitar requisicoes indefinidas.
 
 ## Smoke test por ambiente
 

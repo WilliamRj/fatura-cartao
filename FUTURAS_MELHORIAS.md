@@ -88,7 +88,9 @@ Resultado:
 - Variaveis obrigatorias centralizadas e validadas durante a inicializacao do servidor, com erro estruturado em configuracao invalida.
 - Healthcheck `GET /api/health` retorna HTTP 200/503 sem expor segredos.
 - `.env.example` versionado com Supabase e Gemini.
-- `/api/process-fatura` usa runtime Node.js, `maxDuration` de 60 segundos e limite de PDF de 20 MB.
+- `/api/process-fatura` usa runtime Node.js, `maxDuration` de 300 segundos e limite de PDF de 20 MB.
+- O PDF e enviado diretamente ao Supabase Storage, evitando o limite de payload de 4,5 MB da Vercel.
+- A chamada Gemini possui timeout controlado de 240 segundos e mensagem especifica.
 - Logs serverless em JSON incluem `requestId`, usuario, etapa, status e duracao.
 - Respostas da importacao retornam `X-Request-Id` para correlacao com os logs da Vercel.
 - PDF original e hash SHA-256 persistem no Supabase.
@@ -199,7 +201,7 @@ Recomendacoes:
 - Evitar importacao duplicada por hash, mes ou combinacao de `mes_referencia` + usuario.
 - Considerar fila server-side se os PDFs forem grandes ou a IA demorar.
 - Considerar arquitetura assincrona: upload do PDF para storage, registro de job no banco, processamento posterior e polling/status na UI.
-- Definir timeout e mensagem de erro especifica para limite/indisponibilidade da IA.
+- [x] Definir timeout e mensagem de erro especifica para limite/indisponibilidade da IA.
 
 ## Prioridade 2: UI, UX e produto
 
