@@ -1,74 +1,130 @@
-# Deploy e validacao na Vercel
+# ▲ Deploy na Vercel
 
-## Variaveis obrigatorias
+> Configuração, validação e smoke test do Cartão Inteligente.
 
-Configure em **Settings > Environment Variables**:
+## 🎯 Resultado esperado
 
-| Variavel | Development | Preview | Production |
-| --- | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | obrigatoria | obrigatoria | obrigatoria |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | obrigatoria | obrigatoria | obrigatoria |
-| `GEMINI_API_KEY` | obrigatoria | obrigatoria | obrigatoria |
+- Build publicado sem erros.
+- `/api/health` respondendo HTTP `200`.
+- OAuth funcionando no domínio final.
+- Importação de PDF abaixo de 20 MB.
+- Logs correlacionáveis por `X-Request-Id`.
+- Dados isolados entre usuários.
 
-Preview e Production devem apontar para ambientes Supabase deliberadamente
-escolhidos. O recomendado e usar projetos separados. Se compartilharem o mesmo
-projeto, confirme RLS, usuarios autorizados, migrations e bucket antes do
-primeiro teste.
+## 🔐 Variáveis obrigatórias
 
-As variaveis `NEXT_PUBLIC_*` sao incorporadas ao bundle durante o build. Depois
-de alterar qualquer uma delas, gere um novo deploy.
+Configure em **Settings → Environment Variables**:
 
-## Validacao automatizada
+| Variável | Development | Preview | Production |
+|---|:---:|:---:|:---:|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ✅ | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ✅ | ✅ |
+| `GEMINI_API_KEY` | ✅ | ✅ | ✅ |
 
-Antes de enviar:
+> [!IMPORTANT]
+> Alterações em variáveis `NEXT_PUBLIC_*` exigem um novo deploy, pois seus valores entram no bundle durante o build.
+
+O ideal é separar projetos Supabase de Preview e Production. Se ambos compartilharem o mesmo projeto, valide cuidadosamente RLS, migrations, bucket e usuários autorizados.
+
+## 🧪 Validação antes do deploy
 
 ```bash
 npm run check
 ```
 
-No deploy:
+- [ ] Lint aprovado.
+- [ ] TypeScript aprovado.
+- [ ] Build aprovado.
+- [ ] Migrations revisadas.
+- [ ] Variáveis configuradas no ambiente correto.
+
+## ❤️ Healthcheck
 
 ```text
 GET https://<dominio>/api/health
 ```
 
-Resultado esperado: HTTP 200, `status: "ok"` e
-`checks.environment.status: "ok"`. O endpoint mostra ambiente, regiao e SHA
-curto do deploy, mas nunca retorna chaves.
+Resposta esperada:
 
-A inicializacao do servidor valida as mesmas variaveis. Configuracao ausente ou
-invalida produz erro explicito nos logs da Function e faz o healthcheck
-responder HTTP 503. Rotas que dependem dessas credenciais continuam bloqueadas.
+```json
+{
+  "status": "ok",
+  "checks": {
+    "environment": {
+      "status": "ok"
+    }
+  }
+}
+```
 
-## Funcao de importacao
+O endpoint pode informar ambiente, região e SHA curto, mas nunca retorna as chaves. Configuração ausente produz HTTP `503` e um erro estruturado nos logs.
 
-- Rota: `/api/process-fatura`
-- Runtime: Node.js
-- Duracao maxima declarada: 300 segundos
-- Timeout da chamada Gemini: 240 segundos
-- PDF maximo: 20 MB, enviado diretamente ao Supabase Storage
-- Payload da Function: apenas JSON com caminho e metadados do PDF
-- Arquivo original: bucket privado `faturas` no Supabase
-- Duplicidade: SHA-256 por usuario
-- Logs: JSON com `requestId`, `userId`, `stage`, `status` e `durationMs`
-- Correlacao: o header de resposta `X-Request-Id` corresponde ao log
+## 📄 Função de importação
 
-O limite de 300 segundos atende o teto atual do plano Hobby com Fluid Compute.
-Nos planos Pro e Enterprise, a plataforma permite configuracao superior, mas a
-aplicacao mantém 300 segundos para evitar requisicoes indefinidas.
+| Configuração | Valor |
+|---|---|
+| Rota | `/api/process-fatura` |
+| Runtime | Node.js |
+| Duração máxima | 300 segundos |
+| Timeout Gemini | 240 segundos |
+| PDF máximo | 20 MB |
+| Upload | Direto ao Supabase Storage |
+| Persistência | Bucket privado `faturas` |
+| Duplicidade | SHA-256 por usuário |
+| Logs | JSON estruturado |
 
-## Smoke test por ambiente
+O payload da Function contém apenas caminho e metadados do arquivo. Isso evita enviar o PDF pelo limite de payload da Vercel.
 
-1. Confirmar que `/api/health` responde HTTP 200.
-2. Fazer login no dominio do deploy.
-3. Importar um PDF controlado menor que 20 MB.
-4. Abrir o PDF salvo pelo botao de visualizacao.
-5. Tentar importar o mesmo PDF e confirmar bloqueio por duplicidade.
-6. Editar um gasto e recarregar a pagina.
-7. Excluir a fatura e confirmar remocao dos dados relacionados.
-8. Fazer logout e testar outro usuario sem acesso cruzado.
-9. Localizar a requisicao nos logs pelo `X-Request-Id`.
-10. Confirmar callback OAuth, HTTPS e dominio final.
+## 🔗 OAuth
 
-Os passos dependentes do painel, plano e dominio da Vercel precisam ser
-executados em Preview e novamente em Production.
+Configure no Supabase e no Google Cloud:
+
+```text
+http://localhost:3000/auth/callback
+https://<preview-ou-dominio>/auth/callback
+```
+
+- [ ] Site URL aponta para o domínio correto.
+- [ ] Preview autorizado quando usado.
+- [ ] Production autorizado.
+- [ ] Login e logout testados no domínio.
+
+## 🚦 Smoke test
+
+1. Abra `/api/health` e confirme HTTP `200`.
+2. Entre com um usuário autorizado.
+3. Importe um PDF controlado menor que 20 MB.
+4. Abra o PDF usando a visualização assinada.
+5. Importe o mesmo arquivo novamente e confirme o bloqueio.
+6. Edite um gasto e recarregue a página.
+7. Divida um gasto entre responsáveis.
+8. Confira os valores na tela de parcelamentos.
+9. Exporte um relatório completo e individual.
+10. Exclua a fatura e confira os dados relacionados.
+11. Faça logout e entre com outra conta.
+12. Confirme que não há acesso aos dados anteriores.
+13. Localize a operação nos logs pelo `X-Request-Id`.
+
+> [!WARNING]
+> Execute o smoke test primeiro em Preview e novamente em Production. Configurações de domínio, OAuth e variáveis podem divergir.
+
+## 🧭 Onde investigar falhas
+
+| Sintoma | Verificar |
+|---|---|
+| Healthcheck `503` | Variáveis e logs da Function |
+| Login retorna ao app sem sessão | Redirect URLs do Supabase/Google |
+| PDF não importa | Tamanho, bucket, RLS, Gemini e `requestId` |
+| Timeout | Duração da IA e limite do plano |
+| PDF não abre | Caminho, policy e URL assinada |
+| Dados de outra conta | Migration RLS e filtros `user_id` |
+
+## ✅ Aprovação do ambiente
+
+- [ ] Preview aprovado.
+- [ ] Production aprovado.
+- [ ] Domínio customizado e HTTPS ativos.
+- [ ] Callback OAuth validado.
+- [ ] RLS testada com duas contas.
+- [ ] Logs acessíveis à equipe.
+- [ ] Plano da Vercel suporta os limites configurados.

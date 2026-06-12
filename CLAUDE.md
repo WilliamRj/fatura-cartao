@@ -1,49 +1,57 @@
-# Guia para Claude e outros assistentes
+# 🤖 Guia para Claude e outros assistentes
 
-## Status
+> Documento opcional de compatibilidade. A fonte obrigatória de instruções é `AGENTS.md`.
 
-Este arquivo e um guia opcional para ferramentas que procuram especificamente `CLAUDE.md`.
+## 🚨 Primeira regra
 
-A fonte obrigatoria de instrucoes para agentes neste repositorio e `AGENTS.md`. Em especial, qualquer alteracao de Next.js deve consultar os guias locais em `node_modules/next/dist/docs/`.
+Este projeto usa Next.js `16.2.7` com mudanças incompatíveis com versões anteriores.
 
-## Contexto atual
+1. Leia `AGENTS.md`.
+2. Consulte `node_modules/next/dist/docs/`.
+3. Não assuma APIs, convenções ou estrutura do Next.js.
 
-- Next.js `16.2.7`.
-- React `19.2.4`.
-- TypeScript 5.
-- Supabase Auth/PostgreSQL.
-- React Query.
-- Google Gemini para processar faturas PDF.
-- Vercel para deploy.
+## 🧭 Contexto rápido
 
-## Leitura recomendada
+| Área | Estado |
+|---|---|
+| Frontend | Next.js 16 + React 19 + TypeScript |
+| Dados | Supabase Auth, PostgreSQL, RLS e Storage |
+| Estado remoto | React Query |
+| IA | Google Gemini |
+| Deploy | Vercel |
+| Qualidade | Lint, typecheck e build aprovados |
+| Testes | Suíte automatizada ainda pendente |
 
-1. `AGENTS.md`
-2. `README.md`
-3. `ARCHITECTURE.md`
-4. `DEVELOPMENT.md`
-5. `API_INTEGRATION.md`
-6. `FUTURAS_MELHORIAS.md`
+## 📚 Ordem de leitura
 
-## Regras essenciais
+1. [AGENTS.md](./AGENTS.md)
+2. [README.md](./README.md)
+3. [ARCHITECTURE.md](./ARCHITECTURE.md)
+4. [DEVELOPMENT.md](./DEVELOPMENT.md)
+5. [API_INTEGRATION.md](./API_INTEGRATION.md)
+6. [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md)
 
-- Nao assumir APIs do Next.js sem consultar `node_modules/next/dist/docs/`.
-- Nao expor `GEMINI_API_KEY` ou outras chaves privadas.
-- Tratar dados do Gemini como entrada nao confiavel.
-- Preservar RLS e isolamento por usuario.
-- Reutilizar componentes em `components/ui`.
-- Respeitar a fatura selecionada em `FaturaProvider`.
-- Nao documentar Storage, testes ou tabela de parcelamentos como concluidos sem confirmar no codigo.
-- Rodar `npm run lint` e `npx tsc --noEmit` ao concluir alteracoes.
+## ✅ Regras essenciais
 
-## Estado conhecido
+- [ ] Preservar RLS e isolamento por `user_id`.
+- [ ] Nunca expor `GEMINI_API_KEY`.
+- [ ] Tratar dados da IA como entrada não confiável.
+- [ ] Reutilizar `components/ui`.
+- [ ] Respeitar a fatura selecionada pelo `FaturaProvider`.
+- [ ] Manter páginas como Server Components quando possível.
+- [ ] Não inventar tabelas ou recursos ausentes.
+- [ ] Atualizar documentação junto com contratos.
+- [ ] Rodar `npm run check` ao concluir.
 
-- Typecheck passa.
-- Lint ainda falha; detalhes em `FUTURAS_MELHORIAS.md`.
-- Nao existe suite automatizada de testes.
-- Storage de PDFs ainda nao esta implementado.
-- Parcelamentos sao derivados de `gastos.parcela`.
+## 📌 Estado conhecido
 
-## Sugestao de exclusao
+- PDFs são persistidos no bucket privado `faturas`.
+- Importações usam validação Zod e RPC transacional.
+- Parcelamentos são derivados de `gastos.parcela`.
+- Divisões ficam em `gastos.divisoes`.
+- A migration de isolamento por usuário existe e precisa ser validada em produção.
+- Não existe suíte automatizada de testes.
 
-Este arquivo pode ser removido se Claude nao for utilizado no projeto. Ele e deliberadamente curto para nao duplicar as regras e a arquitetura mantidas nos outros documentos.
+## 🗑️ Sobre este arquivo
+
+Pode ser removido se nenhuma ferramenta depender especificamente de `CLAUDE.md`. Ele deve permanecer curto e não duplicar a arquitetura completa.

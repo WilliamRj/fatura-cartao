@@ -1,155 +1,197 @@
-# Checklist de backend e producao
+# ✅ Checklist de backend e produção
 
-Este checklist substitui o antigo guia de instalacao inicial. O app ja possui integracao com Supabase, Gemini e Vercel; os itens abaixo servem para auditar o ambiente real.
+> Auditoria prática de Supabase, Gemini e Vercel.
 
-## 1. Supabase Auth
+## 📊 Painel de prontidão
 
-- [ ] Google provider esta habilitado.
-- [ ] Site URL aponta para o dominio correto.
-- [ ] Redirect URL local inclui `http://localhost:3000/auth/callback`.
-- [ ] Redirect URL de producao inclui `https://<dominio>/auth/callback`.
-- [ ] Preview URLs usadas pela equipe estao autorizadas ou usam estrategia de dominio estavel.
+| Área | Código | Ambiente |
+|---|:---:|:---:|
+| Autenticação | ✅ | 🔍 validar |
+| RLS e isolamento | ✅ | 🔍 validar |
+| Importação de PDF | ✅ | 🔍 smoke test |
+| Storage privado | ✅ | 🔍 validar policies |
+| Exclusão transacional | ✅ | 🔍 smoke test |
+| Vercel | ✅ | 🔍 painel/domínio |
+| Testes automatizados | ❌ | ❌ |
+
+### Legenda
+
+- ✅ implementado;
+- 🔍 precisa de validação real;
+- ❌ ainda não implementado.
+
+> [!IMPORTANT]
+> Este arquivo é um checklist operacional. Marque itens somente após conferir o ambiente correspondente.
+
+## 1. 🔐 Supabase Auth
+
+- [ ] Google provider habilitado.
+- [ ] Site URL correta.
+- [ ] Callback local autorizado.
+- [ ] Callback de Preview autorizado.
+- [ ] Callback de Production autorizado.
 - [ ] Login autorizado funciona.
-- [ ] Login nao autorizado encerra a sessao.
-- [ ] Refresh mantem/restaura a sessao.
+- [ ] Login não autorizado encerra a sessão.
+- [ ] Refresh restaura a sessão.
+- [ ] Logout limpa a sessão e o cache.
 
-## 2. Tabelas exigidas
+## 2. 🗃️ Tabelas
 
-- [ ] `faturas` existe com os campos documentados em `API_INTEGRATION.md`.
-- [ ] `gastos` possui `fatura_id`.
-- [ ] `gastos` possui `divisoes` em formato JSON/JSONB.
+- [ ] `faturas` possui os campos documentados.
+- [ ] `gastos.fatura_id` existe e usa cascade.
+- [ ] `gastos.divisoes` aceita JSONB.
 - [ ] `responsaveis` existe.
-- [ ] `authorized_users` existe e contem os emails permitidos.
-- [ ] A unicidade de responsavel e por `(user_id, nome)`, nao global.
-- [ ] `data_importacao` aceita o timestamp ISO enviado pelo route handler.
+- [ ] `authorized_users` contém os emails permitidos.
+- [ ] Responsável é único por `(user_id, nome)`.
+- [ ] `data_importacao` aceita `timestamptz`.
+- [ ] `arquivo_url` e `arquivo_hash` existem.
 
-## 3. Decisao sobre parcelamentos
+## 3. 💳 Parcelamentos
 
-- [ ] Confirmar se a tabela `parcelamentos` existe.
-- [ ] Confirmar se ela possui `fatura_id`.
-- [ ] Decidir se sera removida ou utilizada como entidade real.
-- [ ] Se removida, retirar `TABLES.PARCELAMENTOS` e o delete relacionado.
-- [ ] Se mantida, implementar leitura/escrita consistente.
+Estado atual: derivados de `gastos.parcela`.
 
-Hoje a tela deriva parcelamentos de `gastos.parcela`.
+- [ ] Confirmar se a tabela legada `parcelamentos` existe.
+- [ ] Decidir se será removida ou adotada.
+- [ ] Se removida, retirar contratos legados.
+- [ ] Se mantida, implementar leitura e escrita.
+- [x] Tela respeita divisões por responsável.
+- [x] Cards mostram valor original e parte dividida.
 
-## 4. RLS e seguranca
+## 4. 🛡️ RLS e isolamento
 
-- [ ] Migration `supabase/migrations/20260611_user_data_isolation.sql` foi revisada e executada no Supabase.
-- [ ] Todos os registros existentes possuem o `user_id` do dono antes da migration.
-- [ ] RLS esta habilitada em `faturas`.
-- [ ] RLS esta habilitada em `gastos`.
-- [ ] RLS esta habilitada em `responsaveis`.
-- [ ] Politicas SELECT limitam por `auth.uid() = user_id`.
-- [ ] Politicas INSERT validam `user_id`.
-- [ ] Politicas UPDATE usam `USING` e `WITH CHECK`.
-- [ ] Politicas DELETE limitam por usuario.
-- [ ] `authorized_users` nao permite enumerar todos os emails.
-- [ ] Teste com usuario A nao consegue ler/alterar dados do usuario B.
-- [ ] Nenhuma service role key esta exposta no browser.
-- [ ] Logout seguido de login com outra conta nao reaproveita dados do cache anterior.
+- [ ] Revisar `20260611_user_data_isolation.sql`.
+- [ ] Confirmar `user_id` dos dados antigos.
+- [ ] Executar a migration no ambiente correto.
+- [ ] RLS habilitada em `faturas`.
+- [ ] RLS habilitada em `gastos`.
+- [ ] RLS habilitada em `responsaveis`.
+- [ ] SELECT limitado por usuário.
+- [ ] INSERT validado por usuário.
+- [ ] UPDATE usa `USING` e `WITH CHECK`.
+- [ ] DELETE limitado por usuário.
+- [ ] `authorized_users` não permite enumeração.
+- [ ] Usuário A não lê dados de B.
+- [ ] Usuário A não altera dados de B.
+- [ ] Usuário A não exclui dados de B.
+- [ ] Troca de conta não reaproveita cache.
+- [x] Nenhuma service role key exposta no browser.
 
-## 5. Gemini
+## 5. 🤖 Gemini
 
-- [ ] `GEMINI_API_KEY` esta configurada localmente.
-- [ ] `GEMINI_API_KEY` esta configurada na Vercel Production.
-- [ ] Preview usa chave/ambiente apropriado.
-- [ ] A chave nao possui prefixo `NEXT_PUBLIC_`.
-- [ ] Cotas e billing foram verificados.
-- [ ] Erros 429 e 503 sao testados.
-- [x] Resposta da IA e validada antes de salvar.
-- [ ] Prompt/modelo configurado em `app/api/process-fatura/route.ts` foi confirmado como disponivel para a conta.
+- [ ] Chave configurada localmente.
+- [ ] Chave configurada em Preview.
+- [ ] Chave configurada em Production.
+- [x] Chave não usa `NEXT_PUBLIC_`.
+- [ ] Cota e billing verificados.
+- [ ] Modelo disponível para a conta.
+- [ ] Erro `429` testado.
+- [ ] Erro `503` testado.
+- [x] Timeout possui mensagem específica.
+- [x] Resposta validada com Zod.
 
-## 6. Importacao de PDFs
+## 6. 📄 Importação de PDF
 
-- [x] Apenas PDF e aceito.
-- [x] Existe limite de tamanho no cliente e no servidor.
-- [x] Arquivos duplicados sao detectados por SHA-256 e indice unico por usuario.
-- [x] Falha ao inserir gastos nao deixa fatura orfa.
-- [ ] Usuario recebe progresso por arquivo.
-- [x] Timeout da IA gera mensagem compreensivel.
-- [x] Logs registram request, usuario, duracao e etapa da falha.
-- [x] Foi decidido que o PDF original deve ser armazenado.
+- [x] Tipo real do PDF validado.
+- [x] Limite de 20 MB no cliente e servidor.
+- [x] Upload direto ao Storage.
+- [x] Duplicidade por SHA-256.
+- [x] Progresso individual por arquivo.
+- [x] Reprocessamento de arquivo com falha.
+- [x] Persistência atômica.
+- [x] Compensação do upload em falhas.
+- [x] Logs com usuário, etapa e duração.
+- [ ] Fluxo completo testado no domínio publicado.
 
-## 7. Storage
+## 7. 📦 Storage
 
-Status atual: implementado com Supabase Storage pela migration `20260611_invoice_pdf_storage.sql`.
+Migration: `20260611_invoice_pdf_storage.sql`.
 
-- [x] Provedor escolhido: Supabase Storage.
-- [x] Bucket/container e privado.
+- [x] Supabase Storage escolhido.
+- [x] Bucket privado `faturas`.
 - [x] Caminho inclui `user_id`.
-- [x] Policies impedem acesso cruzado.
-- [x] Visualizacao usa URL assinada.
-- [x] Exclusao da fatura tenta remover o arquivo.
-- [x] `arquivo_url`/path e salvo na fatura.
+- [x] URL assinada.
+- [x] Caminho salvo na fatura.
+- [x] Exclusão tenta remover o PDF.
+- [ ] Policies testadas com dois usuários.
+- [ ] Arquivos órfãos monitorados.
 
-## 8. Integridade de dados
+## 8. 🧮 Integridade de dados
 
-- [x] `faturas` e `gastos` sao inseridos atomicamente por RPC/transacao, com compensacao do upload.
-- [x] Exclusao de fatura usa cascade e RPC transacional.
-- [x] Erros de exclusao relacionados sao tratados como uma unica operacao.
-- [ ] Valores monetarios usam precisao adequada.
-- [ ] Soma de `divisoes` e igual ao valor original.
-- [ ] Responsaveis repetidos em uma divisao sao rejeitados.
+- [x] Importação usa RPC transacional.
+- [x] Exclusão usa RPC e cascade.
+- [x] Duplicidade protegida por índice.
+- [ ] Precisão monetária validada no schema real.
+- [ ] Soma de divisões igual ao valor original.
+- [ ] Responsáveis repetidos em uma divisão rejeitados.
+- [ ] Fixtures financeiras cobertas por testes.
 
-## 9. Vercel
+## 9. ▲ Vercel
 
-- [ ] Projeto esta conectado ao repositorio correto.
-- [ ] Production Branch esta correta.
-- [ ] Env vars foram definidas em Development/Preview/Production conforme necessidade.
-- [ ] Build de producao passa.
-- [ ] Preview Deploy foi testado.
-- [ ] Logs de `/api/process-fatura` estao acessiveis.
-- [x] Limites de timeout e request body foram revisados para a Vercel.
-- [ ] Dominio customizado e HTTPS funcionam.
-- [ ] Callback OAuth funciona no dominio final.
-- [x] Rewrite global legado de `vercel.json` removido; rotas e assets ficam sob controle do Next.js.
-- [x] Variaveis obrigatorias estao documentadas e validadas no boot.
-- [x] `/api/health` valida a configuracao sem expor segredos.
-- [x] `/api/process-fatura` declara runtime Node.js e `maxDuration` de 300 segundos.
-- [x] Gemini possui timeout de 240 segundos, deixando margem para persistencia e resposta.
-- [x] O PDF vai direto ao Storage e nao atravessa o limite de 4,5 MB da Function.
-- [x] Limite de upload de 20 MB e validado no cliente e no servidor.
-- [x] Logs estruturados podem ser correlacionados pelo header `X-Request-Id`.
+- [ ] Repositório correto conectado.
+- [ ] Production Branch correta.
+- [ ] Variáveis em Development.
+- [ ] Variáveis em Preview.
+- [ ] Variáveis em Production.
+- [x] Build local aprovado.
+- [ ] Preview Deploy aprovado.
+- [ ] Domínio e HTTPS funcionando.
+- [ ] OAuth funcionando no domínio final.
+- [x] `/api/health` implementado.
+- [x] Runtime Node.js configurado.
+- [x] `maxDuration` de 300 segundos.
+- [x] Timeout Gemini de 240 segundos.
+- [x] Payload sem o binário do PDF.
+- [x] Logs correlacionáveis por `X-Request-Id`.
+- [ ] Limites confirmados no plano atual.
 
-## 10. Qualidade
+## 10. 🧪 Qualidade
 
-- [x] `npm run typecheck` passa.
-- [x] `npm run lint` passa.
-- [x] `npm run build` passa.
-- [ ] Nao ha erros relevantes no console.
-- [ ] Dashboard, faturas, gastos, parcelamentos, relatorios e configuracoes foram testados.
-- [ ] Mobile e desktop foram testados.
-- [ ] Tema claro e escuro foram testados.
+- [x] `npm run lint`.
+- [x] `npm run typecheck`.
+- [x] `npm run build`.
+- [ ] Console sem erros relevantes.
+- [ ] Todas as páginas testadas.
+- [ ] Mobile e desktop testados.
+- [ ] Tema claro e escuro testados.
+- [ ] Suíte automatizada existente.
 
-Estado observado em 2026-06-12:
+## 11. 🚦 Smoke test
 
-- [x] TypeScript passa.
-- [x] Lint passa.
-- [x] Build de producao passa.
-- [ ] Suite automatizada de testes existe.
+1. [ ] Abrir `/api/health`.
+2. [ ] Entrar com usuário autorizado.
+3. [ ] Navegar por todas as páginas.
+4. [ ] Importar PDF controlado.
+5. [ ] Abrir o arquivo salvo.
+6. [ ] Confirmar bloqueio de duplicidade.
+7. [ ] Editar e dividir gasto.
+8. [ ] Conferir parcelamentos por responsável.
+9. [ ] Exportar os dois tipos de relatório.
+10. [ ] Excluir a fatura.
+11. [ ] Trocar de conta.
+12. [ ] Confirmar isolamento.
+13. [ ] Localizar logs pelo `requestId`.
 
-## 11. Smoke test de producao
+Procedimento detalhado: [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
 
-1. Abrir dominio Vercel.
-2. Fazer login com usuario autorizado.
-3. Selecionar uma fatura.
-4. Abrir todas as paginas.
-5. Importar um PDF controlado.
-6. Editar um gasto.
-7. Dividir e desfazer divisao.
-8. Exportar relatorio PDF.
-9. Fazer logout.
-10. Verificar logs Vercel/Supabase.
+## 🎯 Aprovação final
 
-Procedimento detalhado: `VERCEL_DEPLOYMENT.md`.
+### Preview
 
-## Documentos relacionados
+- [ ] Ambiente aprovado.
+- [ ] OAuth aprovado.
+- [ ] Importação aprovada.
+- [ ] Isolamento aprovado.
 
-- `API_INTEGRATION.md`: contratos e schema esperado.
-- `ARCHITECTURE.md`: fluxo atual.
-- `FUTURAS_MELHORIAS.md`: pendencias priorizadas.
+### Production
 
-## Sugestao de manutencao
+- [ ] Ambiente aprovado.
+- [ ] Domínio aprovado.
+- [ ] Smoke test aprovado.
+- [ ] Logs e responsáveis operacionais definidos.
 
-Este arquivo continua util como checklist operacional. Evite transforma-lo novamente em tutorial generico de criacao do Supabase; esse conteudo fica melhor em documentacao oficial do provedor.
+## 🔗 Documentos relacionados
+
+- [Integração e schema](./API_INTEGRATION.md)
+- [Arquitetura](./ARCHITECTURE.md)
+- [Deploy Vercel](./VERCEL_DEPLOYMENT.md)
+- [Roadmap](./FUTURAS_MELHORIAS.md)

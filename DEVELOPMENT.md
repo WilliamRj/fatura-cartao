@@ -1,23 +1,29 @@
-# Guia de desenvolvimento
+# 🧑‍💻 Guia de desenvolvimento
 
-Este guia reflete os arquivos e scripts existentes em 2026-06-11.
+> Rotina prática para desenvolver com segurança no Cartão Inteligente.
 
-## Pre-requisitos
-
-- Node.js compativel com Next.js 16.
-- npm, que e o gerenciador usado nos comandos abaixo.
-- Projeto Supabase configurado.
-- Credencial Gemini.
-
-O repositorio tambem possui `pnpm-lock.yaml`. Escolher um unico gerenciador e remover o lockfile excedente esta registrado como melhoria futura.
-
-## Setup local
+## ⚡ Início rápido
 
 ```bash
 npm install
+Copy-Item .env.example .env.local
+npm run dev
 ```
 
-Crie `.env.local`:
+Acesse [http://localhost:3000](http://localhost:3000).
+
+## ✅ Pré-requisitos
+
+- Node.js compatível com Next.js 16.
+- npm.
+- Projeto Supabase configurado.
+- Credencial Google Gemini.
+- Usuário incluído em `authorized_users`.
+
+> [!NOTE]
+> O repositório também possui `pnpm-lock.yaml`. A escolha de um único gerenciador permanece no roadmap.
+
+## 🔐 Ambiente local
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -25,166 +31,151 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 ```
 
-Inicie:
+Regras:
 
-```bash
-npm run dev
-```
+- Nunca exponha chaves privadas com `NEXT_PUBLIC_`.
+- Não versione `.env.local`.
+- Use projetos/chaves deliberadamente escolhidos para cada ambiente.
 
-Acesse `http://localhost:3000`.
+## 🛠️ Comandos
 
-## Comandos disponiveis
+| Comando | Finalidade |
+|---|---|
+| `npm run dev` | Desenvolvimento |
+| `npm run lint` | Regras estáticas |
+| `npm run typecheck` | Tipos |
+| `npm run build` | Build de produção |
+| `npm run check` | Lint + tipos + build |
+| `npm run start` | Executar o build |
 
-```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npx tsc --noEmit
-```
+Ainda não existem scripts `test` e `format`.
 
-Nao existe `npm test`, `npm run typecheck` ou `npm run format` no `package.json` atual.
+## ⚠️ Regra especial do Next.js
 
-## Regra especial do Next.js
+Este projeto usa Next.js `16.2.7`, com APIs e convenções que podem diferir de versões anteriores.
 
-Este projeto usa Next.js `16.2.7`, com mudancas que podem diferir de conhecimento anterior.
-
-Antes de alterar APIs, convencoes ou estrutura do Next:
+Antes de alterar código relacionado ao framework:
 
 1. Leia `AGENTS.md`.
 2. Consulte o guia relevante em `node_modules/next/dist/docs/`.
-3. Respeite avisos de deprecacao.
+3. Verifique avisos de depreciação.
+4. Preserve a separação entre Server e Client Components.
 
-## Organizacao
+## 🗂️ Organização
 
-```text
-app/             paginas e route handlers
-components/      componentes de negocio e UI
-components/ui/   primitives Base UI/shadcn-style
-lib/hooks/       consultas e mutacoes React Query
-lib/api/         tipos e constantes de dados
-lib/supabase/    cliente Supabase browser
-lib/utils/       exportacao PDF
-```
+| Pasta | Responsabilidade |
+|---|---|
+| `app/` | Rotas, metadata e route handlers |
+| `components/pages/` | Interatividade específica de cada rota |
+| `components/ui/` | Primitivos reutilizáveis |
+| `lib/hooks/` | Queries e mutações |
+| `lib/api/` | Tipos, tabelas e query keys |
+| `lib/env/` | Validação de ambiente |
+| `lib/server/` | Infraestrutura server-side |
+| `lib/supabase/` | Cliente Supabase |
+| `supabase/migrations/` | Mudanças versionadas no banco |
 
-Nao existem atualmente:
+## 🧩 Padrões do projeto
 
-- `lib/mocks/`;
-- MSW;
-- suite de testes;
-- `tailwind.config.ts`.
+### Server e Client Components
 
-Tailwind 4 e configurado principalmente em `app/globals.css` e `postcss.config.mjs`.
-
-## Padroes atuais
-
-### Paginas interativas
-
-As paginas que usam estado, eventos ou hooks possuem `"use client"`.
-
-Nao adicione essa diretiva automaticamente a toda pagina. Consulte o guia local de Server/Client Components e mantenha Client Components tao pequenos quanto a interatividade permitir.
+- Rotas em `app/**/page.tsx` devem permanecer Server Components quando possível.
+- Estado, eventos, hooks e APIs do navegador ficam em componentes `"use client"`.
+- Não adicione `"use client"` a uma página inteira sem necessidade.
 
 ### Dados remotos
 
-Use React Query e o cliente em `lib/supabase/client.ts`.
+Ao criar ou alterar um hook:
 
-Ao criar um hook:
-
-- defina tipos em `lib/api/types.ts` ou no dominio adequado;
-- use as tabelas de `lib/api/endpoints.ts`;
-- trate `{ error }` retornado pelo Supabase;
-- invalide query keys relacionadas depois de mutacoes;
-- confirme que RLS protege o usuario.
+- [ ] Use React Query.
+- [ ] Use contratos de `lib/api`.
+- [ ] Trate `{ error }` do Supabase.
+- [ ] Inclua o usuário na query key.
+- [ ] Filtre explicitamente por `user_id`.
+- [ ] Invalide apenas as queries relacionadas.
+- [ ] Confirme que a RLS protege a mesma operação.
 
 ### Fatura selecionada
 
-Dashboard, gastos, parcelamentos e relatorios devem respeitar `useFaturaContext()`.
-
-Consultas por fatura usam atualmente:
+Dashboard, gastos, parcelamentos e relatórios usam `useFaturaContext()`.
 
 ```ts
 useGastos(faturaAtual?.id || null)
 useParcelamentos(faturaAtual?.id || null)
 ```
 
-### Componentes UI
+### Interface
 
 - Reutilize `components/ui`.
-- Use icones Lucide.
-- Botoes apenas com icone precisam de `aria-label`.
-- Formularios precisam de `label` associada.
-- Use variaveis de tema, como `bg-background`, `text-foreground` e `border-border`.
-- Teste tema claro e escuro.
+- Use ícones Lucide.
+- Botões somente com ícone precisam de `aria-label`.
+- Formulários precisam de labels associadas.
+- Use tokens como `bg-background`, `text-foreground` e `border-border`.
+- Teste tema claro, escuro, desktop e mobile.
 
 ### Erros
 
-- Trate erros esperados e mostre feedback com Sonner ou `ErrorAlert`.
-- Em `catch`, prefira `unknown` em vez de `any`.
-- Nao mostre detalhes internos do Supabase ao usuario.
-- Para route handlers, use status HTTP coerente.
+- Use `unknown` nos blocos `catch`.
+- Mostre feedback com Sonner ou `ErrorAlert`.
+- Não exponha detalhes internos do Supabase.
+- Route handlers devem usar status HTTP coerentes.
+- Logs server-side devem incluir contexto sem registrar segredos.
 
 ### Dados da IA
 
-Qualquer dado retornado pelo Gemini deve ser tratado como entrada nao confiavel.
+Considere toda resposta do Gemini como entrada não confiável:
 
-Antes de salvar:
+- valide com schema;
+- normalize datas, moedas e categorias;
+- limite strings e listas;
+- persista por operação atômica;
+- remova uploads quando o processo falhar.
 
-- validar schema;
-- validar datas e numeros;
-- limitar categorias;
-- normalizar strings;
-- garantir operacao atomica ou compensacao em caso de falha.
+## ➕ Adicionando recursos
 
-## Adicionando uma pagina
+### Nova página
 
 1. Crie `app/<rota>/page.tsx`.
-2. Decida quais partes podem ser Server Components.
-3. Extraia componentes interativos quando necessario.
-4. Adicione a rota em `components/app-sidebar.tsx`.
-5. Adicione estados de loading, erro e vazio.
-6. Teste desktop, mobile, tema claro e escuro.
+2. Mantenha conteúdo estático no servidor.
+3. Extraia a experiência interativa para `components/pages/`.
+4. Adicione a rota à navegação.
+5. Implemente loading, erro e estado vazio.
+6. Teste responsividade e os dois temas.
 
-## Adicionando uma tabela/campo Supabase
+### Nova tabela ou campo
 
-1. Atualize o banco e RLS.
-2. Atualize `lib/api/types.ts`.
-3. Atualize `lib/api/endpoints.ts` quando aplicavel.
-4. Crie mapper/hook.
-5. Verifique isolamento entre usuarios.
+1. Crie uma migration versionada.
+2. Defina RLS e índices.
+3. Atualize os tipos.
+4. Atualize hooks e mappers.
+5. Teste com dois usuários.
 6. Atualize `API_INTEGRATION.md`.
 
-## Verificacao antes de concluir
+## 🧪 Antes de concluir
 
 ```bash
-npm run lint
-npx tsc --noEmit
-npm run build
+npm run check
 ```
 
-Estado conhecido: o typecheck passa, mas o lint ainda falha. Consulte `FUTURAS_MELHORIAS.md`.
+Checklist:
 
-## Vercel
+- [ ] Fluxo principal testado manualmente.
+- [ ] Console sem erros relevantes.
+- [ ] Tema claro e escuro verificados.
+- [ ] Mobile e desktop verificados.
+- [ ] Documentação atualizada.
+- [ ] Preview da Vercel validado quando necessário.
 
-Ao alterar auth, env vars, uploads ou route handlers:
+## 📝 Convenções
 
-- verifique um Preview Deploy;
-- confira os logs da function;
-- teste callback OAuth;
-- confirme que `GEMINI_API_KEY` nao usa prefixo `NEXT_PUBLIC_`;
-- nao dependa de arquivos temporarios da function;
-- confira limites da rota de processamento de PDF.
-
-## Convencoes
-
-- Arquivos/componentes: siga o padrao existente.
-- Componentes React e tipos: `PascalCase`.
-- Funcoes e variaveis: `camelCase`.
+- Componentes e tipos: `PascalCase`.
+- Funções e variáveis: `camelCase`.
 - Imports internos: alias `@/`.
-- Commits sugeridos: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
+- Commits sugeridos: `feat:`, `fix:`, `docs:`, `refactor:`, `test:` e `chore:`.
 
-## Documentos relacionados
+## 🔗 Próximas leituras
 
-- `ARCHITECTURE.md`
-- `API_INTEGRATION.md`
-- `BACKEND_INTEGRATION_CHECKLIST.md`
-- `FUTURAS_MELHORIAS.md`
+- [Arquitetura](./ARCHITECTURE.md)
+- [Integração Supabase e APIs](./API_INTEGRATION.md)
+- [Checklist de backend](./BACKEND_INTEGRATION_CHECKLIST.md)
+- [Roadmap](./FUTURAS_MELHORIAS.md)

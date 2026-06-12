@@ -1,110 +1,114 @@
-# Arquitetura atual
+# 🏗️ Arquitetura do Cartão Inteligente
 
-Este documento descreve o estado observado no codigo em 2026-06-11. Ele nao presume recursos que ainda nao foram implementados no Supabase ou na Vercel.
+> Mapa técnico do estado atual, revisado em **12 de junho de 2026**.
 
-## Visao geral
+## 🧭 Visão geral
 
 ```text
 Browser
-  |
-  |-- Next.js App Router / Client Components
-  |     |-- AuthProvider
-  |     |-- FaturaProvider
-  |     |-- React Query
-  |     |-- Supabase browser client
-  |
-  |-- POST /api/process-fatura
-        |-- valida token Supabase
-        |-- envia PDF ao Gemini
-        |-- salva fatura e gastos no Supabase
+├── Next.js App Router
+├── ThemeProvider
+├── React Query
+├── AuthProvider
+├── FaturaProvider
+├── Supabase browser client
+└── Experiências client por rota
+        │
+        ├── Supabase Auth / PostgreSQL / Storage
+        └── POST /api/process-fatura
+                ├── valida sessão e PDF
+                ├── consulta Gemini
+                ├── valida com Zod
+                └── persiste via RPC
 
-Servicos externos
-  |-- Supabase Auth
-  |-- Supabase PostgreSQL + RLS
-  |-- Google OAuth
-  |-- Google Gemini
-  |-- Vercel
+Deploy: Vercel
 ```
 
-## Stack
+## 🧱 Camadas
 
-- Next.js `16.2.7`, App Router.
-- React `19.2.4`.
-- TypeScript 5 em modo `strict`.
-- Tailwind CSS 4.
-- Base UI e componentes shadcn-style.
-- React Query 5.
-- Supabase JS 2.
-- Google Gemini via `@google/generative-ai`.
-- Recharts.
-- jsPDF e jspdf-autotable.
-- Vercel como plataforma de deploy.
-
-Por instrucao de `AGENTS.md`, alteracoes relacionadas ao Next.js devem consultar primeiro os guias em `node_modules/next/dist/docs/`.
-
-## Rotas
-
-| Rota | Arquivo | Responsabilidade |
+| Camada | Responsabilidade | Locais principais |
 |---|---|---|
-| `/` | `app/page.tsx` | Dashboard |
-| `/login` | `app/login/page.tsx` | Login Google |
-| `/faturas` | `app/faturas/page.tsx` | Importar, listar e excluir faturas |
-| `/gastos` | `app/gastos/page.tsx` | Filtrar e editar gastos |
-| `/parcelamentos` | `app/parcelamentos/page.tsx` | Exibir parcelas derivadas dos gastos |
-| `/relatorios` | `app/relatorios/page.tsx` | Graficos e exportacao PDF |
-| `/configuracoes` | `app/configuracoes/page.tsx` | Gerenciar responsaveis |
-| `/auth/callback` | `app/auth/callback/route.ts` | Trocar codigo OAuth por sessao |
-| `/logout` | `app/logout/route.ts` | Rota POST de logout |
-| `/api/process-fatura` | `app/api/process-fatura/route.ts` | Processar PDF com Gemini |
+| Rotas | Metadata, layout e entrada server-side | `app/` |
+| Experiência | Estado e interações do usuário | `components/pages/` |
+| UI | Primitivos reutilizáveis | `components/ui/` |
+| Estado global | Sessão, fatura atual e tema | `components/*provider.tsx` |
+| Dados | Queries, mutações e cache | `lib/hooks/` |
+| Contratos | Tipos, tabelas e query keys | `lib/api/` |
+| Backend | Processamento, ambiente e logs | `app/api/`, `lib/server/` |
+| Persistência | Auth, PostgreSQL, RLS e Storage | Supabase |
 
-Observacoes:
+## 🗺️ Rotas
 
-- O botao de logout atual usa `supabase.auth.signOut()` no cliente; a rota `/logout` nao e usada pela UI.
-- As paginas de rota sao Server Components; a interatividade fica em `components/pages/*-client.tsx`.
-- O antigo `vercel.json` com rewrite global para `/` foi removido; o App Router controla rotas e assets diretamente.
+| Rota | Tipo | Responsabilidade |
+|---|---|---|
+| `/` | Página | Dashboard |
+| `/login` | Página | Login Google |
+| `/faturas` | Página | Importar e gerenciar faturas |
+| `/gastos` | Página | Filtrar, editar e dividir gastos |
+| `/parcelamentos` | Página | Acompanhar parcelas e responsáveis |
+| `/relatorios` | Página | Gráficos e exportação PDF |
+| `/configuracoes` | Página | Gerenciar responsáveis |
+| `/auth/callback` | Route handler | Trocar código OAuth por sessão |
+| `/logout` | Route handler legado | Logout server-side não usado pela UI |
+| `/api/health` | Route handler | Validar ambiente |
+| `/api/process-fatura` | Route handler | Processar PDF com Gemini |
 
-## Composicao global
+> [!NOTE]
+> As páginas de rota são Server Components. Interações ficam em `components/pages/*-client.tsx`.
 
-`app/layout.tsx` e Server Component e renderiza `RootLayoutClient`.
+## 🌐 Composição global
 
-`components/root-layout-client.tsx` registra:
+`app/layout.tsx` renderiza `RootLayoutClient`, que organiza:
 
-1. `QueryClientProvider`
-2. `AuthProvider`
-3. `FaturaProvider`
-4. `ThemeProvider`
+1. `ThemeProvider`
+2. `QueryClientProvider`
+3. `AuthProvider`
+4. `FaturaProvider`
 5. `TooltipProvider`
 6. `AppSidebar`
 7. `Toaster`
 
-As paginas server-side sao passadas ao wrapper pelo slot `children`, portanto nao entram automaticamente no grafo
-de modulos client. Apenas providers, sidebar e componentes interativos declarados com `"use client"` sao hidratados.
+O slot `children` mantém as páginas server-side fora do grafo client sempre que possível.
 
-## Autenticacao e autorizacao
+## 🔐 Autenticação e autorização
 
 ### Login
 
-1. `app/login/page.tsx` renderiza `components/pages/login-client.tsx`, que chama `supabase.auth.signInWithOAuth`.
-2. O Google/Supabase redireciona para `/auth/callback`.
-3. `app/auth/callback/route.ts` chama `exchangeCodeForSession`.
-4. O usuario e redirecionado para a origem do app.
+```text
+LoginClient
+  → supabase.auth.signInWithOAuth()
+  → Google / Supabase
+  → /auth/callback
+  → exchangeCodeForSession()
+  → aplicação
+```
 
-### Autorizacao adicional
+### Gate adicional
 
-`components/auth-provider.tsx`:
+`AuthProvider`:
 
-1. Obtem a sessao atual.
-2. Consulta `authorized_users` pelo email.
-3. Se o email nao existir, encerra a sessao.
-4. Se autorizado, disponibiliza `user` pelo contexto.
+1. recupera a sessão;
+2. consulta `authorized_users` pelo email atual;
+3. encerra a sessão se o email não estiver autorizado;
+4. disponibiliza o usuário ao restante da aplicação.
 
-Essa tabela deve possuir RLS/politicas adequadas. Ela nao aparecia na documentacao antiga, mas e obrigatoria para o fluxo atual.
+### Isolamento
 
-## Estado e dados
+| Camada | Proteção |
+|---|---|
+| Aplicação | Queries e mutações incluem `user_id` |
+| Cache | Query keys incluem o ID do usuário |
+| Sessão | Logout e troca de conta limpam o cache |
+| Banco | RLS exige `auth.uid() = user_id` |
+| Storage | Caminhos e policies são separados por usuário |
+
+Migration: `supabase/migrations/20260611_user_data_isolation.sql`.
+
+## 🔄 Estado e dados
 
 ### React Query
 
-Os hooks em `lib/hooks/` consultam Supabase diretamente:
+Hooks principais:
 
 - `useFaturas`
 - `useGastos`
@@ -112,31 +116,30 @@ Os hooks em `lib/hooks/` consultam Supabase diretamente:
 - `useParcelamentos`
 - `useResponsaveis`
 
-Todas as query keys incluem o ID do usuario autenticado, e o cache e limpo no logout/troca de sessao. As consultas e mutacoes tambem aplicam filtro explicito por `user_id`.
+Configuração global:
 
-O `QueryClient` global usa:
-
-- `staleTime`: 5 minutos.
-- `gcTime`: 10 minutos.
+| Opção | Valor |
+|---|---:|
+| `staleTime` | 5 minutos |
+| `gcTime` | 10 minutos |
 
 ### Fatura atual
 
-`components/fatura-provider.tsx` carrega todas as faturas e mantem uma fatura selecionada globalmente. Dashboard, gastos, parcelamentos e relatorios usam esse contexto.
+`FaturaProvider` guarda o ID selecionado e deriva a fatura válida da lista atual. Dashboard, gastos, parcelamentos e relatórios usam esse contexto.
 
 ### Parcelamentos
 
-Apesar de existir `TABLES.PARCELAMENTOS`, a tela atual nao consulta essa tabela. `lib/hooks/useParcelamentos.ts` seleciona gastos com `parcela` e deriva:
+Parcelamentos não são lidos de uma tabela própria. `useParcelamentos` seleciona gastos com `parcela` e deriva:
 
-- parcela atual;
-- total de parcelas;
-- valor total estimado;
-- parte de cada responsavel.
+- parcela atual e total;
+- valor mensal e total;
+- parcelas restantes;
+- responsável;
+- divisões por pessoa.
 
-A tabela `parcelamentos` nao e lida pelo app e deve ser considerada legado/pendencia ate o modelo ser decidido. Se existir, a migration de exclusao configura cascade por `fatura_id`.
+`TABLES.PARCELAMENTOS` permanece como contrato legado até uma decisão definitiva.
 
-### Divisao de gastos
-
-O campo `gastos.divisoes` e esperado como array JSON:
+### Divisões
 
 ```ts
 type Divisao = {
@@ -145,96 +148,85 @@ type Divisao = {
 };
 ```
 
-Quando presente, ele substitui `responsavel` nos calculos por pessoa.
+Quando `gastos.divisoes` existe, os cálculos por responsável usam as partes do array, não o campo único `responsavel`.
 
-## Processamento de fatura
+## 📄 Fluxo de importação
 
-Fluxo em `app/api/process-fatura/route.ts`:
+```text
+Selecionar PDF
+  → upload direto ao Storage
+  → enviar caminho à API
+  → validar token, caminho, tamanho e assinatura
+  → calcular SHA-256
+  → bloquear duplicidade
+  → chamar Gemini
+  → validar resposta com Zod
+  → importar por RPC transacional
+  → invalidar queries
+```
 
-1. Recebe `Authorization: Bearer <token>`.
-2. Cria cliente Supabase usando URL e anon key.
-3. Valida o usuario com `auth.getUser()`.
-4. O cliente envia o PDF diretamente ao bucket privado `faturas`.
-5. A rota recebe JSON com caminho, nome e tamanho, evitando o limite de payload da Vercel.
-6. Baixa o objeto com a sessao do usuario e valida caminho, tamanho e assinatura `%PDF-`.
-7. Registra o instante de inicio da importacao.
-8. Calcula SHA-256 e bloqueia PDFs ja importados pelo usuario.
-9. Converte PDF para base64.
-10. Envia prompt + PDF ao Gemini, com timeout de 240 segundos.
-11. Faz `JSON.parse` e valida/normaliza a resposta com Zod.
-12. Busca o responsavel principal.
-13. Insere fatura, instante inicial, caminho, hash do PDF e gastos pela RPC transacional.
-14. Remove o objeto do Storage se qualquer etapa falhar.
+Detalhes:
 
-Limitacoes atuais:
+1. O upload usa `<user_id>/<uuid>.pdf`.
+2. O limite é 20 MB.
+3. A API baixa o arquivo usando a sessão do usuário.
+4. O Gemini possui timeout de 240 segundos.
+5. A rota possui `maxDuration` de 300 segundos.
+6. Falhas removem o objeto recém-enviado.
+7. Logs incluem `requestId`, etapa, status e duração.
 
-- O processamento ocorre dentro de uma unica requisicao serverless com `maxDuration` de 300 segundos.
-
-## Modelo de dados observado
+## 🗃️ Modelo de dados
 
 ### `faturas`
 
-Campos usados:
-
-- `id`
-- `user_id`
-- `mes_referencia`
-- `valor_total`
-- `quantidade_lancamentos`
-- `data_importacao`
-- `arquivo_url`, contendo o caminho privado do PDF no Supabase Storage
-- `arquivo_hash`, contendo o SHA-256 usado para impedir importacao duplicada por usuario
+`id`, `user_id`, `mes_referencia`, `valor_total`, `quantidade_lancamentos`, `data_importacao`, `arquivo_url`, `arquivo_hash`.
 
 ### `gastos`
 
-Campos usados:
-
-- `id`
-- `user_id`
-- `fatura_id`
-- `data`
-- `estabelecimento`
-- `valor`
-- `categoria`
-- `responsavel`
-- `parcela`
-- `observacao`
-- `divisoes`
+`id`, `user_id`, `fatura_id`, `data`, `estabelecimento`, `valor`, `categoria`, `responsavel`, `parcela`, `observacao`, `divisoes`.
 
 ### `responsaveis`
 
-Campos usados:
+`id`, `user_id`, `nome`, `cor`.
 
-- `id`
-- `user_id`
-- `nome`
-- `cor`
-
-O valor especial `cor = 'pessoal'` identifica o responsavel principal. Portanto, `cor` atualmente mistura papel de negocio e apresentacao visual.
+> O valor `cor = 'pessoal'` identifica o responsável principal. Isso mistura apresentação e regra de negócio e permanece como dívida técnica.
 
 ### `authorized_users`
 
-Campo usado:
-
-- `email`
+`email`.
 
 ### `parcelamentos`
 
-A leitura da aplicacao nao usa essa tabela atualmente. Confirmar no Supabase se ela ainda existe e se deve ser removida.
+A aplicação atual não lê essa tabela. Confirmar se será removida ou transformada em entidade real.
 
-## Exportacao PDF
+## 🗑️ Exclusão de fatura
 
-`lib/utils/pdfExport.ts` carrega `jspdf` e `jspdf-autotable` dinamicamente para evitar problemas com APIs do browser durante SSR.
+`useDeleteFatura` chama `delete_fatura_atomically`:
 
-O relatorio pode ser:
+1. valida propriedade com `auth.uid()`;
+2. bloqueia a fatura;
+3. conta registros relacionados;
+4. exclui fatura e gastos na mesma transação;
+5. retorna caminho e quantidades removidas;
+6. o cliente limpa o PDF no Storage após o commit.
 
-- completo;
-- filtrado por responsavel;
-- ajustado pelas divisoes de gastos.
+Uma falha no Storage pode deixar um arquivo órfão, mas não uma fatura parcialmente excluída.
 
-## Deploy Vercel
+## 📊 Exportação PDF
 
-Variaveis necessarias no codigo atual:
+`lib/utils/pdfExport.ts` gera:
+
+- relatório completo;
+- relatório por responsável;
+- resumo de divisões;
+- parcelamentos;
+- valores originais e atribuídos.
+
+O download é feito por Blob no navegador.
+
+## ☁️ Produção
+
+Variáveis:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -244,43 +236,20 @@ GEMINI_API_KEY=
 
 Cuidados:
 
-- configurar Development, Preview e Production;
-- configurar callback OAuth para cada dominio usado;
-- observar timeout, memoria e payload de `/api/process-fatura`;
-- nao usar filesystem temporario como storage persistente;
-- correlacionar logs da Vercel, browser e Supabase.
+- Preview e Production precisam de configuração deliberada.
+- OAuth deve conhecer cada domínio.
+- PDFs persistentes ficam no Storage.
+- Logs de browser, Vercel e Supabase devem ser correlacionados.
+- RLS precisa ser testada com duas contas.
 
-## Isolamento por usuario
+## ✅ Qualidade atual
 
-Cada fatura, gasto e responsavel pertence ao `auth.uid()` que realizou a operacao.
+- [x] `npm run lint`
+- [x] `npm run typecheck`
+- [x] `npm run build`
+- [x] Importação validada e transacional
+- [x] Exclusão transacional
+- [ ] Testes automatizados
+- [ ] RLS validada no ambiente de produção
 
-A protecao usa duas camadas:
-
-1. Aplicacao: consultas, criacoes, atualizacoes e exclusoes incluem `user_id`.
-2. Banco: RLS impede acesso cruzado mesmo em chamadas Supabase manipuladas manualmente.
-
-Migration: `supabase/migrations/20260611_user_data_isolation.sql`.
-
-## Exclusao de faturas
-
-`useDeleteFatura` chama a RPC `delete_fatura_atomically`.
-
-- A RPC bloqueia e valida a fatura pelo usuario autenticado.
-- A exclusao da fatura e dos gastos ocorre na mesma transacao.
-- `gastos.fatura_id` usa `ON DELETE CASCADE`.
-- Uma tabela legada `parcelamentos`, se existir, tambem recebe cascade.
-- A RPC retorna o caminho do PDF e as quantidades removidas.
-- Depois do commit, o cliente remove o objeto do Supabase Storage e avisa se essa limpeza externa falhar.
-
-Migration: `supabase/migrations/20260612_atomic_invoice_deletion.sql`.
-
-## Qualidade atual
-
-Em 2026-06-11:
-
-- `npx tsc --noEmit` passa.
-- `npm run lint` falha com 8 erros e 17 warnings.
-- Nao ha framework/script de testes configurado.
-- Nao ha MSW, React Testing Library, Cypress ou Playwright instalados.
-
-O backlog detalhado esta em `FUTURAS_MELHORIAS.md`.
+Próximas decisões estão em [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md).

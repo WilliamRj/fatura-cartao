@@ -1,82 +1,43 @@
-# Cartao Inteligente
+# 💳 Cartão Inteligente
 
-Aplicacao web para gerenciar faturas de cartao de credito, importar PDFs de fatura, classificar gastos, dividir despesas por responsavel, acompanhar parcelamentos e gerar relatorios.
+> Gestão de faturas, gastos, responsáveis e parcelamentos em um só lugar.
 
-## Stack atual
+Aplicação web em PT-BR para importar faturas em PDF, organizar despesas, dividir valores entre responsáveis, acompanhar compras parceladas e exportar relatórios claros.
 
-- Next.js `16.2.7` com App Router
-- React `19.2.4`
-- TypeScript 5
-- Tailwind CSS 4
-- Base UI/shadcn-style components em `components/ui`
-- Supabase Auth + PostgreSQL via `@supabase/supabase-js`
-- React Query 5
-- Google Gemini para processamento de PDF em `app/api/process-fatura/route.ts`
-- Recharts para graficos
-- jsPDF + jspdf-autotable para exportacao PDF
-- Vercel para deploy
+## ✨ O que o app entrega
 
-## Funcionalidades implementadas
+| Área | Recursos |
+|---|---|
+| 🔐 Acesso | Login Google, lista de usuários autorizados e isolamento por conta |
+| 📄 Faturas | Upload, processamento por IA, visualização e exclusão transacional |
+| 🧾 Gastos | Busca, filtros, ordenação, edição, observações e divisões |
+| 💰 Parcelamentos | Progresso, filtro por responsável e valores divididos |
+| 📊 Relatórios | Visões por período, categoria e responsável, com exportação PDF |
+| 🎨 Experiência | Tema claro/escuro, layout responsivo e feedbacks de operação |
 
-- Login com Google via Supabase Auth.
-- Gate de autorizacao por tabela `authorized_users`.
-- Dados isolados por login com filtros `user_id`, cache por usuario e RLS no Supabase.
-- Dashboard com total da fatura, gastos pessoais, terceiros, compras e parcelamentos.
-- Seletor global de fatura no sidebar/header.
-- Importacao de faturas PDF em `app/faturas/page.tsx`, processadas por `/api/process-fatura`.
-- Listagem de faturas e exclusao transacional com cascade dos lancamentos relacionados.
-- Tabela de gastos com busca, filtros, ordenacao, edicao de categoria/responsavel/observacao e divisao de valor.
-- Parcelamentos derivados dos gastos com campo `parcela`.
-- Relatorios por mes, categoria e responsavel.
-- Exportacao PDF de relatorio completo ou por responsavel.
-- Configuracao de responsaveis e responsavel principal.
-- Tema claro/escuro.
+## 🧱 Stack
 
-## Estrutura do projeto
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js `16.2.7`, React `19.2.4`, TypeScript 5 |
+| UI | Tailwind CSS 4, Base UI, Lucide e Recharts |
+| Estado remoto | TanStack React Query 5 |
+| Backend | Supabase Auth, PostgreSQL, RLS e Storage |
+| IA | Google Gemini |
+| PDF | jsPDF + jspdf-autotable |
+| Deploy | Vercel |
 
-```text
-app/
-  api/health/route.ts               # Healthcheck de ambiente do deploy
-  api/process-fatura/route.ts      # Processa PDF com Gemini e salva no Supabase
-  auth/callback/route.ts           # Callback OAuth do Supabase
-  logout/route.ts                  # Logout POST
-  page.tsx                         # Dashboard
-  faturas/page.tsx                 # Container server-side de faturas
-  gastos/page.tsx                  # Container server-side de gastos
-  parcelamentos/page.tsx           # Container server-side de parcelamentos
-  relatorios/page.tsx              # Container server-side de relatorios
-  configuracoes/page.tsx           # Container server-side de configuracoes
-components/
-  pages/                           # Fronteiras client interativas por rota
-  page-heading.tsx                 # Cabecalho renderizado no servidor
-  root-layout-client.tsx           # Providers globais
-  auth-provider.tsx                # Sessao e autorizacao
-  fatura-provider.tsx              # Fatura atual
-  app-sidebar.tsx                  # Navegacao e seletor de fatura
-  dashboard-content.tsx            # Dashboard
-  ui/                              # Componentes de UI
-lib/
-  api/endpoints.ts                 # Tabelas e query keys
-  api/types.ts                     # Tipos vindos do Supabase
-  env/server.ts                    # Validacao das variaveis server-side
-  hooks/                           # Hooks React Query
-  server/logger.ts                 # Logs estruturados das funcoes
-  supabase/client.ts               # Cliente Supabase browser
-  utils/pdfExport.ts               # Exportacao PDF
-  data.ts                          # Tipos de dominio, mocks e formatadores
-```
+## 🚀 Começando
 
-## Configuracao local
-
-1. Instale dependencias:
+### 1. Instale as dependências
 
 ```bash
 npm install
 ```
 
-2. Crie `.env.local` com base em `.env.example`.
+### 2. Configure o ambiente
 
-Variaveis usadas pelo codigo atual:
+Crie `.env.local` com base em `.env.example`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -84,80 +45,126 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 ```
 
-Observacao: `SUPABASE_SERVICE_ROLE_KEY` aparece em alguns documentos antigos, mas o codigo atual nao a utiliza. So adicione se uma futura rota server-side realmente precisar dela.
+> [!IMPORTANT]
+> `GEMINI_API_KEY` é privada e nunca deve receber o prefixo `NEXT_PUBLIC_`.
 
-3. Rode o app:
+### 3. Inicie o projeto
 
 ```bash
 npm run dev
 ```
 
-4. Acesse `http://localhost:3000`.
+Acesse [http://localhost:3000](http://localhost:3000).
 
-## Scripts atuais
+## 🛠️ Comandos
 
-```bash
-npm run dev      # servidor de desenvolvimento
-npm run build    # build de producao
-npm run start    # servir build
-npm run lint     # eslint
-npm run typecheck # typecheck
-npm run check    # lint + typecheck + build de producao
+| Comando | Uso |
+|---|---|
+| `npm run dev` | Servidor local |
+| `npm run build` | Build de produção |
+| `npm run start` | Executa o build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Validação TypeScript |
+| `npm run check` | Lint + typecheck + build |
+
+> Ainda não existe uma suíte automatizada de testes. Esse trabalho está priorizado no roadmap.
+
+## 🗂️ Estrutura principal
+
+```text
+app/
+  api/health/                 # Healthcheck do deploy
+  api/process-fatura/         # Processamento do PDF
+  auth/callback/              # Callback OAuth
+  faturas/ gastos/            # Rotas server-side
+  parcelamentos/ relatorios/
+components/
+  pages/                      # Experiências client por rota
+  ui/                         # Primitivos de interface
+  auth-provider.tsx           # Sessão e autorização
+  fatura-provider.tsx         # Fatura selecionada
+  app-sidebar.tsx             # Navegação global
+lib/
+  api/                        # Contratos e query keys
+  hooks/                      # React Query + Supabase
+  env/                        # Validação de ambiente
+  server/                     # Logger server-side
+  supabase/                   # Cliente Supabase
+  utils/pdfExport.ts          # Exportação de relatório
+supabase/migrations/          # Evolução versionada do banco
 ```
 
-Nao existe script `npm test` configurado atualmente.
+## 🔄 Fluxo de importação
 
-## Deploy na Vercel
+1. O navegador envia o PDF ao bucket privado `faturas`.
+2. `/api/process-fatura` valida sessão, caminho, assinatura e tamanho.
+3. O arquivo recebe um hash SHA-256 para bloquear duplicidades.
+4. O Gemini extrai os lançamentos.
+5. Zod valida e normaliza a resposta.
+6. Uma RPC salva fatura e gastos de forma transacional.
+7. Falhas removem o upload recém-enviado.
 
-Configure no projeto da Vercel:
+## 🔒 Segurança por usuário
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `GEMINI_API_KEY`
+Cada fatura, gasto e responsável pertence ao usuário autenticado.
 
-As tres variaveis sao obrigatorias em cada ambiente usado pelo app. Preview e
-Production devem apontar para projetos/chaves deliberadamente escolhidos, sem
-depender dos valores de Development.
+- Queries e mutações incluem `user_id`.
+- O cache do React Query é separado por conta.
+- Logout e troca de sessão limpam o cache.
+- RLS no Supabase bloqueia acesso cruzado.
+- PDFs ficam em caminhos privados por usuário.
 
-Depois do deploy, acesse `https://<dominio>/api/health`. O endpoint deve retornar
-HTTP 200 com `status: "ok"` e nao expoe os valores das chaves. A inicializacao
-do servidor tambem valida as variaveis e registra um erro estruturado quando
-alguma esta ausente ou invalida; nesse caso, o healthcheck retorna HTTP 503.
-
-Tambem configure URLs de OAuth no Google Cloud Console e no Supabase para o dominio da Vercel, incluindo `/auth/callback`.
-
-Antes do deploy com multiplos usuarios, execute no Supabase:
+Migration principal:
 
 ```text
 supabase/migrations/20260611_user_data_isolation.sql
 ```
 
-Pontos de atencao em producao:
+> [!WARNING]
+> Antes de atender múltiplas contas em produção, aplique e valide as migrations no Supabase e teste o isolamento com dois usuários autorizados.
 
-- O navegador envia o PDF diretamente ao Supabase Storage; a Function recebe apenas o caminho, evitando o limite de 4,5 MB do payload da Vercel.
-- `/api/process-fatura` usa runtime Node.js, `maxDuration` de 300 segundos e timeout controlado de 240 segundos para o Gemini.
-- O upload maximo permanece em 20 MB, validado no cliente, no bucket e no servidor.
-- Os logs JSON incluem `requestId`, usuario, etapa, status e duracao; o mesmo `requestId` volta no header `X-Request-Id`.
-- PDFs importados sao persistidos no bucket privado `faturas` do Supabase Storage.
-- A visualizacao usa URL assinada; a exclusao transacional remove os dados relacionados e depois limpa o arquivo original.
-- Cada PDF recebe um hash SHA-256; uma segunda importacao do mesmo arquivo pelo mesmo usuario e bloqueada antes da chamada a IA.
-- RLS no Supabase e obrigatorio, pois o app fica acessivel remotamente.
+## ☁️ Deploy na Vercel
 
-## Documentacao
+Configure as três variáveis em **Development**, **Preview** e **Production**:
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md): arquitetura atual e fluxo de dados.
-- [API_INTEGRATION.md](./API_INTEGRATION.md): schema Supabase e integracao.
-- [DEVELOPMENT.md](./DEVELOPMENT.md): guia de desenvolvimento.
-- [BACKEND_INTEGRATION_CHECKLIST.md](./BACKEND_INTEGRATION_CHECKLIST.md): checklist operacional de Supabase/Vercel.
-- [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md): configuracao e validacao do deploy.
-- [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md): backlog tecnico e de UI.
-- [CLAUDE.md](./CLAUDE.md): guia legado para assistentes; pode ser removido se ninguem usar Claude.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GEMINI_API_KEY`
 
-## Estado conhecido
+Após publicar:
 
-Em 2026-06-12:
+```text
+GET https://<dominio>/api/health
+```
 
-- `npm run lint` passa.
-- `npm run typecheck` passa.
-- `npm run build` passa.
-- O healthcheck retorna 503 quando falta configuracao e 200 quando o ambiente esta completo.
+O esperado é HTTP `200` com `status: "ok"`. Configure também o callback OAuth:
+
+```text
+https://<dominio>/auth/callback
+```
+
+Detalhes operacionais estão em [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
+
+## 📚 Documentação
+
+| Documento | Quando consultar |
+|---|---|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Entender componentes, dados e fluxos |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | Desenvolver e validar alterações |
+| [API_INTEGRATION.md](./API_INTEGRATION.md) | Schema, RLS, Storage e APIs |
+| [BACKEND_INTEGRATION_CHECKLIST.md](./BACKEND_INTEGRATION_CHECKLIST.md) | Auditar Supabase e produção |
+| [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) | Publicar e executar smoke test |
+| [FUTURAS_MELHORIAS.md](./FUTURAS_MELHORIAS.md) | Acompanhar roadmap e prioridades |
+
+## ✅ Estado atual
+
+Revisado em **12 de junho de 2026**:
+
+- [x] Lint aprovado.
+- [x] TypeScript aprovado.
+- [x] Build de produção aprovado.
+- [x] PDFs persistidos no Supabase Storage.
+- [x] Importação e exclusão transacionais.
+- [x] Dados isolados no código e migration RLS disponível.
+- [ ] Migrations e isolamento validados no ambiente de produção.
+- [ ] Suíte automatizada de testes.
