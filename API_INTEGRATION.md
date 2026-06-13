@@ -323,6 +323,27 @@ Authorization: Bearer <access_token>
 | `504` | Timeout |
 | `500` | Configuração, Storage ou persistência |
 
+### `POST /api/reports/pdf`
+
+Gera o PDF da fatura no servidor para evitar processamento pesado no
+navegador. Exige `Authorization: Bearer <access_token>`.
+
+```json
+{
+  "faturaId": "<uuid>",
+  "responsible": {
+    "id": "<uuid>"
+  }
+}
+```
+
+`responsible` é opcional. Sem ele, o relatório contém todos os gastos da
+fatura. Quando informado, gastos integrais são filtrados por
+`responsavel_id` e gastos divididos incluem somente a soma das partes daquele
+responsável. A resposta é `application/pdf` com nome de arquivo em
+`Content-Disposition`. O nome exibido é resolvido no servidor a partir do
+snapshot histórico do próprio lançamento.
+
 ## 📦 Storage
 
 Bucket privado: `faturas`.

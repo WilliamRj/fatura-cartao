@@ -1,5 +1,3 @@
-"use client";
-
 import type { Fatura, Gasto } from "@/lib/domain/models";
 
 export type ReportScope =
@@ -64,12 +62,15 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
       }
 
       if (gasto.divisoes && gasto.divisoes.length > 0) {
-        const division = gasto.divisoes.find(
+        const divisions = gasto.divisoes.filter(
           (item) => item.responsavelId === scope.id,
         );
-        if (!division) return [];
+        if (divisions.length === 0) return [];
 
-        const allocatedValue = Number(division.valor) || 0;
+        const allocatedValue = divisions.reduce(
+          (total, division) => total + (Number(division.valor) || 0),
+          0,
+        );
         const percentage = originalValue > 0
           ? (allocatedValue / originalValue) * 100
           : 0;
@@ -95,25 +96,29 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
 }
 
 function getResponsibleTotals(gastos: Gasto[]) {
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { responsible: string; value: number }>();
 
   gastos.forEach((gasto) => {
     if (gasto.divisoes && gasto.divisoes.length > 0) {
       gasto.divisoes.forEach((division) => {
-        totals.set(
-          division.responsavel,
-          (totals.get(division.responsavel) || 0) + (Number(division.valor) || 0),
-        );
+        const current = totals.get(division.responsavelId);
+        totals.set(division.responsavelId, {
+          responsible: division.responsavel,
+          value: (current?.value ?? 0) + (Number(division.valor) || 0),
+        });
       });
       return;
     }
 
     const responsible = gasto.responsavel || "Não definido";
-    totals.set(responsible, (totals.get(responsible) || 0) + (Number(gasto.valor) || 0));
+    const current = totals.get(gasto.responsavelId);
+    totals.set(gasto.responsavelId, {
+      responsible,
+      value: (current?.value ?? 0) + (Number(gasto.valor) || 0),
+    });
   });
 
-  return [...totals.entries()]
-    .map(([responsible, value]) => ({ responsible, value }))
+  return [...totals.values()]
     .sort((a, b) => b.value - a.value);
 }
 
@@ -129,28 +134,17 @@ function parseInstallment(value?: string) {
   return { current, total };
 }
 
-function downloadBlob(blob: Blob, fileName: string) {
-  if (blob.size === 0) {
-    throw new Error("O arquivo PDF foi gerado vazio.");
-  }
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.rel = "noopener";
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+export interface GeneratedPDFReport {
+  bytes: ArrayBuffer;
+  fileName: string;
+  expenseCount: number;
 }
 
 export async function generatePDFReport(
   fatura: Fatura | null,
   gastos: Gasto[],
   scope: ReportScope = { type: "all" },
-): Promise<void> {
+): Promise<GeneratedPDFReport> {
   if (!fatura) {
     throw new Error("Não há fatura selecionada para exportação.");
   }
@@ -167,6 +161,13 @@ export async function generatePDFReport(
     });
 
     const expenses = getReportExpenses(gastos || [], scope);
+    if (expenses.length === 0) {
+      throw new Error(
+        scope.type === "all"
+          ? "Esta fatura não possui gastos para exportar."
+          : `Não há gastos atribuídos a ${scope.name} nesta fatura.`,
+      );
+    }
     const installmentExpenses = expenses
       .map((expense) => ({ expense, installment: parseInstallment(expense.parcela) }))
       .filter((item): item is {
@@ -241,6 +242,7 @@ export async function generatePDFReport(
           currency(item.value),
         ]),
         theme: "grid",
+        tableWidth: 123,
         margin: { left: 14, right: 152 },
         styles: { fontSize: 9, cellPadding: 2.5, textColor: COLORS.text },
         headStyles: {
@@ -248,7 +250,10 @@ export async function generatePDFReport(
           textColor: COLORS.white,
           fontStyle: "bold",
         },
-        columnStyles: { 1: { halign: "right" } },
+        columnStyles: {
+          0: { cellWidth: 78 },
+          1: { cellWidth: 45, halign: "right" },
+        },
       });
     } else {
       doc.setFont("helvetica", "normal");
@@ -278,6 +283,7 @@ export async function generatePDFReport(
           ])
         : [["Nenhum parcelamento", "-", "-", "-"]],
       theme: "grid",
+      tableWidth: 119,
       margin: { left: 159, right: 14 },
       styles: { fontSize: 8, cellPadding: 2.2, textColor: COLORS.text },
       headStyles: {
@@ -286,8 +292,10 @@ export async function generatePDFReport(
         fontStyle: "bold",
       },
       columnStyles: {
-        2: { halign: "right" },
-        3: { halign: "right" },
+        0: { cellWidth: 48 },
+        1: { cellWidth: 17, halign: "center" },
+        2: { cellWidth: 27, halign: "right" },
+        3: { cellWidth: 27, halign: "right" },
       },
     });
 
@@ -335,6 +343,7 @@ export async function generatePDFReport(
       head: detailHead,
       body: detailBody,
       theme: "striped",
+      tableWidth: scope.type === "all" ? 255 : 244,
       margin: { left: 14, right: 14, bottom: 14 },
       styles: {
         fontSize: 8,
@@ -386,8 +395,12 @@ export async function generatePDFReport(
     const scopeSuffix =
       scope.type === "all" ? "completa" : safeFileName(scope.name);
     const fileName = `Relatorio_${safeFileName(fatura.mesReferencia)}_${scopeSuffix}.pdf`;
-    downloadBlob(doc.output("blob"), fileName);
+    const bytes = doc.output("arraybuffer");
+    if (bytes.byteLength === 0) {
+      throw new Error("O arquivo PDF foi gerado vazio.");
+    }
 
+    return { bytes, fileName, expenseCount: expenses.length };
   } catch (error: unknown) {
     console.error("Erro na geração do PDF:", error);
     throw new Error(

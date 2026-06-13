@@ -311,7 +311,12 @@ Uma falha no Storage pode deixar um arquivo órfão, mas não uma fatura parcial
 - parcelamentos;
 - valores originais e atribuídos.
 
-O download é feito por Blob no navegador.
+O navegador envia apenas a fatura e o escopo escolhido para
+`POST /api/reports/pdf`. A rota autentica novamente o usuário, consulta todos
+os gastos da fatura sob RLS e gera o PDF no servidor. Relatórios por
+responsável usam `responsavel_id` e somam somente as partes atribuídas dentro
+de `divisoes`; os nomes preservados no lançamento continuam visíveis no
+documento. O navegador recebe o arquivo pronto e inicia o download por Blob.
 
 ## ☁️ Produção
 

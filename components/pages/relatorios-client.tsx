@@ -22,7 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/data";
 import { useEstatisticas, useGastos } from "@/lib/hooks/useGastos";
 import { useFaturas } from "@/lib/hooks/useFaturas";
-import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { EmptyState, ErrorAlert } from "@/components/error";
@@ -45,18 +44,57 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCategoryColor, getChartColor } from "@/lib/chart-config";
-import {
-  generatePDFReport,
-  type ReportScope,
-} from "@/lib/utils/pdfExport";
+import type { ReportScope } from "@/lib/utils/pdfExport";
+import { supabase } from "@/lib/supabase/client";
+
+function downloadReport(blob: Blob, contentDisposition: string | null) {
+  if (blob.size === 0) {
+    throw new Error("O servidor retornou um PDF vazio.");
+  }
+
+  const fileName =
+    contentDisposition?.match(/filename="([^"]+)"/)?.[1] ??
+    "Relatorio_de_gastos.pdf";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5_000);
+}
 
 export function RelatoriosClient() {
   const [isExporting, setIsExporting] = React.useState(false);
   const { faturaAtual } = useFaturaContext();
   const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas(faturaAtual?.id || null);
   const { data: todasFaturas = [], isLoading: isLoadingFat, error: errorFat } = useFaturas();
-  const { data: responsaveis = [] } = useResponsaveis();
   const { data: gastosAtuais = [] } = useGastos(faturaAtual?.id || null);
+  const responsaveisDoRelatorio = React.useMemo(() => {
+    const responsaveis = new Map<string, string>();
+
+    gastosAtuais.forEach((gasto) => {
+      if (gasto.divisoes && gasto.divisoes.length > 0) {
+        gasto.divisoes.forEach((divisao) => {
+          if (divisao.responsavelId) {
+            responsaveis.set(divisao.responsavelId, divisao.responsavel);
+          }
+        });
+        return;
+      }
+
+      if (gasto.responsavelId) {
+        responsaveis.set(gasto.responsavelId, gasto.responsavel);
+      }
+    });
+
+    return [...responsaveis.entries()]
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [gastosAtuais]);
 
   const isLoading = isLoadingEst || isLoadingFat;
   const error = errorEst || errorFat;
@@ -88,7 +126,37 @@ export function RelatoriosClient() {
       await new Promise<void>((resolve) => {
         window.requestAnimationFrame(() => resolve());
       });
-      await generatePDFReport(faturaAtual, gastosAtuais, scope);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Sua sessão expirou. Entre novamente para exportar.");
+      }
+
+      const response = await fetch("/api/reports/pdf", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          faturaId: faturaAtual.id,
+          responsible:
+            scope.type === "responsible"
+              ? { id: scope.id }
+              : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(result.error || "Não foi possível gerar o relatório.");
+      }
+
+      const blob = await response.blob();
+      downloadReport(blob, response.headers.get("Content-Disposition"));
       toast.success("PDF exportado com sucesso!", { id: toastId });
     } catch (error: unknown) {
       console.error("Erro inesperado ao exportar PDF:", error);
@@ -159,16 +227,20 @@ export function RelatoriosClient() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Fatura: {faturaAtual?.mesReferencia}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {gastosAtuais.length} lançamento
+              {gastosAtuais.length === 1 ? "" : "s"}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => void handleExportPDF({ type: "all" })}
             >
-              Fatura Completa (Todos)
+              Todos os gastos
             </DropdownMenuItem>
-            {responsaveis.length > 0 && (
+            {responsaveisDoRelatorio.length > 0 && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Por Responsável</DropdownMenuLabel>
-                {responsaveis.map((resp) => (
+                {responsaveisDoRelatorio.map((resp) => (
                   <DropdownMenuItem
                     key={resp.id}
                     onClick={() =>
