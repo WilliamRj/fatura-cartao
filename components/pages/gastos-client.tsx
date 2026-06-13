@@ -483,7 +483,7 @@ export function GastosClient() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-card border-border card-hover">
+      <Card className="card-static border-border bg-card">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -576,7 +576,7 @@ export function GastosClient() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border card-hover">
+      <Card className="card-static border-border bg-card">
         <CardContent className="p-0">
           {filteredGastos.length === 0 ? (
             <EmptyState

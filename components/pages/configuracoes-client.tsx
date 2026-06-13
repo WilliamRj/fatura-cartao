@@ -388,7 +388,7 @@ export function ConfiguracoesClient() {
         <CardHeader>
           <CardTitle>Sobre o Sistema</CardTitle>
           <CardDescription>
-            Informações sobre o Cartão Inteligente
+            Informações sobre o MW Cartão Inteligente
           </CardDescription>
         </CardHeader>
         <CardContent>

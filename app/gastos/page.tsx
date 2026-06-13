@@ -3,7 +3,7 @@ import { GastosClient } from "@/components/pages/gastos-client";
 import { PageHeading } from "@/components/page-heading";
 
 export const metadata: Metadata = {
-  title: "Gastos | Cartão Inteligente",
+  title: "Gastos",
 };
 
 export default function GastosPage() {

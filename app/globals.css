@@ -245,7 +245,17 @@ html.theme-transition *::after {
   transition-property: none !important;
 }
 
-/* Card hover effects */
-.card-hover {
-  @apply transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+/* Card feedback */
+.card-static {
+  @apply shadow-sm;
+}
+
+.card-interactive {
+  @apply cursor-pointer shadow-sm transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring/30;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive {
+    transform: none !important;
+  }
 }

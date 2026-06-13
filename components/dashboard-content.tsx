@@ -50,12 +50,12 @@ function StatCard({
   trend?: { value: number; positive: boolean };
 }) {
   return (
-    <Card className="bg-card border-border card-hover">
-      <CardContent className="p-6">
+    <Card className="card-static border-border bg-card" size="sm">
+      <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-xl font-bold text-foreground">{value}</p>
             {subtitle && (
               <p className="text-xs text-muted-foreground">{subtitle}</p>
             )}
@@ -75,8 +75,8 @@ function StatCard({
               </div>
             )}
           </div>
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Icon className="size-4 text-primary" />
           </div>
         </div>
       </CardContent>
@@ -226,7 +226,7 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-card border-border card-hover">
+        <Card className="card-static border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">Evolução Mensal</CardTitle>
           </CardHeader>
@@ -307,7 +307,7 @@ formatter={(value: any) => [
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border card-hover">
+        <Card className="card-static border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
               Gastos por Categoria
@@ -368,7 +368,7 @@ formatter={(value: any) => [formatCurrency(value)]}
         </Card>
       </div>
 
-      <Card className="bg-card border-border card-hover">
+      <Card className="card-static border-border bg-card">
         <CardHeader>
           <CardTitle className="text-foreground">
             Gastos por Responsável

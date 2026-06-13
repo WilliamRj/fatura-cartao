@@ -3,7 +3,7 @@ import { PageHeading } from "@/components/page-heading";
 import { ParcelamentosClient } from "@/components/pages/parcelamentos-client";
 
 export const metadata: Metadata = {
-  title: "Parcelamentos | Cartão Inteligente",
+  title: "Parcelamentos",
 };
 
 export default function ParcelamentosPage() {

@@ -9,8 +9,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cartão Inteligente | Gerenciador de Faturas",
-  description: "Sistema inteligente para gerenciamento de faturas de cartão de crédito Itau",
+  title: {
+    default: "MW Cartão Inteligente",
+    template: "%s | MW Cartão Inteligente",
+  },
+  description:
+    "Gestão inteligente de faturas de cartão de crédito Itaú, gastos, responsáveis e compras parceladas.",
 };
 
 export const viewport: Viewport = {

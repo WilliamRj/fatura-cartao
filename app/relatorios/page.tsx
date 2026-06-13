@@ -3,7 +3,7 @@ import { PageHeading } from "@/components/page-heading";
 import { RelatoriosClient } from "@/components/pages/relatorios-client";
 
 export const metadata: Metadata = {
-  title: "Relatórios | Cartão Inteligente",
+  title: "Relatórios",
 };
 
 export default function RelatoriosPage() {

@@ -3,7 +3,7 @@ import { ConfiguracoesClient } from "@/components/pages/configuracoes-client";
 import { PageHeading } from "@/components/page-heading";
 
 export const metadata: Metadata = {
-  title: "Configurações | Cartão Inteligente",
+  title: "Configurações",
 };
 
 export default function ConfiguracoesPage() {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LoginClient } from "@/components/pages/login-client";
 
 export const metadata: Metadata = {
-  title: "Entrar | Cartão Inteligente",
+  title: "Entrar",
 };
 
 export default function LoginPage() {

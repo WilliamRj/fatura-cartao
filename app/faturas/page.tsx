@@ -3,7 +3,7 @@ import { FaturasClient } from "@/components/pages/faturas-client";
 import { PageHeading } from "@/components/page-heading";
 
 export const metadata: Metadata = {
-  title: "Faturas | Cartão Inteligente",
+  title: "Faturas",
 };
 
 export default function FaturasPage() {

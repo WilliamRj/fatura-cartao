@@ -14,15 +14,15 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 | Qualidade | Lint e TypeScript aprovados |
 | Segurança | Isolamento por usuário implementado; validação em produção pendente |
 | Importação | PDF persistido, validado por IA e salvo de forma transacional |
-| Foco atual | Segurança operacional, modelo de dados, UX mobile, identidade visual e testes |
+| Foco atual | Segurança operacional, modelo de dados, UX e testes |
 
 ### Progresso dos 25 itens
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 16 | Implementado e validado no código |
-| 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 5 | Priorizado para ciclos futuros |
+| ✅ Concluído | 18 | Implementado e validado no código |
+| 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
+| 📌 Planejado | 4 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -505,22 +505,28 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Os gráficos podem ser compreendidos por tendência visual, legenda textual ou leitura dos valores.
 - Dashboard e Relatórios apresentam categorias e responsáveis de forma consistente.
 
-### 📌 18. Ajustar o feedback visual dos cards
+### ✅ 18. Ajustar o feedback visual dos cards
 
-`.card-hover` em `app/globals.css:231` eleva cards ao passar o mouse. Isso esta em cards informativos e graficos, podendo sugerir clique.
+**Concluído em:** 13 de junho de 2026
 
-**Próximas ações**
+**Implementação**
 
-- Reservar hover com deslocamento para elementos clicaveis.
-- Em cards estaticos, usar apenas borda/sombra sutil.
-- Padronizar densidade dos cards de metricas para uso financeiro recorrente.
+- `.card-hover` foi removido dos cards informativos, gráficos, filtros e listas.
+- `card-static` mantém apenas sombra discreta, sem deslocamento ou indicação falsa de clique.
+- `card-interactive` concentra elevação, borda e foco somente em superfícies acionáveis.
+- A área de upload de faturas usa o feedback interativo por aceitar clique, teclado e arraste.
+- Cards de métricas do Dashboard, Parcelamentos e histórico de Relatórios usam tamanho compacto, `p-4`, valor em `text-xl` e ícone de 36 px.
+- Cards de parcelamento e fatura deixaram de alterar a borda no hover quando o card inteiro não executa ação.
 
-### 🚧 19. Revisar textos e consistência visual
+**Resultado**
 
-**Pontos observados**
+- O movimento visual agora indica interação real.
+- Métricas financeiras recorrentes possuem densidade e hierarquia consistentes.
+- Usuários com redução de movimento não recebem transformação na superfície interativa.
 
-- `app/layout.tsx:13`: "Itau" sem acento.
-- `components/pages/login-client.tsx`: revisar continuamente a consistencia visual do login.
+### ✅ 19. Revisar textos e consistência visual
+
+**Concluído em:** 13 de junho de 2026
 
 **Identidade visual entregue**
 
@@ -531,10 +537,18 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - O símbolo isolado identifica a sidebar recolhida sem perder o nome acessível.
 - O ativo oficial é `public/brand/mw-card-mark.png`, em PNG transparente de 512 × 512 px.
 
-**Próximas ações**
+**Consistência textual**
 
-- Padronizar portugues: "responsavel", "Itaú", "cartao de credito", "lancamentos", conforme decisao de acentos do projeto.
-- Criar uma pequena lista de termos oficiais do produto para evitar variacoes.
+- Metadados usam o template `%s | MW Cartão Inteligente` e a grafia correta de **Itaú**.
+- Mensagens de Relatórios e textos do PDF foram revisados para PT-BR com acentuação.
+- O rodapé do PDF passou a usar o nome completo **MW Cartão Inteligente**.
+- `README.md` registra produto, instituição, fatura, gasto, lançamento, responsável, parcelamento e cartão de crédito como termos oficiais.
+- Login, telas de acesso e navegação continuam usando o mesmo componente de marca e o mesmo bordão.
+
+**Resultado**
+
+- Nome do produto, títulos de página, mensagens de erro e relatórios exportados seguem a mesma linguagem.
+- A lista de termos reduz variações em futuras implementações e revisões.
 
 ### ✅ 20. Implementar solicitações e administração de acesso
 

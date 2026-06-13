@@ -1,4 +1,4 @@
-# 💳 Cartão Inteligente
+# 💳 MW Cartão Inteligente
 
 > Gestão de faturas, gastos, responsáveis e parcelamentos em um só lugar.
 
@@ -14,6 +14,18 @@ Aplicação web em PT-BR para importar faturas em PDF, organizar despesas, divid
 
 O símbolo isolado identifica a sidebar recolhida. A assinatura completa combina
 símbolo, nome e bordão nos espaços com largura suficiente.
+
+### Vocabulário oficial
+
+| Conceito | Forma adotada |
+|---|---|
+| Produto | MW Cartão Inteligente |
+| Instituição | Itaú |
+| Documento | Fatura |
+| Item financeiro | Gasto ou lançamento |
+| Pessoa atribuída | Responsável |
+| Compra em parcelas | Parcelamento |
+| Meio de pagamento | Cartão de crédito |
 
 ## ✨ O que o app entrega
 

@@ -611,7 +611,7 @@ export function FaturasClient() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-card border-border card-hover">
+      <Card className="card-static border-border bg-card">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -622,8 +622,7 @@ export function FaturasClient() {
           <div
             {...getRootProps()}
             className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-              transition-colors duration-200
+              card-interactive rounded-lg border-2 border-dashed p-8 text-center
               ${
                 isDragActive
                   ? "border-primary bg-primary/5"
@@ -915,7 +914,7 @@ export function FaturasClient() {
           {(faturas || []).map((fatura) => (
             <Card
               key={fatura.id}
-              className="bg-card border-border hover:border-primary/50 transition-colors"
+              className="card-static border-border bg-card"
             >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-4">

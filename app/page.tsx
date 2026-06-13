@@ -3,7 +3,7 @@ import { DashboardContent } from "@/components/dashboard-content";
 import { PageHeading } from "@/components/page-heading";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Cartão Inteligente",
+  title: "Dashboard",
 };
 
 export default function HomePage() {

@@ -87,11 +87,11 @@ export function RelatoriosClient() {
       if (success) {
         toast.success("PDF exportado com sucesso!", { id: toastId });
       } else {
-        toast.error("Nao foi possivel gerar o PDF.", { id: toastId });
+        toast.error("Não foi possível gerar o PDF.", { id: toastId });
       }
     } catch (error: unknown) {
       console.error("Erro inesperado ao exportar PDF:", error);
-      toast.error("Nao foi possivel gerar o PDF.", { id: toastId });
+      toast.error("Não foi possível gerar o PDF.", { id: toastId });
     }
   };
 
@@ -180,7 +180,7 @@ export function RelatoriosClient() {
         </TabsList>
 
         <TabsContent value="mensal" className="space-y-6">
-          <Card className="bg-card border-border card-hover">
+          <Card className="card-static border-border bg-card">
             <CardHeader>
               <CardTitle className="text-foreground">
                 Evolução dos Gastos Mensais
@@ -261,11 +261,11 @@ formatter={(value: any) => [
 
           {hasMonthlyData && <div className="grid gap-4 md:grid-cols-3">
             {evolucaoMensal.slice(-3).map((mes, index) => (
-              <Card key={mes.mes} className="bg-card border-border">
-                <CardContent className="p-6">
+              <Card key={mes.mes} className="card-static border-border bg-card" size="sm">
+                <CardContent className="p-4">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">{mes.mes}</p>
-                    <p className="text-2xl font-bold text-foreground">
+                    <p className="text-xl font-bold text-foreground">
                       {formatCurrency(mes.valor)}
                     </p>
                     {index > 0 && (
@@ -296,7 +296,7 @@ formatter={(value: any) => [
 
         <TabsContent value="categoria" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="bg-card border-border card-hover">
+            <Card className="card-static border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Distribuição por Categoria
@@ -360,7 +360,7 @@ formatter={(value: any) => [formatCurrency(value)]}
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border card-hover">
+            <Card className="card-static border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Detalhamento por Categoria
@@ -427,7 +427,7 @@ formatter={(value: any) => [formatCurrency(value)]}
 
         <TabsContent value="responsavel" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="bg-card border-border card-hover">
+            <Card className="card-static border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Gastos por Responsável
@@ -505,7 +505,7 @@ formatter={(value: any) => [
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border card-hover">
+            <Card className="card-static border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
                   Participação por Responsável

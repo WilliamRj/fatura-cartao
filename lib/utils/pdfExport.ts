@@ -53,7 +53,7 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
             ? gasto.divisoes
                 .map((division) => `${division.responsavel}: ${currency(Number(division.valor) || 0)}`)
                 .join(" | ")
-            : gasto.responsavel || "Nao definido";
+            : gasto.responsavel || "Não definido";
 
         return [{
           ...gasto,
@@ -106,7 +106,7 @@ function getResponsibleTotals(gastos: Gasto[]) {
       return;
     }
 
-    const responsible = gasto.responsavel || "Nao definido";
+    const responsible = gasto.responsavel || "Não definido";
     totals.set(responsible, (totals.get(responsible) || 0) + (Number(gasto.valor) || 0));
   });
 
@@ -146,7 +146,7 @@ export async function generatePDFReport(
   scope: ReportScope = "todos",
 ): Promise<boolean> {
   if (!fatura) {
-    console.error("Nao ha fatura selecionada para exportacao.");
+    console.error("Não há fatura selecionada para exportação.");
     return false;
   }
 
@@ -169,7 +169,7 @@ export async function generatePDFReport(
       (expense) => expense.divisoes && expense.divisoes.length > 0,
     ).length;
     const total = expenses.reduce((sum, expense) => sum + expense.allocatedValue, 0);
-    const scopeLabel = scope === "todos" ? "Todos os responsaveis" : scope;
+    const scopeLabel = scope === "todos" ? "Todos os responsáveis" : scope;
     const pageWidth = doc.internal.pageSize.getWidth();
 
     doc.setFillColor(...COLORS.primary);
@@ -177,7 +177,7 @@ export async function generatePDFReport(
     doc.setTextColor(...COLORS.white);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text("Relatorio da fatura", 14, 14);
+    doc.text("Relatório da fatura", 14, 14);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text(`${fatura.mesReferencia} | ${scopeLabel}`, 14, 22);
@@ -195,8 +195,8 @@ export async function generatePDFReport(
     );
 
     const metrics = [
-      { label: "Total atribuido", value: currency(total) },
-      { label: "Lancamentos", value: expenses.length.toString() },
+      { label: "Total atribuído", value: currency(total) },
+      { label: "Lançamentos", value: expenses.length.toString() },
       { label: "Parcelamentos", value: installmentExpenses.length.toString() },
       { label: "Gastos divididos", value: splitCount.toString() },
     ];
@@ -221,11 +221,11 @@ export async function generatePDFReport(
       const responsibleTotals = getResponsibleTotals(gastos || []);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text("Resumo por responsavel", 14, summaryY);
+      doc.text("Resumo por responsável", 14, summaryY);
 
       autoTable(doc, {
         startY: summaryY + 4,
-        head: [["Responsavel", "Valor atribuido"]],
+        head: [["Responsável", "Valor atribuído"]],
         body: responsibleTotals.map((item) => [
           item.responsible,
           currency(item.value),
@@ -245,7 +245,7 @@ export async function generatePDFReport(
       doc.setFontSize(10);
       doc.setTextColor(...COLORS.muted);
       doc.text(
-        "Valores divididos exibem apenas a parte atribuida ao responsavel selecionado.",
+        "Valores divididos exibem apenas a parte atribuída ao responsável selecionado.",
         14,
         summaryY,
       );
@@ -254,7 +254,7 @@ export async function generatePDFReport(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...COLORS.text);
-    doc.text("Parcelamentos da selecao", 159, summaryY);
+    doc.text("Parcelamentos da seleção", 159, summaryY);
 
     autoTable(doc, {
       startY: summaryY + 4,
@@ -292,8 +292,8 @@ export async function generatePDFReport(
     doc.text(`${fatura.mesReferencia} | ${scopeLabel}`, 14, 23);
 
     const detailHead = scope === "todos"
-      ? [["Data", "Estabelecimento", "Categoria", "Responsavel / divisao", "Parcela", "Valor"]]
-      : [["Data", "Estabelecimento", "Categoria", "Participacao", "Parcela", "Sua parte", "Original"]];
+      ? [["Data", "Estabelecimento", "Categoria", "Responsável / divisão", "Parcela", "Valor"]]
+      : [["Data", "Estabelecimento", "Categoria", "Participação", "Parcela", "Sua parte", "Original"]];
 
     const detailBody = expenses.length > 0
       ? expenses.map((expense) => {
@@ -312,7 +312,7 @@ export async function generatePDFReport(
         })
       : [[
           "-",
-          "Nenhum gasto encontrado para esta selecao",
+          "Nenhum gasto encontrado para esta seleção",
           "-",
           "-",
           "-",
@@ -367,8 +367,8 @@ export async function generatePDFReport(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(...COLORS.muted);
-      doc.text("Cartao Inteligente", 14, 203);
-      doc.text(`Pagina ${page} de ${pageCount}`, pageWidth - 14, 203, {
+      doc.text("MW Cartão Inteligente", 14, 203);
+      doc.text(`Página ${page} de ${pageCount}`, pageWidth - 14, 203, {
         align: "right",
       });
     }
@@ -379,7 +379,7 @@ export async function generatePDFReport(
 
     return true;
   } catch (error: unknown) {
-    console.error("Erro na geracao do PDF:", error);
+    console.error("Erro na geração do PDF:", error);
     return false;
   }
 }
