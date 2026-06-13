@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -23,7 +24,7 @@ import { useFaturas } from "@/lib/hooks/useFaturas";
 import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
-import { ErrorAlert } from "@/components/error";
+import { EmptyState, ErrorAlert } from "@/components/error";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -33,7 +34,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download } from "lucide-react";
+import {
+  BarChart3,
+  Download,
+  FileUp,
+  PieChartIcon,
+  Receipt,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { generatePDFReport } from "@/lib/utils/pdfExport";
 
 const COLORS = [
@@ -108,6 +117,16 @@ export function RelatoriosClient() {
     }));
 
   const totalGeral = gastosPorCategoria.reduce((acc, g) => acc + g.valor, 0);
+  const hasMonthlyData = evolucaoMensal.length > 0;
+  const hasCategoryData = gastosPorCategoria.length > 0 && totalGeral !== 0;
+  const hasResponsibleData = gastosPorResponsavel.length > 0;
+
+  const importAction = (
+    <Button render={<Link href="/faturas" />}>
+      <FileUp />
+      Importar fatura
+    </Button>
+  );
 
   return (
     <div className="space-y-6">
@@ -158,8 +177,9 @@ export function RelatoriosClient() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
+              {hasMonthlyData ? (
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={evolucaoMensal}>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -205,12 +225,20 @@ formatter={(value: any) => [
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
-                </ResponsiveContainer>
-              </div>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={BarChart3}
+                  title="Ainda não há histórico mensal"
+                  description="Importe uma fatura para iniciar a evolução dos gastos ao longo dos meses."
+                  action={importAction}
+                />
+              )}
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          {hasMonthlyData && <div className="grid gap-4 md:grid-cols-3">
             {evolucaoMensal.slice(-3).map((mes, index) => (
               <Card key={mes.mes} className="bg-card border-border">
                 <CardContent className="p-6">
@@ -242,7 +270,7 @@ formatter={(value: any) => [
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </div>}
         </TabsContent>
 
         <TabsContent value="categoria" className="space-y-6">
@@ -254,8 +282,9 @@ formatter={(value: any) => [
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                {hasCategoryData ? (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={gastosPorCategoria}
@@ -295,8 +324,16 @@ formatter={(value: any) => [formatCurrency(value)]}
                         )}
                       />
                     </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={PieChartIcon}
+                    title="Sem dados por categoria"
+                    description="A fatura selecionada precisa ter lançamentos para gerar esta distribuição."
+                    action={importAction}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -307,7 +344,8 @@ formatter={(value: any) => [formatCurrency(value)]}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                {hasCategoryData ? (
+                  <div className="space-y-4">
                   {gastosPorCategoria.map((cat, index) => {
                     const percentage = (cat.valor / totalGeral) * 100;
                     return (
@@ -345,7 +383,14 @@ formatter={(value: any) => [formatCurrency(value)]}
                       </div>
                     );
                   })}
-                </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={PieChartIcon}
+                    title="Nenhuma categoria para detalhar"
+                    description="Os valores por categoria aparecerão depois que uma fatura com lançamentos for importada."
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -360,8 +405,9 @@ formatter={(value: any) => [formatCurrency(value)]}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                {hasResponsibleData ? (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={gastosPorResponsavel}>
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -405,8 +451,21 @@ formatter={(value: any) => [
                         ))}
                       </Bar>
                     </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Users}
+                    title="Sem gastos por responsável"
+                    description="Atribua lançamentos aos responsáveis para comparar os valores neste gráfico."
+                    action={
+                      <Button render={<Link href="/gastos" />}>
+                        <Receipt />
+                        Ver gastos
+                      </Button>
+                    }
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -417,7 +476,8 @@ formatter={(value: any) => [
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                {hasResponsibleData ? (
+                  <div className="space-y-6">
                   {gastosPorResponsavel.map((resp, index) => {
                     const totalResp = gastosPorResponsavel.reduce(
                       (acc, r) => acc + r.valor,
@@ -461,7 +521,14 @@ formatter={(value: any) => [
                       </div>
                     );
                   })}
-                </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Users}
+                    title="Nenhuma participação calculada"
+                    description="A participação será exibida quando houver gastos atribuídos na fatura selecionada."
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

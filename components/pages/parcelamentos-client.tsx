@@ -1,12 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar, CreditCard, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
+import {
+  Calendar,
+  CreditCard,
+  FileText,
+  Receipt,
+  RotateCcw,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 import { EmptyState, ErrorAlert } from "@/components/error";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { LoadingSkeleton } from "@/components/loading";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -185,12 +195,39 @@ export function ParcelamentosClient() {
 
       {parcelamentosProcessados.length === 0 ? (
         <EmptyState
+          icon={CreditCard}
           title={
             possuiFiltro
               ? "Nenhum parcelamento para este responsável"
               : "Nenhum parcelamento encontrado"
           }
-          description="Os lançamentos com parcelas (ex: 1/10) aparecerão aqui automaticamente."
+          description={
+            possuiFiltro
+              ? "Este responsável não participa dos parcelamentos da fatura atual. Remova o filtro para consultar todos."
+              : "Esta visão é criada automaticamente a partir de lançamentos com parcela, como 01/10, encontrados nas faturas importadas."
+          }
+          action={
+            possuiFiltro ? (
+              <Button
+                onClick={() => setResponsavelSelecionado("todos")}
+                variant="outline"
+              >
+                <RotateCcw />
+                Ver todos
+              </Button>
+            ) : (
+              <>
+                <Button render={<Link href="/faturas" />}>
+                  <FileText />
+                  Importar fatura
+                </Button>
+                <Button render={<Link href="/gastos" />} variant="outline">
+                  <Receipt />
+                  Ver gastos
+                </Button>
+              </>
+            )
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

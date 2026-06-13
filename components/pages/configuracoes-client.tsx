@@ -19,7 +19,7 @@ import {
 } from "@/lib/hooks/useResponsaveis";
 import { AdminAccessCard } from "@/components/admin-access-card";
 import { useAuth } from "@/components/auth-provider";
-import { ErrorAlert } from "@/components/error";
+import { EmptyState, ErrorAlert } from "@/components/error";
 import { LoadingSkeleton } from "@/components/loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,7 @@ export function ConfiguracoesClient() {
   const [editingName, setEditingName] = React.useState("");
   const [editingError, setEditingError] = React.useState("");
   const newNameId = React.useId();
+  const newNameInputRef = React.useRef<HTMLInputElement>(null);
 
   const hasDuplicateName = (name: string, ignoredId?: string) =>
     responsaveis.some(
@@ -194,6 +195,7 @@ export function ConfiguracoesClient() {
                   if (newNameError) setNewNameError("");
                 }}
                 placeholder="Ex.: Maria"
+                ref={newNameInputRef}
                 value={newName}
               />
               <Button disabled={createResponsavel.isPending} type="submit">
@@ -219,8 +221,29 @@ export function ConfiguracoesClient() {
             )}
           </form>
 
-          <div className="divide-y divide-border rounded-lg border border-border">
-            {responsaveis.map((responsavel) => (
+          {responsaveis.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Adicione o primeiro responsável"
+              description="Cadastre uma pessoa para atribuir e dividir os gastos da sua fatura."
+              action={
+                <Button
+                  onClick={() => {
+                    newNameInputRef.current?.focus({ preventScroll: true });
+                    newNameInputRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                  }}
+                >
+                  <Plus />
+                  Adicionar responsável
+                </Button>
+              }
+            />
+          ) : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {responsaveis.map((responsavel) => (
               <div
                 className="flex items-center justify-between gap-3 p-3"
                 key={responsavel.id}
@@ -279,8 +302,9 @@ export function ConfiguracoesClient() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,9 +36,11 @@ import {
   ChevronRight,
   CornerDownRight,
   Edit2,
+  FileUp,
   Filter,
   MessageSquare,
   Plus,
+  Receipt,
   Search,
   SplitSquareHorizontal,
   Undo2,
@@ -87,7 +90,7 @@ export function GastosClient() {
   const observationInputId = `${formId}-observation`;
   const splitSummaryId = `${formId}-split-summary`;
   const pageSizeInputId = `${formId}-page-size`;
-  const { faturaAtual } = useFaturaContext();
+  const { faturaAtual, faturas, setFaturaAtual } = useFaturaContext();
   const { data: gastos, isLoading, error, refetch } = useGastos(faturaAtual?.id || null);
   const { data: responsaveis = [] } = useResponsaveis();
   const updateGasto = useUpdateGasto();
@@ -222,6 +225,13 @@ export function GastosClient() {
       setSortField(field);
       setSortDirection("asc");
     }
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategoriaFilter("all");
+    setResponsavelFilter("all");
+    setPage(1);
   };
 
   const openEditModal = (gasto: Gasto) => {
@@ -428,8 +438,45 @@ export function GastosClient() {
   if (!gastos || gastos.length === 0) {
     return (
       <EmptyState
-        title="Nenhum gasto encontrado"
-        description="Quando você adicionar gastos, eles aparecerão aqui"
+        icon={Receipt}
+        title={faturaAtual ? "Esta fatura não possui gastos" : "Importe sua primeira fatura"}
+        description={
+          faturaAtual
+            ? "Os gastos são criados automaticamente ao importar uma fatura. Você também pode consultar outro período."
+            : "Importe um PDF para criar a fatura e organizar os lançamentos automaticamente."
+        }
+        action={
+          <>
+            <Button render={<Link href="/faturas" />}>
+              <FileUp />
+              Importar fatura
+            </Button>
+            {faturaAtual && faturas.length > 1 && (
+              <Select
+                value={faturaAtual.id}
+                onValueChange={(value) => {
+                  setFaturaAtual(
+                    faturas.find((fatura) => fatura.id === value) ?? null,
+                  );
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Selecionar outra fatura"
+                  className="w-[190px]"
+                >
+                  <SelectValue>{faturaAtual.mesReferencia}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {faturas.map((fatura) => (
+                    <SelectItem key={fatura.id} value={fatura.id}>
+                      {fatura.mesReferencia}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </>
+        }
       />
     );
   }
@@ -531,8 +578,22 @@ export function GastosClient() {
 
       <Card className="bg-card border-border card-hover">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          {filteredGastos.length === 0 ? (
+            <EmptyState
+              className="m-4"
+              icon={Search}
+              title="Nenhum gasto corresponde aos filtros"
+              description="Remova os filtros atuais para voltar a visualizar todos os lançamentos desta fatura."
+              action={
+                <Button onClick={clearFilters} variant="outline">
+                  <X />
+                  Limpar filtros
+                </Button>
+              }
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead
@@ -708,8 +769,9 @@ export function GastosClient() {
                   </React.Fragment>
                 ))}
               </TableBody>
-            </Table>
-          </div>
+              </Table>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4 border-t border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div

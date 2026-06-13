@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 14 | Implementado e validado no código |
+| ✅ Concluído | 15 | Implementado e validado no código |
 | 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 7 | Priorizado para ciclos futuros |
+| 📌 Planejado | 6 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -461,21 +461,24 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 
 - Implementar detalhe da fatura com resumo, gastos, parcelamentos e auditoria da importacao.
 
-### 📌 16. Melhorar estados vazios e ações contextuais
+### ✅ 16. Melhorar estados vazios e ações contextuais
 
-`EmptyState` aceita `action`, mas varias telas usam apenas texto.
+**Concluído em:** 13 de junho de 2026
 
-Exemplos:
+**Implementação**
 
-- Gastos vazios em `components/pages/gastos-client.tsx`.
-- Parcelamentos vazios em `components/pages/parcelamentos-client.tsx`.
+- `EmptyState` recebeu apresentação visual consistente, ícone contextual e área responsiva para ações.
+- Gastos sem fatura oferecem importação; faturas vazias também permitem trocar o período.
+- Filtros sem resultados oferecem limpeza imediata sem ocultar os controles.
+- Parcelamentos explicam a dependência de lançamentos parcelados e direcionam para faturas ou gastos.
+- Filtros de responsável sem resultado podem ser removidos no próprio estado vazio.
+- Relatórios substituem gráficos sem dados por orientações e ações adequadas a cada visualização.
+- Configurações orienta o primeiro cadastro e move o foco para o campo de responsável.
 
-**Próximas ações**
+**Resultado**
 
-- Em gastos: CTA para importar fatura ou selecionar outra fatura.
-- Em parcelamentos: explicar que depende de lancamentos parcelados e linkar para faturas/gastos.
-- Em relatorios: estado vazio quando nao houver dados suficientes para grafico.
-- Em configuracoes: CTA para adicionar primeiro responsavel.
+- Estados vazios agora explicam por que não há conteúdo e oferecem um próximo passo executável.
+- Ações usam navegação client-side, preservam acessibilidade e permanecem legíveis em telas estreitas.
 
 ### 📌 17. Melhorar gráficos para leitura e acessibilidade
 

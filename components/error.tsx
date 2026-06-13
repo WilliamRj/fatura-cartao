@@ -46,18 +46,32 @@ export function EmptyState({
   description = "Não há nada para exibir no momento",
   icon: Icon,
   action,
+  className,
 }: {
   title?: string;
   description?: string;
   icon?: React.ComponentType<{ className?: string }>;
   action?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      {Icon && <Icon className="h-12 w-12 text-muted-foreground mb-4" />}
-      <h3 className="font-semibold text-foreground mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground mb-4 max-w-sm">{description}</p>
-      {action}
+    <div
+      className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-5 py-12 text-center ${className ?? ""}`}
+    >
+      {Icon && (
+        <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-6" />
+        </div>
+      )}
+      <h3 className="mb-1 font-semibold text-foreground">{title}</h3>
+      <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+        {description}
+      </p>
+      {action && (
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {action}
+        </div>
+      )}
     </div>
   );
 }
