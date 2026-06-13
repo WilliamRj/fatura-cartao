@@ -1,10 +1,10 @@
 "use client";
 
-import { jsPDF } from "jspdf";
-import { autoTable } from "jspdf-autotable";
 import type { Fatura, Gasto } from "@/lib/domain/models";
 
-type ReportScope = "todos" | string;
+export type ReportScope =
+  | { type: "all" }
+  | { type: "responsible"; id: string; name: string };
 
 type ReportExpense = Gasto & {
   allocatedValue: number;
@@ -47,7 +47,7 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
     .flatMap((gasto) => {
       const originalValue = Number(gasto.valor) || 0;
 
-      if (scope === "todos") {
+      if (scope.type === "all") {
         const allocationLabel =
           gasto.divisoes && gasto.divisoes.length > 0
             ? gasto.divisoes
@@ -64,7 +64,9 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
       }
 
       if (gasto.divisoes && gasto.divisoes.length > 0) {
-        const division = gasto.divisoes.find((item) => item.responsavel === scope);
+        const division = gasto.divisoes.find(
+          (item) => item.responsavelId === scope.id,
+        );
         if (!division) return [];
 
         const allocatedValue = Number(division.valor) || 0;
@@ -80,7 +82,7 @@ function getReportExpenses(gastos: Gasto[], scope: ReportScope): ReportExpense[]
         }];
       }
 
-      if (gasto.responsavel !== scope) return [];
+      if (gasto.responsavelId !== scope.id) return [];
 
       return [{
         ...gasto,
@@ -128,6 +130,10 @@ function parseInstallment(value?: string) {
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
+  if (blob.size === 0) {
+    throw new Error("O arquivo PDF foi gerado vazio.");
+  }
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -143,14 +149,17 @@ function downloadBlob(blob: Blob, fileName: string) {
 export async function generatePDFReport(
   fatura: Fatura | null,
   gastos: Gasto[],
-  scope: ReportScope = "todos",
-): Promise<boolean> {
+  scope: ReportScope = { type: "all" },
+): Promise<void> {
   if (!fatura) {
-    console.error("Não há fatura selecionada para exportação.");
-    return false;
+    throw new Error("Não há fatura selecionada para exportação.");
   }
 
   try {
+    const [{ jsPDF }, { autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",
@@ -169,7 +178,8 @@ export async function generatePDFReport(
       (expense) => expense.divisoes && expense.divisoes.length > 0,
     ).length;
     const total = expenses.reduce((sum, expense) => sum + expense.allocatedValue, 0);
-    const scopeLabel = scope === "todos" ? "Todos os responsáveis" : scope;
+    const scopeLabel =
+      scope.type === "all" ? "Todos os responsáveis" : scope.name;
     const pageWidth = doc.internal.pageSize.getWidth();
 
     doc.setFillColor(...COLORS.primary);
@@ -217,7 +227,7 @@ export async function generatePDFReport(
 
     const summaryY = 70;
 
-    if (scope === "todos") {
+    if (scope.type === "all") {
       const responsibleTotals = getResponsibleTotals(gastos || []);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -291,7 +301,7 @@ export async function generatePDFReport(
     doc.setTextColor(...COLORS.muted);
     doc.text(`${fatura.mesReferencia} | ${scopeLabel}`, 14, 23);
 
-    const detailHead = scope === "todos"
+    const detailHead = scope.type === "all"
       ? [["Data", "Estabelecimento", "Categoria", "Responsável / divisão", "Parcela", "Valor"]]
       : [["Data", "Estabelecimento", "Categoria", "Participação", "Parcela", "Sua parte", "Original"]];
 
@@ -306,7 +316,7 @@ export async function generatePDFReport(
             currency(expense.allocatedValue),
           ];
 
-          return scope === "todos"
+          return scope.type === "all"
             ? common
             : [...common, currency(expense.originalValue)];
         })
@@ -317,7 +327,7 @@ export async function generatePDFReport(
           "-",
           "-",
           currency(0),
-          ...(scope === "todos" ? [] : [currency(0)]),
+          ...(scope.type === "all" ? [] : [currency(0)]),
         ]];
 
     autoTable(doc, {
@@ -339,7 +349,7 @@ export async function generatePDFReport(
         fontStyle: "bold",
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: scope === "todos"
+      columnStyles: scope.type === "all"
         ? {
             0: { cellWidth: 20 },
             1: { cellWidth: 55 },
@@ -373,13 +383,18 @@ export async function generatePDFReport(
       });
     }
 
-    const scopeSuffix = scope === "todos" ? "completa" : safeFileName(scope);
+    const scopeSuffix =
+      scope.type === "all" ? "completa" : safeFileName(scope.name);
     const fileName = `Relatorio_${safeFileName(fatura.mesReferencia)}_${scopeSuffix}.pdf`;
     downloadBlob(doc.output("blob"), fileName);
 
-    return true;
   } catch (error: unknown) {
     console.error("Erro na geração do PDF:", error);
-    return false;
+    throw new Error(
+      error instanceof Error
+        ? `Falha ao gerar o PDF: ${error.message}`
+        : "Falha desconhecida ao gerar o PDF.",
+      { cause: error },
+    );
   }
 }

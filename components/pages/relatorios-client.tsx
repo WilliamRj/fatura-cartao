@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import {
   BarChart,
@@ -44,9 +45,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCategoryColor, getChartColor } from "@/lib/chart-config";
-import { generatePDFReport } from "@/lib/utils/pdfExport";
+import {
+  generatePDFReport,
+  type ReportScope,
+} from "@/lib/utils/pdfExport";
 
 export function RelatoriosClient() {
+  const [isExporting, setIsExporting] = React.useState(false);
   const { faturaAtual } = useFaturaContext();
   const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas(faturaAtual?.id || null);
   const { data: todasFaturas = [], isLoading: isLoadingFat, error: errorFat } = useFaturas();
@@ -69,29 +74,32 @@ export function RelatoriosClient() {
     );
   }
 
-  const handleExportPDF = async (responsavelId: string | "todos") => {
+  const handleExportPDF = async (scope: ReportScope) => {
     if (!faturaAtual) {
       toast.error("Selecione uma fatura antes de exportar.");
       return;
     }
 
+    if (isExporting) return;
+    setIsExporting(true);
     const toastId = toast.loading("Gerando PDF...");
 
     try {
-      const success = await generatePDFReport(
-        faturaAtual,
-        gastosAtuais,
-        responsavelId,
-      );
-
-      if (success) {
-        toast.success("PDF exportado com sucesso!", { id: toastId });
-      } else {
-        toast.error("Não foi possível gerar o PDF.", { id: toastId });
-      }
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+      await generatePDFReport(faturaAtual, gastosAtuais, scope);
+      toast.success("PDF exportado com sucesso!", { id: toastId });
     } catch (error: unknown) {
       console.error("Erro inesperado ao exportar PDF:", error);
-      toast.error("Não foi possível gerar o PDF.", { id: toastId });
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível gerar o PDF.",
+        { id: toastId },
+      );
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -143,15 +151,17 @@ export function RelatoriosClient() {
       <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger
-            disabled={!faturaAtual || gastosAtuais.length === 0}
+            disabled={!faturaAtual || gastosAtuais.length === 0 || isExporting}
             className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
-            Exportar PDF
+            {isExporting ? "Gerando PDF..." : "Exportar PDF"}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Fatura: {faturaAtual?.mesReferencia}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => void handleExportPDF("todos")}>
+            <DropdownMenuItem
+              onClick={() => void handleExportPDF({ type: "all" })}
+            >
               Fatura Completa (Todos)
             </DropdownMenuItem>
             {responsaveis.length > 0 && (
@@ -161,7 +171,13 @@ export function RelatoriosClient() {
                 {responsaveis.map((resp) => (
                   <DropdownMenuItem
                     key={resp.id}
-                    onClick={() => void handleExportPDF(resp.nome)}
+                    onClick={() =>
+                      void handleExportPDF({
+                        type: "responsible",
+                        id: resp.id,
+                        name: resp.nome,
+                      })
+                    }
                   >
                     {resp.nome}
                   </DropdownMenuItem>
