@@ -4,6 +4,17 @@
 
 Aplicação web em PT-BR para importar faturas em PDF, organizar despesas, dividir valores entre responsáveis, acompanhar compras parceladas e exportar relatórios claros.
 
+## 🎨 Identidade visual
+
+- **Marca:** MW Cartão Inteligente
+- **Bordão:** Sua fatura. Seu controle.
+- **Símbolo:** iniciais `M` e `W` integradas à forma de um cartão de crédito.
+- **Ativo oficial:** `public/brand/mw-card-mark.png`, PNG transparente de 512 × 512 px.
+- **Componente:** `components/brand-logo.tsx`, usado no login, nas telas de acesso e na navegação.
+
+O símbolo isolado identifica a sidebar recolhida. A assinatura completa combina
+símbolo, nome e bordão nos espaços com largura suficiente.
+
 ## ✨ O que o app entrega
 
 | Área | Recursos |
@@ -82,6 +93,7 @@ components/
   pages/                      # Experiências client por rota
   ui/                         # Primitivos de interface
   auth-provider.tsx           # Sessão e autorização
+  brand-logo.tsx              # Marca e assinatura visual compartilhadas
   fatura-provider.tsx         # Fatura selecionada
   app-sidebar.tsx             # Navegação global
 lib/
@@ -178,7 +190,7 @@ Detalhes operacionais estão em [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
 
 ## ✅ Estado atual
 
-Revisado em **12 de junho de 2026**:
+Revisado em **13 de junho de 2026**:
 
 - [x] Lint aprovado.
 - [x] TypeScript aprovado.

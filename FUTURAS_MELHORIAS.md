@@ -1,7 +1,7 @@
 # 🚀 Roadmap de evolução
 
 > **Cartão Inteligente** · Backlog técnico e de produto<br>
-> Revisado em **12 de junho de 2026** · Next.js, Supabase, Vercel, React Query, UX e qualidade
+> Revisado em **13 de junho de 2026** · Next.js, Supabase, Vercel, React Query, UX e qualidade
 
 Este documento concentra o que já foi entregue, o que está em andamento e o que deve orientar as próximas atualizações. A proposta é continuar detalhado, mas permitir uma leitura rápida por prioridade, status e impacto.
 
@@ -14,15 +14,15 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 | Qualidade | Lint e TypeScript aprovados |
 | Segurança | Isolamento por usuário implementado; validação em produção pendente |
 | Importação | PDF persistido, validado por IA e salvo de forma transacional |
-| Foco atual | Segurança operacional, modelo de dados, UX mobile e testes |
+| Foco atual | Segurança operacional, modelo de dados, UX mobile, identidade visual e testes |
 
 ### Progresso dos 25 itens
 
 | Status | Quantidade | Significado |
 |---|---:|---|
 | ✅ Concluído | 14 | Implementado e validado no código |
-| 🚧 Parcial | 3 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 8 | Priorizado para ciclos futuros |
+| 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
+| 📌 Planejado | 7 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -499,7 +499,7 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 - Em cards estaticos, usar apenas borda/sombra sutil.
 - Padronizar densidade dos cards de metricas para uso financeiro recorrente.
 
-### 📌 19. Revisar textos e consistência visual
+### 🚧 19. Revisar textos e consistência visual
 
 **Pontos observados**
 
@@ -507,10 +507,18 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 - `app/layout.tsx:13`: "Itau" sem acento.
 - `components/pages/login-client.tsx`: revisar continuamente a consistencia visual do login.
 
+**Identidade visual entregue**
+
+- A marca passou a usar o nome **MW Cartão Inteligente** e o bordão **Sua fatura. Seu controle.**
+- O símbolo combina as iniciais `M` e `W` com elementos de um cartão de crédito.
+- `components/brand-logo.tsx` centraliza nome, bordão, acessibilidade e variações completa e reduzida.
+- A assinatura completa aparece no login, nas telas de acesso e na navegação expandida.
+- O símbolo isolado identifica a sidebar recolhida sem perder o nome acessível.
+- O ativo oficial é `public/brand/mw-card-mark.png`, em PNG transparente de 512 × 512 px.
+
 **Próximas ações**
 
 - Padronizar portugues: "responsavel", "Itaú", "cartao de credito", "lancamentos", conforme decisao de acentos do projeto.
-- Trocar emojis do login por `Loader2` e icone/identidade coerente.
 - Criar uma pequena lista de termos oficiais do produto para evitar variacoes.
 
 ### ✅ 20. Implementar solicitações e administração de acesso
