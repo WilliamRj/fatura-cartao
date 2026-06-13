@@ -27,14 +27,6 @@ import { LoadingSkeleton } from "@/components/loading";
 import { EmptyState, ErrorAlert } from "@/components/error";
 import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   BarChart3,
   Download,
   FileUp,
@@ -69,6 +61,7 @@ function downloadReport(blob: Blob, contentDisposition: string | null) {
 
 export function RelatoriosClient() {
   const [isExporting, setIsExporting] = React.useState(false);
+  const [reportResponsibleId, setReportResponsibleId] = React.useState("all");
   const { faturaAtual } = useFaturaContext();
   const { data: estatisticas, isLoading: isLoadingEst, error: errorEst } = useEstatisticas(faturaAtual?.id || null);
   const { data: todasFaturas = [], isLoading: isLoadingFat, error: errorFat } = useFaturas();
@@ -95,6 +88,13 @@ export function RelatoriosClient() {
       .map(([id, nome]) => ({ id, nome }))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }, [gastosAtuais]);
+  const effectiveReportResponsibleId =
+    reportResponsibleId === "all" ||
+    responsaveisDoRelatorio.some(
+      (responsavel) => responsavel.id === reportResponsibleId,
+    )
+      ? reportResponsibleId
+      : "all";
 
   const isLoading = isLoadingEst || isLoadingFat;
   const error = errorEst || errorFat;
@@ -112,11 +112,22 @@ export function RelatoriosClient() {
     );
   }
 
-  const handleExportPDF = async (scope: ReportScope) => {
+  const handleExportPDF = async () => {
     if (!faturaAtual) {
       toast.error("Selecione uma fatura antes de exportar.");
       return;
     }
+
+    const selectedResponsible = responsaveisDoRelatorio.find(
+      (responsavel) => responsavel.id === effectiveReportResponsibleId,
+    );
+    const scope: ReportScope = selectedResponsible
+      ? {
+          type: "responsible",
+          id: selectedResponsible.id,
+          name: selectedResponsible.nome,
+        }
+      : { type: "all" };
 
     if (isExporting) return;
     setIsExporting(true);
@@ -151,8 +162,16 @@ export function RelatoriosClient() {
       if (!response.ok) {
         const result = (await response.json().catch(() => ({}))) as {
           error?: string;
+          requestId?: string;
         };
-        throw new Error(result.error || "Não foi possível gerar o relatório.");
+        throw new Error(
+          [
+            result.error || "Não foi possível gerar o relatório.",
+            result.requestId ? `Código: ${result.requestId}` : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
       }
 
       const blob = await response.blob();
@@ -216,48 +235,41 @@ export function RelatoriosClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={!faturaAtual || gastosAtuais.length === 0 || isExporting}
-            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-end sm:justify-end">
+        <div className="min-w-0 flex-1 space-y-1 sm:max-w-xs">
+          <label
+            className="text-sm font-medium text-foreground"
+            htmlFor="report-responsible"
           >
-            <Download className="h-4 w-4" />
-            {isExporting ? "Gerando PDF..." : "Exportar PDF"}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Fatura: {faturaAtual?.mesReferencia}</DropdownMenuLabel>
-            <DropdownMenuLabel>
-              {gastosAtuais.length} lançamento
-              {gastosAtuais.length === 1 ? "" : "s"}
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => void handleExportPDF({ type: "all" })}
-            >
-              Todos os gastos
-            </DropdownMenuItem>
-            {responsaveisDoRelatorio.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Por Responsável</DropdownMenuLabel>
-                {responsaveisDoRelatorio.map((resp) => (
-                  <DropdownMenuItem
-                    key={resp.id}
-                    onClick={() =>
-                      void handleExportPDF({
-                        type: "responsible",
-                        id: resp.id,
-                        name: resp.nome,
-                      })
-                    }
-                  >
-                    {resp.nome}
-                  </DropdownMenuItem>
-                ))}
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            Conteúdo do relatório
+          </label>
+          <select
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isExporting || gastosAtuais.length === 0}
+            id="report-responsible"
+            onChange={(event) => setReportResponsibleId(event.target.value)}
+            value={effectiveReportResponsibleId}
+          >
+            <option value="all">Todos os gastos</option>
+            {responsaveisDoRelatorio.map((responsavel) => (
+              <option key={responsavel.id} value={responsavel.id}>
+                Somente {responsavel.nome}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            {faturaAtual?.mesReferencia ?? "Nenhuma fatura"} ·{" "}
+            {gastosAtuais.length} lançamento
+            {gastosAtuais.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <Button
+          disabled={!faturaAtual || gastosAtuais.length === 0 || isExporting}
+          onClick={() => void handleExportPDF()}
+        >
+          <Download />
+          {isExporting ? "Gerando PDF..." : "Exportar PDF"}
+        </Button>
       </div>
 
       <Tabs defaultValue="mensal" className="space-y-6">
