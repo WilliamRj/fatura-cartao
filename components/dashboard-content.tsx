@@ -13,9 +13,10 @@ import {
   Cell,
   BarChart,
   Bar,
-  Legend,
 } from "recharts";
+import { ChartDataSummary } from "@/components/chart-data-summary";
 import { formatCurrency } from "@/lib/data";
+import { getCategoryColor, getChartColor } from "@/lib/chart-config";
 import { useGastos, useEstatisticas } from "@/lib/hooks/useGastos";
 import { useParcelamentos } from "@/lib/hooks/useParcelamentos";
 import { useFaturas } from "@/lib/hooks/useFaturas";
@@ -23,37 +24,17 @@ import { useResponsaveis } from "@/lib/hooks/useResponsaveis";
 import { useFaturaContext } from "@/components/fatura-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSkeleton } from "@/components/loading";
-import { ErrorAlert } from "@/components/error";
+import { EmptyState, ErrorAlert } from "@/components/error";
 import {
+  BarChart3,
   Receipt,
   TrendingUp,
   User,
   Users,
   ShoppingCart,
   CreditCard,
+  Tags,
 } from "lucide-react";
-
-const COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
-
-const CATEGORIA_COLORS: Record<string, string> = {
-  Alimentação: "var(--chart-1)",
-  Transporte: "var(--chart-2)",
-  Entretenimento: "var(--chart-3)",
-  Compras: "var(--chart-4)",
-  Assinaturas: "var(--chart-5)",
-  Saúde: "var(--chart-6)",
-  Educação: "var(--chart-7)",
-  Pagamentos: "var(--chart-9)",
-  Condomínio: "var(--chart-10)",
-  Dívida: "var(--chart-11)",
-  Outros: "var(--chart-8)",
-};
 
 function StatCard({
   title,
@@ -184,6 +165,29 @@ export function DashboardContent() {
 
   const totalCompras = gastos.length;
   const parcelamentosAtivos = parcelamentos.length;
+  const totalCategorias = gastosPorCategoria.reduce(
+    (total, item) => total + item.valor,
+    0,
+  );
+  const totalResponsaveis = gastosPorResponsavel.reduce(
+    (total, item) => total + item.valor,
+    0,
+  );
+  const monthlySummaryItems = evolucaoMensal.slice(-6).map((item) => ({
+    color: "var(--chart-2)",
+    label: item.mes,
+    value: item.valor,
+  }));
+  const categorySummaryItems = gastosPorCategoria.map((item, index) => ({
+    color: getCategoryColor(item.categoria, index),
+    label: item.categoria,
+    value: item.valor,
+  }));
+  const responsibleSummaryItems = gastosPorResponsavel.map((item, index) => ({
+    color: getChartColor(index),
+    label: item.responsavel,
+    value: item.valor,
+  }));
 
   return (
     <div className="space-y-6">
@@ -227,19 +231,21 @@ export function DashboardContent() {
             <CardTitle className="text-foreground">Evolução Mensal</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+            {evolucaoMensal.length > 0 ? (
+              <>
+                <div aria-hidden="true" className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={evolucaoMensal}>
                   <defs>
                     <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
                       <stop
                         offset="5%"
-                        stopColor="var(--chart-1)"
+                        stopColor="var(--chart-2)"
                         stopOpacity={0.3}
                       />
                       <stop
                         offset="95%"
-                        stopColor="var(--chart-1)"
+                        stopColor="var(--chart-2)"
                         stopOpacity={0}
                       />
                     </linearGradient>
@@ -276,14 +282,28 @@ formatter={(value: any) => [
                   <Area
                     type="monotone"
                     dataKey="valor"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
+                    stroke="var(--chart-2)"
+                    strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorValor)"
+                    dot={{ fill: "var(--card)", strokeWidth: 3, r: 4 }}
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            </div>
+                  </ResponsiveContainer>
+                </div>
+                <ChartDataSummary
+                  description="Valores das últimas faturas, em ordem cronológica. O gráfico mostra a tendência e a lista informa os valores exatos."
+                  items={monthlySummaryItems}
+                  showPercentage={false}
+                />
+              </>
+            ) : (
+              <EmptyState
+                icon={BarChart3}
+                title="Ainda não há evolução mensal"
+                description="Importe uma fatura para iniciar o histórico de gastos."
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -294,8 +314,10 @@ formatter={(value: any) => [
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+            {gastosPorCategoria.length > 0 ? (
+              <>
+                <div aria-hidden="true" className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={gastosPorCategoria}
@@ -310,7 +332,9 @@ formatter={(value: any) => [
                     {gastosPorCategoria.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={CATEGORIA_COLORS[entry.categoria] || COLORS[index % COLORS.length]}
+                        fill={getCategoryColor(entry.categoria, index)}
+                        stroke="var(--card)"
+                        strokeWidth={2}
                       />
                     ))}
                   </Pie>
@@ -324,18 +348,22 @@ formatter={(value: any) => [
                     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 formatter={(value: any) => [formatCurrency(value)]}
                   />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    formatter={(value) => (
-                      <span style={{ color: "var(--muted-foreground)" }}>
-                        {value}
-                      </span>
-                    )}
-                  />
                 </PieChart>
-              </ResponsiveContainer>
-            </div>
+                  </ResponsiveContainer>
+                </div>
+                <ChartDataSummary
+                  description="Distribuição da fatura por categoria, com valor e participação no total."
+                  items={categorySummaryItems}
+                  total={totalCategorias}
+                />
+              </>
+            ) : (
+              <EmptyState
+                icon={Tags}
+                title="Sem gastos por categoria"
+                description="Os valores por categoria aparecerão quando a fatura selecionada tiver lançamentos."
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -347,8 +375,10 @@ formatter={(value: any) => [formatCurrency(value)]}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          {gastosPorResponsavel.length > 0 ? (
+            <>
+              <div aria-hidden="true" className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
               <BarChart data={gastosPorResponsavel} layout="vertical">
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -382,13 +412,26 @@ formatter={(value: any) => [formatCurrency(value), "Total"]}
                   {gastosPorResponsavel.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={getChartColor(index)}
                     />
                   ))}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
-          </div>
+                </ResponsiveContainer>
+              </div>
+              <ChartDataSummary
+                description="Participação de cada responsável nos gastos da fatura selecionada."
+                items={responsibleSummaryItems}
+                total={totalResponsaveis}
+              />
+            </>
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="Sem gastos por responsável"
+              description="Atribua os lançamentos para visualizar a participação de cada pessoa."
+            />
+          )}
         </CardContent>
       </Card>
     </div>

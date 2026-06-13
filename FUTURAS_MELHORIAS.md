@@ -20,9 +20,9 @@ Este documento concentra o que já foi entregue, o que está em andamento e o qu
 
 | Status | Quantidade | Significado |
 |---|---:|---|
-| ✅ Concluído | 15 | Implementado e validado no código |
+| ✅ Concluído | 16 | Implementado e validado no código |
 | 🚧 Parcial | 4 | Parte relevante entregue; ainda há pendências |
-| 📌 Planejado | 6 | Priorizado para ciclos futuros |
+| 📌 Planejado | 5 | Priorizado para ciclos futuros |
 
 ### Legenda
 
@@ -480,17 +480,30 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - Estados vazios agora explicam por que não há conteúdo e oferecem um próximo passo executável.
 - Ações usam navegação client-side, preservam acessibilidade e permanecem legíveis em telas estreitas.
 
-### 📌 17. Melhorar gráficos para leitura e acessibilidade
+### ✅ 17. Melhorar gráficos para leitura e acessibilidade
 
-Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-client.tsx` dependem fortemente de cores.
+**Concluído em:** 13 de junho de 2026
 
-**Próximas ações**
+**Implementação**
 
-- Adicionar resumo textual abaixo ou ao lado dos graficos.
-- Mostrar valores e percentuais na legenda quando fizer sentido.
-- Garantir contraste das cores de `--chart-*` em claro e escuro.
-- Evitar que categorias diferentes recebam cores inconsistentes entre Dashboard e Relatorios.
-- Adicionar estados vazios especificos para grafico sem dados.
+- `lib/chart-config.ts` centraliza a paleta e mantém cada categoria com a mesma cor no Dashboard e em Relatórios.
+- `ChartDataSummary` oferece alternativa textual em HTML com rótulo, valor e percentual quando aplicável.
+- Gráficos mensais listam os valores exatos sem apresentar percentuais sem significado.
+- SVGs do Recharts foram marcados como conteúdo visual complementar; os mesmos dados permanecem disponíveis para tecnologias assistivas.
+- Segmentos do gráfico de pizza usam contorno para reforçar a separação além da diferença de cor.
+- Estados sem histórico, categoria ou responsável possuem mensagem específica.
+- A aba de relatórios passou a usar a grafia correta de **Responsável**.
+
+**Contraste e temas**
+
+- Os tokens `--chart-*` foram recalibrados para os fundos reais dos cards nos temas claro e escuro.
+- A menor relação medida foi `5,06:1` no tema claro e `7,62:1` no tema escuro.
+- Valores, percentuais e rótulos usam cores de texto do tema; as cores da paleta não são a única forma de transmitir informação.
+
+**Resultado**
+
+- Os gráficos podem ser compreendidos por tendência visual, legenda textual ou leitura dos valores.
+- Dashboard e Relatórios apresentam categorias e responsáveis de forma consistente.
 
 ### 📌 18. Ajustar o feedback visual dos cards
 
@@ -506,7 +519,6 @@ Graficos em `components/dashboard-content.tsx` e `components/pages/relatorios-cl
 
 **Pontos observados**
 
-- `components/pages/relatorios-client.tsx`: "Por Responsavel" sem acento.
 - `app/layout.tsx:13`: "Itau" sem acento.
 - `components/pages/login-client.tsx`: revisar continuamente a consistencia visual do login.
 
