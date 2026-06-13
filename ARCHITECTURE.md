@@ -176,6 +176,7 @@ removida após auditoria dos dados.
 ```ts
 type Divisao = {
   valor: number;
+  responsavelId: string;
   responsavel: string;
 };
 ```
@@ -242,19 +243,21 @@ Supabase Row (snake_case)
 
 ### `gastos`
 
-`id`, `user_id`, `fatura_id`, `data`, `estabelecimento`, `valor`, `categoria`, `responsavel`, `parcela`, `observacao`, `divisoes`.
+`id`, `user_id`, `fatura_id`, `data`, `estabelecimento`, `valor`, `categoria`, `responsavel_id`, `responsavel_nome_snapshot`, `parcela`, `observacao`, `divisoes`.
 
 ### `responsaveis`
 
-`id`, `user_id`, `nome`, `cor`, `is_owner`.
+`id`, `user_id`, `nome`, `cor`, `is_owner`, `archived_at`.
 
 `is_owner = true` identifica o titular criado automaticamente para a conta.
 Existe exatamente um titular por usuário, ele não pode ser removido nem
 substituído pela interface e continua editável apenas no nome. `cor =
 'pessoal'` permanece como compatibilidade visual derivada desse papel.
 
-A RPC `rename_responsavel` atualiza atomicamente o cadastro, os gastos e os
-nomes armazenados dentro de `gastos.divisoes`.
+A RPC `rename_responsavel` altera apenas o cadastro atual. Gastos e divisões
+mantêm o ID estável e o snapshot do nome usado no lançamento. A RPC
+`archive_or_delete_responsavel` arquiva cadastros com histórico e exclui
+somente os que nunca foram usados.
 
 ### `authorized_users`
 
@@ -263,7 +266,7 @@ nomes armazenados dentro de `gastos.divisoes`.
 ### `app_users`
 
 Perfil Google, estado de acesso, datas da solicitação e decisão, motivo,
-quantidade de reenvios e último login.
+quantidade de reenvios, último login e expiração opcional.
 
 Estados válidos: `pending`, `approved`, `rejected`, `suspended` e `withdrawn`.
 
@@ -274,7 +277,8 @@ e remoção são feitas somente por script administrativo.
 
 ### `access_audit_log`
 
-Histórico imutável das solicitações e decisões de acesso. As ações
+Histórico imutável das solicitações e decisões de acesso, incluindo expiração
+concedida e resultado do email transacional. As ações
 administrativas são realizadas por RPCs `security definer`, que verificam o
 Master novamente no banco.
 
@@ -317,7 +321,16 @@ Variáveis:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
+ACCESS_EMAIL_ENABLED=false
+RESEND_API_KEY=
+ACCESS_EMAIL_FROM=
 ```
+
+O envio de emails de decisões administrativas está preparado, mas desabilitado
+por padrão. Enquanto `ACCESS_EMAIL_ENABLED` não for `true`, aprovações, recusas
+e suspensões são concluídas normalmente e a auditoria registra o envio como
+`skipped`. Para ativar, também é necessário configurar a chave do Resend e um
+remetente verificado.
 
 Cuidados:
 

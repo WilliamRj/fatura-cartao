@@ -25,6 +25,7 @@ export function useResponsaveis() {
         .from(TABLES.RESPONSAVEIS)
         .select("*")
         .eq("user_id", user!.id)
+        .is("archived_at", null)
         .order("is_owner", { ascending: false })
         .order("nome", { ascending: true });
 
@@ -90,18 +91,19 @@ export function useDeleteResponsavel() {
         throw new Error("Usuário não autenticado");
       }
 
-      const { error, count } = await supabase
-        .from(TABLES.RESPONSAVEIS)
-        .delete({ count: "exact" })
-        .eq("id", id)
-        .eq("user_id", user.id);
+      const { data, error } = await supabase.rpc(
+        "archive_or_delete_responsavel",
+        { p_responsavel_id: id },
+      );
 
-      if (error || count === 0) {
+      if (error) {
         throw createPublicDataError(
           error,
           "Não foi possível remover este responsável.",
         );
       }
+
+      return data as "archived" | "deleted";
     },
     onSuccess: () => {
       if (user) {

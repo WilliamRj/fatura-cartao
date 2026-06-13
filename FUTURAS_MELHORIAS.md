@@ -552,7 +552,7 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 
 ### ✅ 20. Implementar solicitações e administração de acesso
 
-**Concluído em:** 12 de junho de 2026
+**Concluído em:** 13 de junho de 2026
 
 **Fluxo do usuário**
 
@@ -584,23 +584,30 @@ O app usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cliente Supabase no browser e RLS pre
 - O nome inicial usa o perfil Google e pode ser alterado em Configurações.
 - Apenas esse responsável pode ser Principal; o papel não pode ser transferido ou removido.
 - Nomes repetidos são bloqueados sem diferenciar maiúsculas e minúsculas.
-- A renomeação atualiza atomicamente gastos e divisões históricas.
+- A renomeação altera apenas o cadastro atual; lançamentos antigos mantêm o nome exibido no momento da atribuição.
 - A migration `20260612_zzz_owner_responsible.sql` protege essas regras no banco.
 
-**Evolução futura do modelo**
+**Evolução do modelo entregue em 13 de junho de 2026**
 
-- Substituir nomes desnormalizados em `gastos` e `divisoes` por IDs de responsáveis.
-- Arquivar responsáveis secundários em vez de excluí-los quando já possuírem histórico.
-- Preservar o nome exibido no momento do lançamento como informação de auditoria.
+- `gastos` e `divisoes` usam IDs estáveis de responsáveis.
+- Cada atribuição preserva um snapshot do nome exibido para auditoria.
+- Responsáveis secundários com histórico são arquivados; somente cadastros sem uso são excluídos.
+- Responsáveis arquivados deixam de aparecer nos seletores, mas continuam nos lançamentos históricos.
+
+**Administração e auditoria entregues em 13 de junho de 2026**
+
+- Aprovações, recusas e suspensões possuem integração pronta com o Resend,
+  atualmente desabilitada por `ACCESS_EMAIL_ENABLED=false`.
+- O resultado do envio fica registrado no mesmo evento administrativo, sem desfazer a decisão se o provedor falhar.
+- Aprovações podem definir uma data opcional de expiração; acessos vencidos são bloqueados automaticamente.
+- O painel Master exporta todo o histórico administrativo em CSV.
+- Migration criada em `supabase/migrations/20260613_access_and_responsible_evolution.sql`.
 
 **Evoluções futuras sugeridas**
 
-- Enviar email quando uma solicitação for aprovada, recusada ou suspensa.
 - Adicionar paginação server-side quando a lista crescer.
 - Permitir observação interna do Master, separada do motivo exibido ao usuário.
 - Definir política de recuperação com pelo menos dois Masters ativos.
-- Adicionar expiração opcional para acessos temporários.
-- Criar exportação do histórico administrativo para auditoria.
 
 ---
 

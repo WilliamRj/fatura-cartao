@@ -63,38 +63,6 @@ values
     now()
   );
 
-insert into public.gastos (
-  id,
-  user_id,
-  fatura_id,
-  data,
-  estabelecimento,
-  valor,
-  categoria,
-  responsavel
-)
-values
-  (
-    '10000000-0000-4000-8000-000000000011',
-    current_setting('test.user_a')::uuid,
-    '10000000-0000-4000-8000-000000000001',
-    current_date,
-    'Teste RLS A',
-    100,
-    'Outros',
-    'Usuario A'
-  ),
-  (
-    '20000000-0000-4000-8000-000000000022',
-    current_setting('test.user_b')::uuid,
-    '20000000-0000-4000-8000-000000000002',
-    current_date,
-    'Teste RLS B',
-    200,
-    'Outros',
-    'Usuario B'
-  );
-
 insert into public.responsaveis (id, user_id, nome, cor)
 values
   (
@@ -108,6 +76,41 @@ values
     current_setting('test.user_b')::uuid,
     'Teste RLS B',
     null
+  );
+
+insert into public.gastos (
+  id,
+  user_id,
+  fatura_id,
+  data,
+  estabelecimento,
+  valor,
+  categoria,
+  responsavel_id,
+  responsavel_nome_snapshot
+)
+values
+  (
+    '10000000-0000-4000-8000-000000000011',
+    current_setting('test.user_a')::uuid,
+    '10000000-0000-4000-8000-000000000001',
+    current_date,
+    'Teste RLS A',
+    100,
+    'Outros',
+    '10000000-0000-4000-8000-000000000101',
+    'Teste RLS A'
+  ),
+  (
+    '20000000-0000-4000-8000-000000000022',
+    current_setting('test.user_b')::uuid,
+    '20000000-0000-4000-8000-000000000002',
+    current_date,
+    'Teste RLS B',
+    200,
+    'Outros',
+    '20000000-0000-4000-8000-000000000202',
+    'Teste RLS B'
   );
 
 do $$
@@ -267,7 +270,8 @@ begin
       estabelecimento,
       valor,
       categoria,
-      responsavel
+      responsavel_id,
+      responsavel_nome_snapshot
     )
     values (
       current_setting('test.user_a')::uuid,
@@ -276,7 +280,8 @@ begin
       'Ataque por fatura cruzada',
       1,
       'Outros',
-      'Usuario A'
+      '10000000-0000-4000-8000-000000000101',
+      'Teste RLS A'
     );
     raise exception 'Cross-owner invoice link was allowed';
   exception

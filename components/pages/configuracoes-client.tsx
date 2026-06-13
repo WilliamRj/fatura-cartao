@@ -99,8 +99,12 @@ export function ConfiguracoesClient() {
     if (responsavel.isOwner) return;
 
     try {
-      await deleteResponsavel.mutateAsync(responsavel.id);
-      toast.success("Responsável removido.");
+      const result = await deleteResponsavel.mutateAsync(responsavel.id);
+      toast.success(
+        result === "archived"
+          ? "Responsável arquivado. O histórico foi preservado."
+          : "Responsável removido.",
+      );
     } catch (deletionError) {
       toast.error(
         deletionError instanceof Error

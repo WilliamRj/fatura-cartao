@@ -1,4 +1,8 @@
-import type { DivisaoGasto } from "@/lib/domain/models";
+export interface DivisaoGastoRow {
+  valor: number;
+  responsavel_id: string;
+  responsavel_nome_snapshot: string;
+}
 
 export interface ResponsavelRow {
   id: string;
@@ -6,6 +10,7 @@ export interface ResponsavelRow {
   nome: string;
   cor: string | null;
   is_owner: boolean;
+  archived_at: string | null;
   created_at?: string;
 }
 
@@ -17,10 +22,11 @@ export interface GastoRow {
   estabelecimento: string;
   valor: number;
   categoria: string;
-  responsavel: string;
+  responsavel_id: string;
+  responsavel_nome_snapshot: string;
   parcela: string | null;
   observacao: string | null;
-  divisoes: DivisaoGasto[] | null;
+  divisoes: DivisaoGastoRow[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -44,10 +50,11 @@ export interface GastoInsert {
   estabelecimento: string;
   valor: number;
   categoria: string;
-  responsavel: string;
+  responsavel_id: string;
+  responsavel_nome_snapshot: string;
   parcela?: string;
   observacao?: string;
-  divisoes?: DivisaoGasto[] | null;
+  divisoes?: DivisaoGastoRow[] | null;
 }
 
 export type GastoUpdate = Partial<Omit<GastoInsert, "user_id">>;

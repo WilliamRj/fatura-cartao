@@ -1,5 +1,6 @@
 export interface DivisaoGasto {
   valor: number;
+  responsavelId: string;
   responsavel: string;
 }
 
@@ -8,6 +9,7 @@ export interface Responsavel {
   nome: string;
   cor: string;
   isOwner: boolean;
+  archivedAt?: string;
 }
 
 export interface Categoria {
@@ -23,6 +25,7 @@ export interface Gasto {
   estabelecimento: string;
   valor: number;
   categoria: string;
+  responsavelId: string;
   responsavel: string;
   parcela?: string;
   observacao?: string;
@@ -45,6 +48,7 @@ export interface Parcelamento {
   totalParcelas: number;
   valorParcela: number;
   valorTotal: number;
+  responsavelId: string;
   responsavel?: string;
   divisoes?: DivisaoGasto[] | null;
 }
@@ -55,6 +59,7 @@ export interface GastoCreateInput {
   estabelecimento: string;
   valor: number;
   categoria: string;
+  responsavelId: string;
   responsavel: string;
   parcela?: string;
   observacao?: string;

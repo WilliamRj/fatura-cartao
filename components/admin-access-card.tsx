@@ -5,6 +5,7 @@ import {
   Ban,
   Check,
   Clock3,
+  Download,
   History,
   Loader2,
   Search,
@@ -18,6 +19,7 @@ import type {
   AccessStatus,
   AdminAccessUser,
 } from "@/lib/access-control";
+import { downloadAccessAuditExport } from "@/lib/access-control";
 import {
   useAccessAudit,
   useAccessUsers,
@@ -121,6 +123,11 @@ function AccessUserRow({
             Solicitação: {formatDateTime(user.lastRequestAt)}
             {user.requestCount > 1 && ` · ${user.requestCount} envios`}
           </p>
+          {user.accessExpiresAt && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Acesso válido até {formatDateTime(user.accessExpiresAt)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -180,6 +187,8 @@ export function AdminAccessCard() {
     status: AdminDecision;
   } | null>(null);
   const [reason, setReason] = React.useState("");
+  const [accessExpiresAt, setAccessExpiresAt] = React.useState("");
+  const [isExporting, setIsExporting] = React.useState(false);
   const [historyUser, setHistoryUser] =
     React.useState<AdminAccessUser | null>(null);
   const {
@@ -230,6 +239,10 @@ export function AdminAccessCard() {
         userId: decision.user.userId,
         status: decision.status,
         reason,
+        accessExpiresAt:
+          decision.status === "approved" && accessExpiresAt
+            ? new Date(accessExpiresAt).toISOString()
+            : undefined,
       });
       toast.success(
         decision.status === "approved"
@@ -240,6 +253,7 @@ export function AdminAccessCard() {
       );
       setDecision(null);
       setReason("");
+      setAccessExpiresAt("");
     } catch (decisionError) {
       toast.error(
         decisionError instanceof Error
@@ -279,6 +293,28 @@ export function AdminAccessCard() {
               <Clock3 />
               {count("pending")} pendente{count("pending") === 1 ? "" : "s"}
             </Badge>
+            <Button
+              disabled={isExporting}
+              onClick={async () => {
+                setIsExporting(true);
+                try {
+                  await downloadAccessAuditExport();
+                  toast.success("Histórico administrativo exportado.");
+                } catch (exportError) {
+                  toast.error(
+                    exportError instanceof Error
+                      ? exportError.message
+                      : "Não foi possível exportar o histórico.",
+                  );
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+              variant="outline"
+            >
+              {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
+              Exportar auditoria
+            </Button>
           </div>
         </CardHeader>
 
@@ -361,6 +397,7 @@ export function AdminAccessCard() {
           if (!open) {
             setDecision(null);
             setReason("");
+            setAccessExpiresAt("");
           }
         }}
         open={!!decision}
@@ -385,7 +422,25 @@ export function AdminAccessCard() {
               </DialogDescription>
             </DialogHeader>
 
-            {decision?.status !== "approved" && (
+            {decision?.status === "approved" ? (
+              <div className="space-y-2 py-4">
+                <label
+                  className="text-sm font-medium text-foreground"
+                  htmlFor="access-expires-at"
+                >
+                  Expiração do acesso (opcional)
+                </label>
+                <Input
+                  id="access-expires-at"
+                  onChange={(event) => setAccessExpiresAt(event.target.value)}
+                  type="datetime-local"
+                  value={accessExpiresAt}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe em branco para conceder acesso sem prazo.
+                </p>
+              </div>
+            ) : (
               <div className="space-y-2 py-4">
                 <label
                   className="text-sm font-medium text-foreground"
@@ -476,6 +531,17 @@ export function AdminAccessCard() {
                   {entry.reason && (
                     <p className="mt-2 text-sm text-foreground">
                       {entry.reason}
+                    </p>
+                  )}
+                  {entry.accessExpiresAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Expira em {formatDateTime(entry.accessExpiresAt)}
+                    </p>
+                  )}
+                  {entry.emailStatus && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Email: {entry.emailStatus}
+                      {entry.emailError ? ` (${entry.emailError})` : ""}
                     </p>
                   )}
                 </div>

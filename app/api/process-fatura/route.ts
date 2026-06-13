@@ -357,8 +357,9 @@ export async function POST(req: NextRequest) {
 
     const { data: responsaveis, error: responsaveisError } = await supabase
       .from('responsaveis')
-      .select('nome, is_owner')
-      .eq('user_id', user.id);
+      .select('id, nome, is_owner')
+      .eq('user_id', user.id)
+      .is('archived_at', null);
 
     if (responsaveisError) {
       return respond(
@@ -369,14 +370,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let responsavelName = "Não definido";
-    if (responsaveis && responsaveis.length > 0) {
-      const principal = responsaveis.find(r => r.is_owner);
-      if (principal) {
-        responsavelName = principal.nome;
-      } else {
-        responsavelName = responsaveis[0].nome;
-      }
+    const responsavel =
+      responsaveis?.find((item) => item.is_owner) ?? responsaveis?.[0];
+    if (!responsavel) {
+      return respond(
+        { error: "Não foi possível identificar o responsável principal." },
+        500,
+        "responsavel_missing",
+      );
     }
 
     const pdfPath = storedPdfPath ?? `${user.id}/${randomUUID()}.pdf`;
@@ -405,7 +406,7 @@ export async function POST(req: NextRequest) {
         p_mes_referencia: parsedData.mes_referencia,
         p_valor_total: parsedData.valor_total,
         p_data_importacao: importStartedAt,
-        p_responsavel: responsavelName,
+        p_responsavel_id: responsavel.id,
         p_lancamentos: parsedData.lancamentos,
         p_arquivo_url: pdfPath,
         p_arquivo_hash: pdfHash,

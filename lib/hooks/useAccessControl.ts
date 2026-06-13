@@ -39,11 +39,13 @@ export function useSetUserAccessStatus() {
       userId,
       status,
       reason,
+      accessExpiresAt,
     }: {
       userId: string;
       status: "approved" | "rejected" | "suspended";
       reason?: string;
-    }) => setUserAccessStatus(userId, status, reason),
+      accessExpiresAt?: string;
+    }) => setUserAccessStatus(userId, status, reason, accessExpiresAt),
     onSuccess: (_, variables) =>
       Promise.all([
         queryClient.invalidateQueries({

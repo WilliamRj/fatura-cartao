@@ -63,7 +63,7 @@ import { toast } from "sonner";
 type SplitDraft = {
   id: string;
   valor: number | "";
-  responsavel: string;
+  responsavelId: string;
 };
 
 type PageSize = "10" | "20" | "50" | "all";
@@ -122,9 +122,9 @@ export function GastosClient() {
     const difference = (originalValor ?? 0) - total;
     const responsibleCounts = splits.reduce<Record<string, number>>(
       (counts, split) => {
-        if (split.responsavel) {
-          counts[split.responsavel] =
-            (counts[split.responsavel] ?? 0) + 1;
+        if (split.responsavelId) {
+          counts[split.responsavelId] =
+            (counts[split.responsavelId] ?? 0) + 1;
         }
         return counts;
       },
@@ -135,9 +135,9 @@ export function GastosClient() {
         !split.valor || Number(split.valor) <= 0
           ? "Informe um valor maior que zero."
           : "",
-      responsible: !split.responsavel
+      responsible: !split.responsavelId
         ? "Selecione um responsável."
-        : responsibleCounts[split.responsavel] > 1
+        : responsibleCounts[split.responsavelId] > 1
           ? "Esse responsável já foi usado em outra divisão."
           : "",
     }));
@@ -170,9 +170,9 @@ export function GastosClient() {
     if (responsavelFilter !== "all") {
       result = result.filter((g) => {
         if (g.divisoes && g.divisoes.length > 0) {
-          return g.divisoes.some(d => d.responsavel === responsavelFilter);
+          return g.divisoes.some(d => d.responsavelId === responsavelFilter);
         }
-        return g.responsavel === responsavelFilter;
+        return g.responsavelId === responsavelFilter;
       });
     }
 
@@ -238,14 +238,14 @@ export function GastosClient() {
     setValidationAttempted(false);
     setEditingGasto(gasto);
     setEditedCategoria(gasto.categoria);
-    setEditedResponsavel(gasto.responsavel);
+    setEditedResponsavel(gasto.responsavelId ?? "");
     setEditedObservacao(gasto.observacao || "");
     
     if (gasto.divisoes && gasto.divisoes.length > 0) {
       setIsSplitMode(true);
       setOriginalValor(gasto.valor);
       setEditedValor(""); // Not used in split mode
-      setSplits(gasto.divisoes.map((d, i) => ({ id: `split-${i}`, valor: d.valor, responsavel: d.responsavel })));
+      setSplits(gasto.divisoes.map((d, i) => ({ id: `split-${i}`, valor: d.valor, responsavelId: d.responsavelId })));
     } else {
       setIsSplitMode(false);
       setEditedValor(gasto.valor);
@@ -255,14 +255,14 @@ export function GastosClient() {
   };
 
   const handleAddSplit = () => {
-    setSplits(prev => [...prev, { id: `temp-${Date.now()}`, valor: "", responsavel: "" }]);
+    setSplits(prev => [...prev, { id: `temp-${Date.now()}`, valor: "", responsavelId: "" }]);
   };
 
   const handleRemoveSplit = (index: number) => {
     setSplits(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSplitChange = (index: number, field: 'valor' | 'responsavel', value: string | number) => {
+  const handleSplitChange = (index: number, field: 'valor' | 'responsavelId', value: string | number) => {
     setSplits(prev => {
       const newSplits = [...prev];
       newSplits[index] = { ...newSplits[index], [field]: value };
@@ -287,12 +287,12 @@ export function GastosClient() {
     if (!originalValor) return;
 
     const primaryResponsible =
-      responsaveis.find((responsavel) => responsavel.isOwner)?.nome ||
+      responsaveis.find((responsavel) => responsavel.isOwner)?.id ||
       editedResponsavel ||
-      responsaveis[0]?.nome;
+      responsaveis[0]?.id;
     const otherResponsible = responsaveis.find(
-      (responsavel) => responsavel.nome !== primaryResponsible,
-    )?.nome;
+      (responsavel) => responsavel.id !== primaryResponsible,
+    )?.id;
 
     if (!primaryResponsible || !otherResponsible) {
       toast.info("Cadastre pelo menos dois responsáveis para usar o 50/50.");
@@ -304,12 +304,12 @@ export function GastosClient() {
       {
         id: `suggested-primary-${Date.now()}`,
         valor: values[0],
-        responsavel: primaryResponsible,
+        responsavelId: primaryResponsible,
       },
       {
         id: `suggested-other-${Date.now()}`,
         valor: values[1],
-        responsavel: otherResponsible,
+        responsavelId: otherResponsible,
       },
     ]);
     setValidationAttempted(false);
@@ -318,11 +318,11 @@ export function GastosClient() {
   const handleStartSplit = () => {
     const value = editingGasto?.valor ?? 0;
     const primaryResponsible =
-      responsaveis.find((responsavel) => responsavel.isOwner)?.nome ||
+      responsaveis.find((responsavel) => responsavel.isOwner)?.id ||
       editedResponsavel;
     const otherResponsible = responsaveis.find(
-      (responsavel) => responsavel.nome !== primaryResponsible,
-    )?.nome;
+      (responsavel) => responsavel.id !== primaryResponsible,
+    )?.id;
     const values = divideAmount(value, 2);
 
     setIsSplitMode(true);
@@ -332,12 +332,12 @@ export function GastosClient() {
       {
         id: `split-primary-${Date.now()}`,
         valor: values[0],
-        responsavel: primaryResponsible,
+        responsavelId: primaryResponsible,
       },
       {
         id: `split-other-${Date.now()}`,
         valor: values[1],
-        responsavel: otherResponsible ?? "",
+        responsavelId: otherResponsible ?? "",
       },
     ]);
   };
@@ -385,7 +385,13 @@ export function GastosClient() {
           updates: {
             categoria: editedCategoria,
             observacao: editedObservacao,
-            divisoes: splits.map(s => ({ valor: Number(s.valor), responsavel: s.responsavel }))
+            divisoes: splits.map((split) => ({
+              valor: Number(split.valor),
+              responsavelId: split.responsavelId,
+              responsavel:
+                responsaveis.find((item) => item.id === split.responsavelId)?.nome ??
+                "Responsável arquivado",
+            }))
           }
         });
 
@@ -395,7 +401,10 @@ export function GastosClient() {
           updates: {
             valor: Number(editedValor),
             categoria: editedCategoria,
-            responsavel: editedResponsavel,
+            responsavelId: editedResponsavel,
+            responsavel:
+              responsaveis.find((item) => item.id === editedResponsavel)?.nome ??
+              editingGasto.responsavel,
             observacao: editedObservacao,
             divisoes: null
           }
@@ -559,13 +568,15 @@ export function GastosClient() {
               >
                 <SelectTrigger id={responsibleFilterId} className="w-full">
                   <SelectValue placeholder="Responsável">
-                    {responsavelFilter === "all" ? "Todos Responsáveis" : responsavelFilter}
+                    {responsavelFilter === "all"
+                      ? "Todos Responsáveis"
+                      : responsaveis.find((item) => item.id === responsavelFilter)?.nome}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos Responsáveis</SelectItem>
                   {responsaveis.map((resp) => (
-                    <SelectItem key={resp.id} value={resp.nome}>
+                    <SelectItem key={resp.id} value={resp.id}>
                       {resp.nome}
                     </SelectItem>
                   ))}
@@ -1029,8 +1040,8 @@ export function GastosClient() {
                               Responsável
                             </label>
                             <Select
-                              value={split.responsavel}
-                              onValueChange={(val) => handleSplitChange(index, 'responsavel', val ?? "")}
+                              value={split.responsavelId}
+                              onValueChange={(val) => handleSplitChange(index, 'responsavelId', val ?? "")}
                             >
                               <SelectTrigger
                                 id={`${formId}-split-${index}-responsible`}
@@ -1050,7 +1061,7 @@ export function GastosClient() {
                               </SelectTrigger>
                               <SelectContent>
                                 {responsaveis.map((resp) => (
-                                  <SelectItem key={resp.id} value={resp.nome}>
+                                  <SelectItem key={resp.id} value={resp.id}>
                                     {resp.nome}
                                   </SelectItem>
                                 ))}
@@ -1153,7 +1164,7 @@ export function GastosClient() {
                     </SelectTrigger>
                     <SelectContent>
                       {responsaveis.map((resp) => (
-                        <SelectItem key={resp.id} value={resp.nome}>
+                        <SelectItem key={resp.id} value={resp.id}>
                           {resp.nome}
                         </SelectItem>
                       ))}

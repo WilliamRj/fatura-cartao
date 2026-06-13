@@ -38,10 +38,15 @@ export function mapGastoRow(row: GastoRow): Gasto {
     estabelecimento: row.estabelecimento,
     valor: row.valor,
     categoria: normalizeCategory(row.categoria),
-    responsavel: row.responsavel,
+    responsavelId: row.responsavel_id,
+    responsavel: row.responsavel_nome_snapshot,
     parcela: row.parcela ?? undefined,
     observacao: row.observacao ?? undefined,
-    divisoes: row.divisoes,
+    divisoes: row.divisoes?.map((division) => ({
+      valor: division.valor,
+      responsavelId: division.responsavel_id,
+      responsavel: division.responsavel_nome_snapshot,
+    })),
   };
 }
 
@@ -51,6 +56,7 @@ export function mapResponsavelRow(row: ResponsavelRow): Responsavel {
     nome: row.nome,
     cor: row.cor ?? "bg-primary/20",
     isOwner: row.is_owner,
+    archivedAt: row.archived_at ?? undefined,
   };
 }
 
@@ -65,10 +71,15 @@ export function mapGastoCreateInput(
     estabelecimento: input.estabelecimento,
     valor: input.valor,
     categoria: normalizeCategory(input.categoria),
-    responsavel: input.responsavel,
+    responsavel_id: input.responsavelId,
+    responsavel_nome_snapshot: input.responsavel,
     parcela: input.parcela,
     observacao: input.observacao,
-    divisoes: input.divisoes,
+    divisoes: input.divisoes?.map((division) => ({
+      valor: division.valor,
+      responsavel_id: division.responsavelId,
+      responsavel_nome_snapshot: division.responsavel,
+    })),
   };
 }
 
@@ -83,12 +94,21 @@ export function mapGastoUpdateInput(input: GastoUpdateInput): GastoUpdate {
     ...(input.categoria !== undefined && {
       categoria: normalizeCategory(input.categoria),
     }),
+    ...(input.responsavelId !== undefined && {
+      responsavel_id: input.responsavelId,
+    }),
     ...(input.responsavel !== undefined && {
-      responsavel: input.responsavel,
+      responsavel_nome_snapshot: input.responsavel,
     }),
     ...(input.parcela !== undefined && { parcela: input.parcela }),
     ...(input.observacao !== undefined && { observacao: input.observacao }),
-    ...(input.divisoes !== undefined && { divisoes: input.divisoes }),
+    ...(input.divisoes !== undefined && {
+      divisoes: input.divisoes?.map((division) => ({
+        valor: division.valor,
+        responsavel_id: division.responsavelId,
+        responsavel_nome_snapshot: division.responsavel,
+      })),
+    }),
   };
 }
 
@@ -133,8 +153,13 @@ export function mapGastoRowToParcelamento(
     totalParcelas,
     valorParcela: row.valor,
     valorTotal: row.valor * totalParcelas,
-    responsavel: row.responsavel,
-    divisoes: row.divisoes,
+    responsavelId: row.responsavel_id,
+    responsavel: row.responsavel_nome_snapshot,
+    divisoes: row.divisoes?.map((division) => ({
+      valor: division.valor,
+      responsavelId: division.responsavel_id,
+      responsavel: division.responsavel_nome_snapshot,
+    })),
   };
 }
 

@@ -24,10 +24,19 @@ O CRUD comum é feito pelos hooks em `lib/hooks/`. A principal API própria é `
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
+ACCESS_EMAIL_ENABLED=false
+RESEND_API_KEY=
+ACCESS_EMAIL_FROM=
 ```
 
 - As duas variáveis `NEXT_PUBLIC_*` são públicas por definição.
 - `GEMINI_API_KEY` é privada.
+- O envio de emails administrativos permanece desabilitado enquanto
+  `ACCESS_EMAIL_ENABLED=false`, mesmo que as credenciais estejam preenchidas.
+- Para habilitar no futuro, configure `ACCESS_EMAIL_ENABLED=true`,
+  `RESEND_API_KEY` e um remetente verificado em `ACCESS_EMAIL_FROM`.
+- Com o envio desabilitado, a decisão de acesso continua funcionando e o
+  evento de auditoria registra o email como `skipped`.
 - O código atual não usa `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## 🗃️ Schema mínimo
@@ -64,7 +73,8 @@ create table if not exists public.gastos (
   estabelecimento text not null,
   valor numeric(12,2) not null,
   categoria text not null,
-  responsavel text not null,
+  responsavel_id uuid not null,
+  responsavel_nome_snapshot text not null,
   parcela text,
   observacao text,
   divisoes jsonb,
@@ -77,8 +87,8 @@ Formato de `divisoes`:
 
 ```json
 [
-  { "valor": 50.00, "responsavel": "Pessoa A" },
-  { "valor": 50.00, "responsavel": "Pessoa B" }
+  { "valor": 50.00, "responsavel_id": "<uuid>", "responsavel_nome_snapshot": "Pessoa A" },
+  { "valor": 50.00, "responsavel_id": "<uuid>", "responsavel_nome_snapshot": "Pessoa B" }
 ]
 ```
 
@@ -91,6 +101,7 @@ create table if not exists public.responsaveis (
   nome text not null,
   cor text,
   is_owner boolean not null default false,
+  archived_at timestamptz,
   created_at timestamptz not null default now(),
   unique (user_id, nome)
 );
@@ -103,7 +114,8 @@ maiúsculas/minúsculas.
 RPCs:
 
 - `ensure_owner_responsavel()`: cria o titular automaticamente após o acesso ser aprovado.
-- `rename_responsavel(id, nome)`: renomeia o cadastro, gastos e divisões na mesma transação.
+- `rename_responsavel(id, nome)`: renomeia o cadastro sem alterar snapshots históricos.
+- `archive_or_delete_responsavel(id)`: arquiva quando existe histórico ou exclui quando não existe.
 
 ### `authorized_users`
 
@@ -123,13 +135,13 @@ O usuário autenticado deve conseguir verificar apenas o próprio email, sem enu
 
 ```text
 app_users
-  perfil Google + access_status + datas e motivo da decisão
+  perfil Google + access_status + datas, motivo e expiração opcional
 
 system_admins
   usuários Master definidos somente por SQL
 
 access_audit_log
-  histórico de solicitações, aprovações, recusas e suspensões
+  histórico de decisões, expiração e resultado do email
 ```
 
 RPCs:
@@ -138,8 +150,15 @@ RPCs:
 - `renew_my_access_request()`: reabre uma solicitação recusada ou retirada.
 - `withdraw_my_access_request()`: retira uma solicitação pendente.
 - `admin_list_access_requests(status)`: lista usuários para o Master.
-- `admin_set_access_status(user_id, status, reason)`: aprova, recusa, suspende ou reativa.
+- `admin_set_access_status(user_id, status, reason, access_expires_at)`: decide e registra expiração opcional.
 - `admin_get_access_audit(user_id)`: consulta o histórico administrativo.
+- `admin_export_access_audit()`: retorna todo o histórico para exportação CSV.
+
+Route handlers:
+
+- `POST /api/admin/access/decision`: executa a decisão e, somente quando
+  `ACCESS_EMAIL_ENABLED=true`, envia o email via Resend.
+- `GET /api/admin/access/audit-export`: gera o CSV administrativo para Masters.
 
 As RPCs administrativas verificam `system_admins` no banco. Ocultar o card no
 frontend não é considerado uma barreira de segurança.

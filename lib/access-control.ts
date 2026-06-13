@@ -21,6 +21,7 @@ export interface AccessProfile {
   reviewedAt?: string;
   lastRequestAt: string;
   requestCount: number;
+  accessExpiresAt?: string;
   isAdmin: boolean;
 }
 
@@ -34,7 +35,10 @@ export interface AccessAuditEntry {
   previousStatus?: string;
   newStatus: string;
   reason?: string;
+  accessExpiresAt?: string;
   actorEmail?: string;
+  emailStatus?: "pending" | "sent" | "failed" | "skipped";
+  emailError?: string;
   createdAt: string;
 }
 
@@ -49,6 +53,7 @@ interface AccessStateRow {
   reviewed_at: string | null;
   last_request_at: string;
   request_count: number;
+  access_expires_at: string | null;
   is_admin: boolean;
 }
 
@@ -95,6 +100,7 @@ function mapAccessProfile(row: AccessStateRow): AccessProfile {
     reviewedAt: row.reviewed_at ?? undefined,
     lastRequestAt: row.last_request_at,
     requestCount: row.request_count,
+    accessExpiresAt: row.access_expires_at ?? undefined,
     isAdmin: row.is_admin,
   };
 }
@@ -181,19 +187,58 @@ export async function setUserAccessStatus(
   userId: string,
   status: "approved" | "rejected" | "suspended",
   reason?: string,
+  accessExpiresAt?: string,
 ) {
-  const { error } = await supabase.rpc("admin_set_access_status", {
-    p_target_user_id: userId,
-    p_new_status: status,
-    p_reason: reason?.trim() || null,
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  const response = await fetch("/api/admin/access/decision", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ userId, status, reason, accessExpiresAt }),
   });
 
-  if (error) {
-    throw createPublicDataError(
-      error,
-      "Não foi possível atualizar o acesso deste usuário.",
-    );
+  const result = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    emailStatus?: "sent" | "failed" | "skipped";
+  };
+  if (!response.ok) {
+    throw new Error(result.error || "Não foi possível atualizar o acesso deste usuário.");
   }
+
+  return result;
+}
+
+export async function downloadAccessAuditExport() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) throw new Error("Usuário não autenticado.");
+
+  const response = await fetch("/api/admin/access/audit-export", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) {
+    const result = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(result.error || "Não foi possível exportar o histórico.");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download =
+    response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+    "historico-administrativo.csv";
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function listAccessAudit(userId: string) {
@@ -214,7 +259,10 @@ export async function listAccessAudit(userId: string) {
     previous_status: string | null;
     new_status: string;
     reason: string | null;
+    access_expires_at: string | null;
     actor_email: string | null;
+    email_status: "pending" | "sent" | "failed" | "skipped" | null;
+    email_error: string | null;
     created_at: string;
   }>).map(
     (row): AccessAuditEntry => ({
@@ -223,7 +271,10 @@ export async function listAccessAudit(userId: string) {
       previousStatus: row.previous_status ?? undefined,
       newStatus: row.new_status,
       reason: row.reason ?? undefined,
+      accessExpiresAt: row.access_expires_at ?? undefined,
       actorEmail: row.actor_email ?? undefined,
+      emailStatus: row.email_status ?? undefined,
+      emailError: row.email_error ?? undefined,
       createdAt: row.created_at,
     }),
   );
